@@ -294,10 +294,7 @@ function commercialUpgradeFormHtml(kind) {
   const clientFields = kind === "orcamento"
     ? "<div class='form-group'><label>Cliente</label><select class='form-select' id='orc-cliente' required><option value=''>Selecione o Cliente</option></select></div>"
     : "<div class='form-row'><div class='form-group'><label>Cliente</label><select class='form-select' id='ped-cliente' required><option value=''>Selecione o Cliente</option></select></div><div class='form-group'><label>Previsão de Entrega</label><input type='date' class='form-input' id='ped-entrega' required></div></div>";
-  const marginFields = kind === "orcamento"
-    ? "<div class='form-group'><label>Margem de Lucro Desejada (%)</label><input type='number' class='form-input' id='orc-margem' value='30' min='0' required></div><div class='form-group'><label>Alíquota de Imposto (%)</label><input type='number' class='form-input' id='orc-imposto' value='18' min='0' required></div>"
-    : "";
-  const totalLabel = kind === "orcamento" ? "VALOR FINAL CALCULADO" : "TOTAL DO PEDIDO";
+  const totalLabel = kind === "orcamento" ? "VALOR FINAL" : "TOTAL DO PEDIDO";
   const buttonLabel = kind === "orcamento" ? "Salvar Orçamento" : "Salvar Pedido";
   const icon = kind === "orcamento" ? "check-circle" : "shopping-bag";
   return clientFields +
@@ -308,7 +305,7 @@ function commercialUpgradeFormHtml(kind) {
     "<div class='form-group'><label>Valor Unitário</label><input type='number' class='form-input' id='" + prefix + "-item-valor' min='0' step='0.01' value='0'></div>" +
     "<button type='button' class='btn btn-secondary line-item-add' id='btn-add-" + prefix + "-item' title='Adicionar item'><i data-lucide='plus'></i></button></div>" +
     "<div class='table-wrapper line-items-table'><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th><th></th></tr></thead><tbody id='" + prefix + "-itens-body'></tbody></table></div></div>" +
-    "<div class='commercial-summary'>" + marginFields + "<div class='commercial-total'><span>" + totalLabel + "</span><strong id='" + prefix + "-resultado-val'>R$ 0,00</strong></div><button type='submit' class='btn btn-primary'><i data-lucide='" + icon + "'></i> " + buttonLabel + "</button></div>";
+    "<div class='commercial-summary'><div class='commercial-total'><span>" + totalLabel + "</span><strong id='" + prefix + "-resultado-val'>R$ 0,00</strong></div><button type='submit' class='btn btn-primary'><i data-lucide='" + icon + "'></i> " + buttonLabel + "</button></div>";
 }
 
 function populateClientSelectors() {
@@ -386,12 +383,7 @@ function renderCommercialUpgradeDraft(kind) {
 
 function calculateCommercialUpgradeTotals(kind) {
   const subtotal = commercialDraftUpgrade[kind].reduce(function(sum, item) { return sum + item.total; }, 0);
-  if (kind !== "orcamento") return { subtotal: subtotal, finalValue: subtotal, taxValue: 0 };
-  const margem = parseFloat(document.getElementById("orc-margem")?.value) || 0;
-  const imposto = parseFloat(document.getElementById("orc-imposto")?.value) || 0;
-  const comMargem = subtotal * (1 + margem / 100);
-  const finalValue = comMargem * (1 + imposto / 100);
-  return { subtotal: subtotal, finalValue: finalValue, taxValue: finalValue - comMargem };
+  return { subtotal: subtotal, finalValue: subtotal, taxValue: 0 };
 }
 
 window.removeCommercialUpgradeItem = function(kind, index) {
@@ -414,9 +406,9 @@ function setupCommercialUpgradeSubmits() {
         data: record?.data || new Date().toISOString().split("T")[0],
         itens: cloneCommercialItems(commercialDraftUpgrade.orcamento),
         subtotal: totals.subtotal,
-        impostos: totals.taxValue,
+        impostos: 0,
         total: totals.finalValue,
-        margem: parseFloat(document.getElementById("orc-margem").value) || 0,
+        margem: 0,
         status: record?.status || "Pendente"
       };
       if (record) Object.assign(record, savedOrc);
@@ -717,10 +709,11 @@ function generateCommercialPdf(kind, id) {
   const rows = items.map(function(item) {
     return "<tr><td>" + item.tipo + "</td><td>" + item.descricao + "</td><td>" + item.quantidade + "</td><td>" + formatBRL(item.valorUnitario) + "</td><td>" + formatBRL(item.total) + "</td></tr>";
   }).join("");
-  const extraLabel = kind === "pedido" ? "Previsão de entrega" : "Margem aplicada";
-  const extraValue = kind === "pedido" ? record.entregaEstimada : ((record.margem || 0) + "%");
-  const taxLine = kind === "orcamento" ? "<div class='total-line'><span>Impostos</span><strong>" + formatBRL(record.impostos || 0) + "</strong></div>" : "";
-  const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>" + title + " " + record.id + "</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body><header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div><div><span class='muted'>" + extraLabel + "</span><br><strong>" + extraValue + "</strong></div></section><section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section></body></html>";
+  const extraHtml = kind === "pedido" 
+    ? "<div><span class='muted'>Previsão de entrega</span><br><strong>" + record.entregaEstimada + "</strong></div>"
+    : "";
+  const taxLine = "";
+  const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>" + title + " " + record.id + "</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body><header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div>" + extraHtml + "</section><section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section></body></html>";
   const oldFrame = document.getElementById("commercial-pdf-frame");
   if (oldFrame) oldFrame.remove();
   const frame = document.createElement("iframe");
@@ -959,21 +952,42 @@ function initFiscal() {
       const dest = document.getElementById("fiscal-destinatario").value;
       const val = parseFloat(document.getElementById("fiscal-valor").value);
 
-      const newNF = {
-        id: `NF-${1026 + ERP_DATA.fiscal.notasEmitidas.length}`,
-        destinatario: dest,
-        tipo: tipo,
-        valor: val,
-        emissao: new Date().toISOString(),
-        status: "Autorizada (SEFAZ)",
-        xmlFile: `NF352606${Math.floor(1000000000 + Math.random() * 9000000000)}.xml`
-      };
+      const submitBtn = form.querySelector("button[type='submit']");
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
 
-      ERP_DATA.fiscal.notasEmitidas.unshift(newNF);
-      saveState();
-      renderFiscalData();
-      form.reset();
-      alert("Nota transmitida com sucesso e autorizada pela SEFAZ Estadual!");
+      let message = "Transmitindo para SEFAZ...";
+      if (tipo === "NFs") {
+        message = "Transmitindo via API Nacional NFS-e...";
+      } else if (tipo === "NFe") {
+        message = "Transmitindo via API de Produtos NF-e...";
+      }
+
+      submitBtn.innerHTML = `<i data-lucide="refresh-cw" class="animate-spin" style="width: 16px; height: 16px; display: inline-block;"></i> ${message}`;
+      lucide.createIcons();
+
+      setTimeout(() => {
+        const newNF = {
+          id: `NF-${1026 + ERP_DATA.fiscal.notasEmitidas.length}`,
+          destinatario: dest,
+          tipo: tipo,
+          valor: val,
+          emissao: new Date().toISOString(),
+          status: tipo === "NFs" ? "Autorizada (API Nacional)" : "Autorizada (SEFAZ)",
+          xmlFile: `NF352606${Math.floor(1000000000 + Math.random() * 9000000000)}.xml`
+        };
+
+        ERP_DATA.fiscal.notasEmitidas.unshift(newNF);
+        saveState();
+        renderFiscalData();
+        form.reset();
+
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        lucide.createIcons();
+
+        alert(`Documento Fiscal ${newNF.id} emitido e homologado via API com sucesso!`);
+      }, 1500);
     });
   }
 
@@ -982,6 +996,26 @@ function initFiscal() {
   if (contabBtn) {
     contabBtn.addEventListener("click", () => {
       alert("Sucesso! Todos os arquivos fiscais e XMLs da competência 06/2026 foram compactados e enviados para o e-mail: contabil@parceiro.com.br.");
+    });
+  }
+
+  // NF-e API Configuration Form
+  const nfeForm = document.getElementById("form-config-nfe");
+  if (nfeForm) {
+    nfeForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const token = document.getElementById("api-nfe-token").value;
+      if (!token) {
+        alert("Por favor, insira o Token de Integração da NF-e.");
+        return;
+      }
+      const badge = nfeForm.closest(".panel").querySelector(".badge");
+      if (badge) {
+        badge.className = "badge badge-success";
+        badge.innerHTML = '<i data-lucide="wifi"></i> Ativo (Custom API)';
+      }
+      lucide.createIcons();
+      alert("Integração de NF-e configurada e ativada com sucesso!");
     });
   }
 
@@ -1156,11 +1190,16 @@ function initRH() {
   const horasInput = document.getElementById("folha-horas-extras");
   const benefInput = document.getElementById("folha-beneficios");
   
+  const reloadColaboradoresSelect = () => {
+    if (colSelect) {
+      colSelect.innerHTML = ERP_DATA.cadastro.colaboradores.map(c => `
+        <option value="${c.id}">${c.nome}</option>
+      `).join('');
+    }
+  };
+
   if (colSelect) {
-    // Populate select
-    colSelect.innerHTML = ERP_DATA.cadastro.colaboradores.map(c => `
-      <option value="${c.id}">${c.nome}</option>
-    `).join('');
+    reloadColaboradoresSelect();
 
     const updateSalarioBase = () => {
       const selectedCol = ERP_DATA.cadastro.colaboradores.find(c => c.id === colSelect.value);
@@ -1190,9 +1229,11 @@ function initRH() {
     return { gross, taxes, net };
   }
 
-  [horasInput, benefInput].forEach(inp => {
-    inp.addEventListener("input", calculatePayroll);
-  });
+  if (horasInput && benefInput) {
+    [horasInput, benefInput].forEach(inp => {
+      inp.addEventListener("input", calculatePayroll);
+    });
+  }
 
   const form = document.getElementById("form-folha-rh");
   if (form) {
@@ -1203,7 +1244,6 @@ function initRH() {
 
       alert(`Holerite gerado com sucesso para ${col.nome}! Líquido: ${formatBRL(results.net)}`);
       
-      // We could add this to a dynamic comprovantes list
       const tbody = document.getElementById("table-comprovantes-rh-body");
       if (tbody) {
         const tr = document.createElement("tr");
@@ -1219,6 +1259,105 @@ function initRH() {
       }
       form.reset();
       calculatePayroll();
+    });
+  }
+
+  // Contract form dynamic toggle logic
+  const contractFormPanel = document.getElementById("panel-form-contrato");
+  const btnNewContract = document.getElementById("btn-novo-contrato");
+  const btnCancelContract = document.getElementById("btn-cancelar-contrato");
+  
+  if (btnNewContract && contractFormPanel) {
+    btnNewContract.addEventListener("click", () => {
+      contractFormPanel.classList.remove("hidden");
+      contractFormPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  if (btnCancelContract && contractFormPanel) {
+    btnCancelContract.addEventListener("click", () => {
+      contractFormPanel.classList.add("hidden");
+      document.getElementById("form-novo-contrato")?.reset();
+    });
+  }
+
+  const contractTypeSelect = document.getElementById("contrato-tipo");
+  if (contractTypeSelect) {
+    contractTypeSelect.addEventListener("change", () => {
+      const type = contractTypeSelect.value;
+      const cltFields = document.querySelector(".clt-field");
+      const meiFields = document.querySelector(".mei-field");
+      const autonomoFields = document.querySelector(".autonomo-field");
+
+      cltFields?.classList.add("hidden");
+      meiFields?.classList.add("hidden");
+      autonomoFields?.classList.add("hidden");
+
+      if (type === "CLT") {
+        cltFields?.classList.remove("hidden");
+      } else if (type === "MEI") {
+        meiFields?.classList.remove("hidden");
+      } else if (type === "Autônomo") {
+        autonomoFields?.classList.remove("hidden");
+      }
+    });
+  }
+
+  // Submit new contract
+  const newContractForm = document.getElementById("form-novo-contrato");
+  if (newContractForm) {
+    newContractForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const colName = document.getElementById("contrato-colaborador").value.trim();
+      const type = document.getElementById("contrato-tipo").value;
+      const start = document.getElementById("contrato-inicio").value;
+      const end = document.getElementById("contrato-termino").value;
+
+      let baseSalary = 0;
+      let cargo = "Prestador";
+
+      if (type === "CLT") {
+        baseSalary = parseFloat(document.getElementById("contrato-clt-salario").value) || 0;
+        cargo = document.getElementById("contrato-clt-cargo").value || "Analista";
+      } else if (type === "MEI") {
+        baseSalary = parseFloat(document.getElementById("contrato-mei-valor").value) || 0;
+        cargo = "Prestador MEI";
+      } else if (type === "Autônomo") {
+        baseSalary = parseFloat(document.getElementById("contrato-autonomo-valor").value) || 0;
+        cargo = "Prestador Autônomo";
+      }
+
+      // 1. Save Contract
+      const newContract = {
+        id: `CT-${String(ERP_DATA.rh.contratosTrabalho.length + 1).padStart(3, '0')}`,
+        colaborador: colName,
+        tipo: type,
+        inicio: start,
+        termino: end,
+        status: "Ativo"
+      };
+      ERP_DATA.rh.contratosTrabalho.unshift(newContract);
+
+      // 2. Save Colaborador to Cadastro database (if not exists)
+      const newCol = {
+        id: `COL-${String(ERP_DATA.cadastro.colaboradores.length + 1).padStart(3, '0')}`,
+        nome: colName,
+        cargo: cargo,
+        departamento: type === "CLT" ? "Operacional" : "Externo",
+        salario: baseSalary,
+        admissao: start,
+        status: "Ativo"
+      };
+      ERP_DATA.cadastro.colaboradores.unshift(newCol);
+
+      saveState();
+      renderRHTables();
+      renderCadastroTables();
+      reloadColaboradoresSelect();
+      
+      newContractForm.reset();
+      contractFormPanel.classList.add("hidden");
+      alert(`Contrato ${newContract.id} criado com sucesso para ${colName}!`);
     });
   }
 

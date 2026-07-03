@@ -425,6 +425,7 @@
           <div class="tab-headers">
             <button class="tab-btn active" data-tab="tab-emissao">Emissão Documento Fiscal</button>
             <button class="tab-btn" data-tab="tab-contabilidade">Comunicação Contábil</button>
+            <button class="tab-btn" data-tab="tab-fiscal-apis">Configuração de APIs Fiscais</button>
           </div>
 
           <!-- Emissão NFe/NFs/CTe -->
@@ -503,6 +504,79 @@
                 </div>
 
                 <button class="btn btn-primary" id="btn-export-contabilidade"><i data-lucide="mail"></i> Exportar e Enviar para Contabilidade</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuração de APIs Fiscais -->
+          <div class="tab-content" id="tab-fiscal-apis">
+            <div class="section-grid">
+              <!-- NFS-e API Configuration -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title"><i data-lucide="api"></i> API Nota Fiscal de Serviço (NFS-e Nacional)</h3>
+                  <span class="badge badge-success"><i data-lucide="wifi"></i> Conectado</span>
+                </div>
+                <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 1rem;">
+                  <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Conectado diretamente ao Portal Nacional de Emissão de NFS-e sob os padrões da Receita Federal.
+                  </p>
+                  <div class="form-group">
+                    <label>Provedor Integrado</label>
+                    <input type="text" class="form-input" value="Receita Federal / API Nacional NFS-e v2.0" disabled>
+                  </div>
+                  <div class="form-group">
+                    <label>Token de Acesso (API Key)</label>
+                    <input type="password" class="form-input" value="••••••••••••••••••••••••••••••••" disabled>
+                  </div>
+                  <div class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                      <label>Ambiente</label>
+                      <select class="form-select" id="api-nfse-ambiente">
+                        <option value="producao" selected>Produção</option>
+                        <option value="homologacao">Homologação (Testes)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Time-out da Conexão (s)</label>
+                      <input type="number" class="form-input" value="15" disabled>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- NF-e API Configuration -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title"><i data-lucide="api"></i> API Nota Fiscal Eletrônica (NF-e de Produto)</h3>
+                  <span class="badge badge-warning"><i data-lucide="power"></i> Pronto para Integrar</span>
+                </div>
+                <form id="form-config-nfe" style="padding: 1rem 0; display: flex; flex-direction: column; gap: 1rem;">
+                  <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Insira as credenciais do seu integrador fiscal (ex: FocusNFe, eNotas, WebSefaz) para ativar emissão automática.
+                  </p>
+                  <div class="form-group">
+                    <label>Endpoint / URL da API Sefaz</label>
+                    <input type="url" class="form-input" id="api-nfe-url" placeholder="https://api.focusnfe.com.br/v2" value="https://api.focusnfe.com.br/v2">
+                  </div>
+                  <div class="form-group">
+                    <label>Client ID / Token Sefaz</label>
+                    <input type="text" class="form-input" id="api-nfe-token" placeholder="Insira o Token de Integração">
+                  </div>
+                  <div class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                      <label>Certificado Digital (.pfx)</label>
+                      <div style="border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; text-align: center; font-size: 0.8rem; background: var(--surface-secondary); cursor: pointer;">
+                        <i data-lucide="upload" style="width: 16px; height: 16px; margin-right: 4px;"></i> Carregar arquivo
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Senha do Certificado</label>
+                      <input type="password" class="form-input" id="api-nfe-senha" placeholder="Senha do arquivo">
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;"><i data-lucide="save"></i> Salvar e Ativar Integração</button>
+                </form>
               </div>
             </div>
           </div>
@@ -622,9 +696,96 @@
 
           <!-- Contratos de Trabalho -->
           <div class="tab-content active" id="tab-rh-contratos">
+            <!-- Novo Contrato Form Panel -->
+            <div class="panel hidden" id="panel-form-contrato" style="margin-bottom: 2rem;">
+              <div class="panel-header">
+                <h3 class="panel-title">Novo Contrato de Trabalho</h3>
+              </div>
+              <form id="form-novo-contrato" class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem 0;">
+                <div class="form-group">
+                  <label>Nome do Colaborador</label>
+                  <input type="text" class="form-input" id="contrato-colaborador" placeholder="Ex: João da Silva" required>
+                </div>
+                <div class="form-group">
+                  <label>Tipo Contratual</label>
+                  <select class="form-select" id="contrato-tipo" required>
+                    <option value="CLT" selected>CLT (Consolidação das Leis do Trabalho)</option>
+                    <option value="MEI">MEI (Microempreendedor Individual)</option>
+                    <option value="Autônomo">Autônomo (Prestação de Serviços)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Data de Início</label>
+                  <input type="date" class="form-input" id="contrato-inicio" required>
+                </div>
+                <div class="form-group">
+                  <label>Data de Término</label>
+                  <input type="text" class="form-input" id="contrato-termino" value="Indeterminado" placeholder="Indeterminado ou Data Fim" required>
+                </div>
+
+                <!-- CLT specific fields -->
+                <div class="form-group clt-field" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>Cargo / Função</label>
+                    <input type="text" class="form-input" id="contrato-clt-cargo" value="Analista" placeholder="Ex: Gerente">
+                  </div>
+                  <div class="form-group">
+                    <label>Salário Base (R$)</label>
+                    <input type="number" class="form-input" id="contrato-clt-salario" value="3500">
+                  </div>
+                  <div class="form-group">
+                    <label>Vale Refeição (R$)</label>
+                    <input type="number" class="form-input" id="contrato-clt-beneficios" value="450">
+                  </div>
+                </div>
+
+                <!-- MEI specific fields -->
+                <div class="form-group mei-field hidden" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>CNPJ do MEI</label>
+                    <input type="text" class="form-input" id="contrato-mei-cnpj" placeholder="00.000.000/0001-00">
+                  </div>
+                  <div class="form-group">
+                    <label>Valor Mensal do Contrato (R$)</label>
+                    <input type="number" class="form-input" id="contrato-mei-valor" placeholder="Ex: 5000">
+                  </div>
+                  <div class="form-group">
+                    <label>Periodicidade de Pagamento</label>
+                    <select class="form-select" id="contrato-mei-periodo">
+                      <option value="Mensal">Mensal</option>
+                      <option value="Quinzenal">Quinzenal</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Autônomo specific fields -->
+                <div class="form-group autonomo-field hidden" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>Valor da Hora / Serviço (R$)</label>
+                    <input type="number" class="form-input" id="contrato-autonomo-valor" placeholder="Ex: 100">
+                  </div>
+                  <div class="form-group">
+                    <label>Taxa de Comissão (%)</label>
+                    <input type="number" class="form-input" id="contrato-autonomo-comissao" value="5">
+                  </div>
+                  <div class="form-group">
+                    <label>Descrição do Serviço</label>
+                    <input type="text" class="form-input" id="contrato-autonomo-desc" placeholder="Ex: Desenvolvimento">
+                  </div>
+                </div>
+
+                <div class="form-group" style="grid-column: span 2; display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                  <button type="button" class="btn btn-secondary" id="btn-cancelar-contrato"><i data-lucide="x"></i> Cancelar</button>
+                  <button type="submit" class="btn btn-primary"><i data-lucide="check"></i> Criar Contrato</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- List Panel -->
             <div class="panel">
               <div class="panel-header">
                 <h3 class="panel-title">Controle de Admissões e Contratos</h3>
+                <button class="btn btn-primary" id="btn-novo-contrato"><i data-lucide="plus"></i> Novo Contrato</button>
               </div>
               <div class="table-wrapper">
                 <table>
