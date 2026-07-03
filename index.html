@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APP ADM - Sistema Integrado de Gestão ERP</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div id="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside>
+      <div class="brand">
+        <div class="brand-logo">
+          <i data-lucide="layers"></i>
+        </div>
+        <span class="brand-name">APP ADM</span>
+      </div>
+
+      <nav>
+        <div class="nav-section">
+          <span class="nav-section-title">Principal</span>
+          <a class="nav-item active" data-view="dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Dashboard</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Módulos</span>
+          
+          <a class="nav-item" data-view="comercial">
+            <i data-lucide="shopping-cart"></i>
+            <span>📊 Comercial</span>
+          </a>
+
+          <a class="nav-item" data-view="cadastro">
+            <i data-lucide="users"></i>
+            <span>👥 Cadastro</span>
+          </a>
+
+          <a class="nav-item" data-view="fiscal">
+            <i data-lucide="file-text"></i>
+            <span>📑 Fiscal</span>
+          </a>
+
+          <a class="nav-item" data-view="financeiro">
+            <i data-lucide="dollar-sign"></i>
+            <span>💰 Financeiro</span>
+          </a>
+
+          <a class="nav-item" data-view="rh">
+            <i data-lucide="briefcase"></i>
+            <span>🧑💼 Recursos Humanos</span>
+          </a>
+
+          <a class="nav-item" data-view="frota">
+            <i data-lucide="truck"></i>
+            <span>🚗 Frota Veicular</span>
+          </a>
+
+          <a class="nav-item" data-view="estoque">
+            <i data-lucide="archive"></i>
+            <span>📦 Estoque</span>
+          </a>
+
+          <a class="nav-item" data-view="administrativo">
+            <i data-lucide="folder-open"></i>
+            <span>🏢 Administrativo</span>
+          </a>
+        </div>
+      </nav>
+
+      <!-- Sidebar Footer User Profile -->
+      <div class="sidebar-footer">
+        <div class="avatar">ADM</div>
+        <div class="user-info">
+          <span class="user-name">Administrador Geral</span>
+          <span class="user-role">Diretoria</span>
+        </div>
+        <button class="theme-toggle-btn" id="theme-toggle" title="Alternar Tema">
+          <i data-lucide="sun" class="sun-icon"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Container -->
+    <main>
+      <!-- Header -->
+      <header>
+        <div class="page-title-container">
+          <h1 class="page-title" id="current-view-title">Dashboard</h1>
+          <span class="page-subtitle" id="current-view-subtitle">Visão geral do sistema e indicadores de desempenho</span>
+        </div>
+
+        <div class="header-actions">
+          <div class="search-bar">
+            <i data-lucide="search"></i>
+            <input type="text" placeholder="Pesquisar no sistema..." id="global-search">
+          </div>
+          <button class="header-btn" id="btn-notifications" title="Notificações">
+            <i data-lucide="bell"></i>
+            <span class="badge-dot"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Views Container -->
+      <div class="view-container">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <div class="view-content active" id="view-dashboard">
+          <div class="grid-kpis">
+            <div class="card-kpi">
+              <div class="kpi-icon primary">
+                <i data-lucide="dollar-sign"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-title">Receita Mensal</span>
+                <span class="kpi-value" id="kpi-receita">R$ 148.500,00</span>
+                <span class="kpi-trend up"><i data-lucide="trending-up"></i> +12% vs. mês anterior</span>
+              </div>
+            </div>
+            <div class="card-kpi">
+              <div class="kpi-icon success">
+                <i data-lucide="shopping-bag"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-title">Vendas Ativas</span>
+                <span class="kpi-value" id="kpi-vendas">32 Pedidos</span>
+                <span class="kpi-trend up"><i data-lucide="trending-up"></i> +8% este mês</span>
+              </div>
+            </div>
+            <div class="card-kpi">
+              <div class="kpi-icon warning">
+                <i data-lucide="truck"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-title">Frota Operante</span>
+                <span class="kpi-value" id="kpi-frota">2 Veículos</span>
+                <span class="kpi-trend down"><i data-lucide="trending-down"></i> 1 Em Manutenção</span>
+              </div>
+            </div>
+            <div class="card-kpi">
+              <div class="kpi-icon danger">
+                <i data-lucide="alert-triangle"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-title">Alertas Críticos</span>
+                <span class="kpi-value" id="kpi-alertas">3 Pendentes</span>
+                <span class="kpi-trend down" style="color: var(--color-danger);">Licenças & Validades</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title"><i data-lucide="activity"></i> Saúde Financeira & Fluxo de Caixa</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="cashflow-chart"></canvas>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title"><i data-lucide="bell-ring"></i> Avisos Urgentes</h3>
+              </div>
+              <div class="notifications-list" id="dashboard-notifications">
+                <!-- JavaScript populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. COMERCIAL VIEW -->
+        <div class="view-content" id="view-comercial">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-orcamentos">Orçamentos</button>
+            <button class="tab-btn" data-tab="tab-pedidos">Pedidos</button>
+            <button class="tab-btn" data-tab="tab-contratos">Contratos</button>
+          </div>
+
+          <!-- Orçamentos Sub-tab -->
+          <div class="tab-content active" id="tab-orcamentos">
+            <div class="section-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Gerador Rápido de Proposta</h3>
+                </div>
+                <form id="form-orcamento" class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>Cliente</label>
+                    <select class="form-select" id="orc-cliente" required>
+                      <option value="">Selecione o Cliente</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Subtotal (Produtos/Serviços R$)</label>
+                    <input type="number" class="form-input" id="orc-subtotal" value="10000" min="0" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Margem de Lucro Desejada (%)</label>
+                    <input type="number" class="form-input" id="orc-margem" value="30" min="0" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Alíquota de Imposto (%)</label>
+                    <input type="number" class="form-input" id="orc-imposto" value="18" min="0" required>
+                  </div>
+                  <div class="form-group" style="grid-column: span 2;">
+                    <div style="background: var(--surface-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">VALOR FINAL CALCULADO</div>
+                        <div id="orc-resultado-val" style="font-size: 1.4rem; font-weight: 800; color: var(--color-success);">R$ 0,00</div>
+                      </div>
+                      <button type="submit" class="btn btn-primary"><i data-lucide="check-circle"></i> Salvar Proposta</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Propostas Recentes</h3>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Cód</th>
+                        <th>Cliente</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-orcamentos-body">
+                      <!-- Dynamic -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pedidos Sub-tab -->
+          <div class="tab-content" id="tab-pedidos">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Pedidos em Tempo Real</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Cliente</th>
+                      <th>Data</th>
+                      <th>Total</th>
+                      <th>Previsão de Entrega</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-pedidos-body">
+                    <!-- Dynamic -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contratos Sub-tab -->
+          <div class="tab-content" id="tab-contratos">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Gestão Digital de Contratos</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Título</th>
+                      <th>Tipo</th>
+                      <th>Parceiro Comercial</th>
+                      <th>Vigência Fim</th>
+                      <th>Valor Mensal</th>
+                      <th>Assinatura</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-contratos-body">
+                    <!-- Dynamic -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. CADASTRO VIEW -->
+        <div class="view-content" id="view-cadastro">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-clientes">Clientes</button>
+            <button class="tab-btn" data-tab="tab-fornecedores">Fornecedores</button>
+            <button class="tab-btn" data-tab="tab-colaboradores">Colaboradores</button>
+            <button class="tab-btn" data-tab="tab-veiculos">Veículos</button>
+            <button class="tab-btn" data-tab="tab-produtos">Produtos</button>
+          </div>
+
+          <!-- Clientes Sub-tab -->
+          <div class="tab-content active" id="tab-clientes">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Listagem de Clientes</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Cód</th>
+                      <th>Nome / Razão Social</th>
+                      <th>CNPJ</th>
+                      <th>Email</th>
+                      <th>Telefone</th>
+                      <th>Total Comprado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-clientes-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fornecedores Sub-tab -->
+          <div class="tab-content" id="tab-fornecedores">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Fornecedores Credenciados</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Razão Social</th>
+                      <th>CNPJ</th>
+                      <th>Contato</th>
+                      <th>Telefone</th>
+                      <th>Qualidade</th>
+                      <th>Prazo Médio</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-fornecedores-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Colaboradores Sub-tab -->
+          <div class="tab-content" id="tab-colaboradores">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Quadro de Colaboradores</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Cargo</th>
+                      <th>Departamento</th>
+                      <th>Salário Base</th>
+                      <th>Data Admissão</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-colaboradores-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Veículos Sub-tab -->
+          <div class="tab-content" id="tab-veiculos">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Frota Cadastrada</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Placa</th>
+                      <th>Marca / Modelo</th>
+                      <th>Ano</th>
+                      <th>Venc. Licenciamento</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-veiculos-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Produtos Sub-tab -->
+          <div class="tab-content" id="tab-produtos">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Catálogo Digital de Produtos</h3>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;" id="catalog-produtos-grid">
+                <!-- Javascript dynamic cards -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. FISCAL VIEW -->
+        <div class="view-content" id="view-fiscal">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-emissao">Emissão Documento Fiscal</button>
+            <button class="tab-btn" data-tab="tab-contabilidade">Comunicação Contábil</button>
+          </div>
+
+          <!-- Emissão NFe/NFs/CTe -->
+          <div class="tab-content active" id="tab-emissao">
+            <div class="section-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Simulador de Emissão Instantânea (SEFAZ)</h3>
+                </div>
+                <form id="form-emissao-fiscal" class="form-row" style="grid-template-columns: 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>Tipo de Documento</label>
+                    <select class="form-select" id="fiscal-tipo" required>
+                      <option value="NFe">Nota Fiscal Eletrônica de Produto (NFe)</option>
+                      <option value="NFs">Nota Fiscal de Serviço (NFs-e)</option>
+                      <option value="CTe">Conhecimento de Transporte (CTe)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Destinatário</label>
+                    <select class="form-select" id="fiscal-destinatario" required>
+                      <!-- Populated from Clients -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Valor Total da Operação (R$)</label>
+                    <input type="number" class="form-input" id="fiscal-valor" min="1" value="5000" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="send"></i> Transmitir para SEFAZ</button>
+                </form>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Painel de Retornos SEFAZ</h3>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Chave/Chassi</th>
+                        <th>Destinatário</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-fiscal-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contabilidade Export -->
+          <div class="tab-content" id="tab-contabilidade">
+            <div class="panel" style="max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; padding: 2rem;">
+                <i data-lucide="send-to-back" style="width: 64px; height: 64px; color: var(--color-primary); margin-bottom: 1.5rem;"></i>
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Fechamento Contábil Mensal</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Envie automaticamente os arquivos fiscais XML, extratos e relatórios de fluxo de caixa diretamente ao escritório contábil credenciado.</p>
+                
+                <div style="background: var(--surface-secondary); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); text-align: left; margin-bottom: 1.5rem;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Competência Atual:</span>
+                    <strong id="contab-competencia">06/2026</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Documentos Fiscais no Mês:</span>
+                    <strong id="contab-documentos">16 emitidos</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Arquivos de Integração Financeira:</span>
+                    <strong>Prontos para exportação</strong>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary" id="btn-export-contabilidade"><i data-lucide="mail"></i> Exportar e Enviar para Contabilidade</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. FINANCEIRO VIEW -->
+        <div class="view-content" id="view-financeiro">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-contas">Contas Pagar / Receber</button>
+            <button class="tab-btn" data-tab="tab-faturamento">Faturamento & Boletos</button>
+            <button class="tab-btn" data-tab="tab-fluxo">Projeção de Fluxo de Caixa</button>
+          </div>
+
+          <!-- Contas Pagar / Receber -->
+          <div class="tab-content active" id="tab-contas">
+            <div class="section-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Contas a Pagar</h3>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Descrição</th>
+                        <th>Credor</th>
+                        <th>Vencimento</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-pagar-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Contas a Receber</h3>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Descrição</th>
+                        <th>Devedor</th>
+                        <th>Vencimento</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-receber-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Faturamento & Boletos -->
+          <div class="tab-content" id="tab-faturamento">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Faturamento e Geração Automática</h3>
+              </div>
+              <p style="color: var(--text-secondary);">Gere cobranças recorrentes e emita boletos integrados com registro em carteiras bancárias diretamente.</p>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Cód. Fatura</th>
+                      <th>Cliente</th>
+                      <th>Data Emissão</th>
+                      <th>Data Vencimento</th>
+                      <th>Valor</th>
+                      <th>Boleto</th>
+                      <th>NFe</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-faturamento-body">
+                    <!-- Dynamic -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fluxo de Caixa / Projeções -->
+          <div class="tab-content" id="tab-fluxo">
+            <div class="section-grid" style="grid-template-columns: 1fr;">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Projeção Estratégica (Próximos 6 meses)</h3>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <select class="form-select" id="select-cenario" style="width: auto; padding: 0.25rem 0.75rem;">
+                      <option value="conservador">Cenário Conservador</option>
+                      <option value="realista" selected>Cenário Realista</option>
+                      <option value="otimista">Cenário Otimista</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="chart-container">
+                  <canvas id="finance-forecast-chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. RECURSOS HUMANOS (RH) VIEW -->
+        <div class="view-content" id="view-rh">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-rh-contratos">Contratos de Trabalho</button>
+            <button class="tab-btn" data-tab="tab-rh-folha">Calculadora de Folha de Pagamento</button>
+          </div>
+
+          <!-- Contratos de Trabalho -->
+          <div class="tab-content active" id="tab-rh-contratos">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Controle de Admissões e Contratos</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Colaborador</th>
+                      <th>Tipo Contratual</th>
+                      <th>Vigência Início</th>
+                      <th>Vigência Fim</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-rh-contratos-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Folha de Pagamento -->
+          <div class="tab-content" id="tab-rh-folha">
+            <div class="section-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Simulador de Folha de Pagamento</h3>
+                </div>
+                <form id="form-folha-rh" class="form-row" style="grid-template-columns: 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>Colaborador</label>
+                    <select class="form-select" id="folha-colaborador" required>
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Salário Base Cadastrado (R$)</label>
+                    <input type="number" class="form-input" id="folha-salario-base" disabled>
+                  </div>
+                  <div class="form-group">
+                    <label>Horas Extras (R$)</label>
+                    <input type="number" class="form-input" id="folha-horas-extras" value="0" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label>Outros Benefícios / Vale Alimentação (R$)</label>
+                    <input type="number" class="form-input" id="folha-beneficios" value="450" min="0">
+                  </div>
+                  <div style="background: var(--surface-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between;">
+                      <span>INSS & IRPF Estimados:</span>
+                      <strong id="folha-impostos" style="color: var(--color-danger);">- R$ 0,00</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 0.5rem; font-size: 1.1rem;">
+                      <span>Líquido a Receber:</span>
+                      <strong id="folha-liquido" style="color: var(--color-success);">R$ 0,00</strong>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary"><i data-lucide="calculator"></i> Fechar Holerite & Emitir</button>
+                </form>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Comprovantes Emitidos</h3>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Salário Base</th>
+                        <th>Líquido</th>
+                        <th>Competência</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-comprovantes-rh-body">
+                      <!-- Dynamic items -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. FROTA VEICULAR VIEW -->
+        <div class="view-content" id="view-frota">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-frota-doc">Documentação & Licenciamento</button>
+            <button class="tab-btn" data-tab="tab-frota-manutencao">Controle de Manutenção</button>
+            <button class="tab-btn" data-tab="tab-frota-consumo">Abastecimentos</button>
+            <button class="tab-btn" data-tab="tab-frota-multas">Multas</button>
+          </div>
+
+          <!-- Documentação -->
+          <div class="tab-content active" id="tab-frota-doc">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Status Legal dos Veículos</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Placa</th>
+                      <th>Veículo</th>
+                      <th>Venc. Licenciamento</th>
+                      <th>Seguro Obrigatório</th>
+                      <th>IPVA 2026</th>
+                      <th>Situação Geral</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-frota-doc-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manutenção -->
+          <div class="tab-content" id="tab-frota-manutencao">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Agendamento de Serviços e Revisões</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Veículo</th>
+                      <th>Serviço Realizado / Agendado</th>
+                      <th>Oficina</th>
+                      <th>Data de Serviço</th>
+                      <th>Custo (R$)</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-frota-manutencao-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Abastecimento -->
+          <div class="tab-content" id="tab-frota-consumo">
+            <div class="section-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Lançar Consumo</h3>
+                </div>
+                <form id="form-frota-abastecimento" class="form-row" style="grid-template-columns: 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>Veículo</label>
+                    <select class="form-select" id="aba-veiculo" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label>Combustível</label>
+                    <select class="form-select" id="aba-combustivel">
+                      <option value="Diesel S10">Diesel S10</option>
+                      <option value="Gasolina">Gasolina</option>
+                      <option value="Etanol">Etanol</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Litros</label>
+                      <input type="number" class="form-input" id="aba-litros" value="50" min="1" required>
+                    </div>
+                    <div class="form-group">
+                      <label>Custo Total (R$)</label>
+                      <input type="number" class="form-input" id="aba-custo" value="300" min="1" required>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="plus-circle"></i> Registrar Abastecimento</button>
+                </form>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Histórico de Abastecimentos</h3>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Veículo</th>
+                        <th>Data</th>
+                        <th>Combustível</th>
+                        <th>Litros</th>
+                        <th>Custo Total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-frota-abastecimentos-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multas -->
+          <div class="tab-content" id="tab-frota-multas">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Infrações e Multas</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Veículo</th>
+                      <th>Infração</th>
+                      <th>Localidade</th>
+                      <th>Data</th>
+                      <th>Valor (R$)</th>
+                      <th>Status de Pagamento</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-frota-multas-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. ESTOQUE VIEW -->
+        <div class="view-content" id="view-estoque">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-estoque-mov">Movimentação</button>
+            <button class="tab-btn" data-tab="tab-estoque-custo">Custos & Lucratividade</button>
+            <button class="tab-btn" data-tab="tab-estoque-val">Validades</button>
+          </div>
+
+          <!-- Movimentação -->
+          <div class="tab-content active" id="tab-estoque-mov">
+            <div class="section-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Nova Entrada / Saída de Produto</h3>
+                </div>
+                <form id="form-estoque-mov" class="form-row" style="grid-template-columns: 1fr; gap: 1rem;">
+                  <div class="form-group">
+                    <label>Produto</label>
+                    <select class="form-select" id="mov-produto" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label>Operação</label>
+                    <select class="form-select" id="mov-tipo" required>
+                      <option value="entrada">Entrada (+) (Compra/Reposição)</option>
+                      <option value="saida">Saída (-) (Venda/Ajuste)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" class="form-input" id="mov-quantidade" value="10" min="1" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="refresh-cw"></i> Processar Movimentação</button>
+                </form>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Nível Atual do Estoque</h3>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Produto</th>
+                        <th>Categoria</th>
+                        <th>Preço Unitário</th>
+                        <th>Quantidade</th>
+                        <th>Aviso</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-estoque-mov-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custos & Lucros -->
+          <div class="tab-content" id="tab-estoque-custo">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Custo Médio e Margens por Produto</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Preço de Venda</th>
+                      <th>Custo Médio Ponderado</th>
+                      <th>Margem Comercial</th>
+                      <th>Margem Lucro (%)</th>
+                      <th>Valuation do Estoque</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-estoque-custos-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validades -->
+          <div class="tab-content" id="tab-estoque-val">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Controle Fino de Lotes & Vencimentos</h3>
+              </div>
+              <div class="expiry-alert-list" id="estoque-validades-list">
+                <!-- Javascript dynamic alerts -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9. ADMINISTRATIVO VIEW -->
+        <div class="view-content" id="view-administrativo">
+          <div class="tab-headers">
+            <button class="tab-btn active" data-tab="tab-adm-docs">Documentos Oficiais & Licenças</button>
+            <button class="tab-btn" data-tab="tab-adm-consolidado">Relatório Consolidado Geral</button>
+          </div>
+
+          <!-- Documentos Diversos -->
+          <div class="tab-content active" id="tab-adm-docs">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Documentação Geral da Empresa</h3>
+                <button class="btn btn-primary" id="btn-novo-doc"><i data-lucide="upload-cloud"></i> Upload de Documento</button>
+              </div>
+              <div class="doc-grid" id="adm-docs-grid"></div>
+            </div>
+          </div>
+
+          <!-- Relatório Consolidado -->
+          <div class="tab-content" id="tab-adm-consolidado">
+            <div class="section-grid">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Status Operacional Consolidado</h3>
+                  <button class="btn btn-secondary" id="btn-export-pdf"><i data-lucide="file-text"></i> Salvar PDF</button>
+                </div>
+                <div class="table-wrapper" style="border: none;">
+                  <div style="padding: 1.5rem; background: var(--surface-primary); border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="font-size: 1.2rem; font-weight: 800; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">RELATÓRIO CONSOLIDADO ANUAL 2026</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                      <div>
+                        <strong>Desempenho Comercial:</strong> R$ 177.000,00 faturados no trimestre
+                      </div>
+                      <div>
+                        <strong>Despesa Corrente Operacional:</strong> R$ 48.200,00
+                      </div>
+                      <div>
+                        <strong>Frota Status:</strong> 100% dos motoristas com licenças regulares
+                      </div>
+                      <div>
+                        <strong>Estoque Global:</strong> R$ 56.560,00 imobilizados em insumos
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">Auditorias & Conformidade</h3>
+                </div>
+                <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 0.75rem;">
+                  <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-success);">
+                    <i data-lucide="check-circle-2"></i> Certidões Federais atualizadas
+                  </li>
+                  <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-success);">
+                    <i data-lucide="check-circle-2"></i> Encargos trabalhistas recolhidos
+                  </li>
+                  <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-warning);">
+                    <i data-lucide="alert-circle"></i> Licença Ambiental expira em 20 dias
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Main JS file -->
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
