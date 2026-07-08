@@ -1,10 +1,30 @@
 import { initialData } from './data.js';
 
-// Local storage state initialization
-let ERP_DATA = JSON.parse(localStorage.getItem('erp_data')) || initialData;
+// ============================================================
+// MULTI-COMPANY STATE MANAGEMENT
+// ============================================================
+let GLOBAL_STATE = JSON.parse(localStorage.getItem('erp_global')) || JSON.parse(JSON.stringify(initialData));
+let ACTIVE_SESSION = null; // { companyId, username, cnpj }
+let ERP_DATA = null;       // Active company data (shortcut)
 
 function saveState() {
-  localStorage.setItem('erp_data', JSON.stringify(ERP_DATA));
+  // Persist active company data back into GLOBAL_STATE
+  if (ACTIVE_SESSION && ERP_DATA) {
+    const comp = GLOBAL_STATE.companies.find(c => c.cnpj === ACTIVE_SESSION.cnpj);
+    if (comp) comp.data = ERP_DATA;
+  }
+  localStorage.setItem('erp_global', JSON.stringify(GLOBAL_STATE));
+}
+
+function loadCompanyData(cnpj) {
+  const comp = GLOBAL_STATE.companies.find(c => c.cnpj === cnpj);
+  if (!comp) return null;
+  return comp.data;
+}
+
+function getActiveCompany() {
+  if (!ACTIVE_SESSION) return null;
+  return GLOBAL_STATE.companies.find(c => c.cnpj === ACTIVE_SESSION.cnpj) || null;
 }
 
 // Charts references
@@ -14,9 +34,14 @@ let forecastChartInstance = null;
 // Initialize Lucide Icons
 document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
+  initLogin();
+});
+
+function bootApp() {
   initRouter();
   initTheme();
   initTabs();
+  initSidebarSession();
   initDashboard();
   initComercial();
   initCadastro();
@@ -26,17 +51,107 @@ document.addEventListener("DOMContentLoaded", () => {
   initFrota();
   initEstoque();
   initAdministrativo();
-  
+  initModal();
+  lucide.createIcons();
+
   // Custom Global Search
   const searchInput = document.getElementById("global-search");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const val = e.target.value.toLowerCase();
-      // Basic page filter indicator
       console.log("Global search: ", val);
     });
   }
-});
+}
+
+// ============================================================
+// LOGIN MODULE
+// ============================================================
+function initLogin() {
+  const loginLayout = document.getElementById('login-layout');
+  const appLayout = document.getElementById('app-layout');
+
+  // Check existing session in sessionStorage
+  const savedSession = sessionStorage.getItem('erp_session');
+  if (savedSession) {
+    ACTIVE_SESSION = JSON.parse(savedSession);
+    ERP_DATA = loadCompanyData(ACTIVE_SESSION.cnpj);
+    loginLayout.classList.add('hidden');
+    appLayout.style.display = '';
+    bootApp();
+    return;
+  }
+
+  // Show login, hide app
+  loginLayout.classList.remove('hidden');
+  appLayout.style.display = 'none';
+
+  const form = document.getElementById('login-form');
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const cnpj = document.getElementById('login-cnpj').value.trim();
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+    const errorMsg = document.getElementById('login-error-msg');
+
+    // Validate
+    const user = GLOBAL_STATE.users.find(
+      u => u.cnpj === cnpj && u.username === username && u.password === password
+    );
+
+    if (!user) {
+      errorMsg.classList.remove('hidden');
+      document.getElementById('login-password').value = '';
+      return;
+    }
+
+    errorMsg.classList.add('hidden');
+    ACTIVE_SESSION = { cnpj: user.cnpj, username: user.username };
+    sessionStorage.setItem('erp_session', JSON.stringify(ACTIVE_SESSION));
+    ERP_DATA = loadCompanyData(cnpj);
+
+    loginLayout.classList.add('hidden');
+    appLayout.style.display = '';
+    bootApp();
+  });
+
+  lucide.createIcons();
+}
+
+function doLogout() {
+  saveState();
+  sessionStorage.removeItem('erp_session');
+  ACTIVE_SESSION = null;
+  ERP_DATA = null;
+  // Reload to reset all state
+  window.location.reload();
+}
+
+function initSidebarSession() {
+  const sidebarFooter = document.querySelector('.sidebar-footer');
+  if (!sidebarFooter || sidebarFooter.dataset.sessionInjected) return;
+  sidebarFooter.dataset.sessionInjected = 'true';
+
+  const comp = getActiveCompany();
+  const companyName = comp ? comp.razaoSocial : 'Empresa';
+
+  // Update user info
+  const userNameEl = sidebarFooter.querySelector('.user-name');
+  const userRoleEl = sidebarFooter.querySelector('.user-role');
+  const avatarEl = sidebarFooter.querySelector('.avatar');
+
+  if (userNameEl) userNameEl.textContent = ACTIVE_SESSION?.username || 'Usuário';
+  if (userRoleEl) userRoleEl.innerHTML = `<span class="active-company-badge">${companyName}</span>`;
+  if (avatarEl) avatarEl.textContent = (ACTIVE_SESSION?.username || 'U').slice(0, 3).toUpperCase();
+
+  // Add logout button
+  const logoutBtn = document.createElement('button');
+  logoutBtn.className = 'logout-btn';
+  logoutBtn.innerHTML = '<i data-lucide="log-out"></i> Sair do Sistema';
+  logoutBtn.addEventListener('click', doLogout);
+  sidebarFooter.appendChild(logoutBtn);
+  lucide.createIcons();
+}
 
 // Router logic (SPA View switcher)
 function initRouter() {
@@ -60,24 +175,16 @@ function initRouter() {
   navItems.forEach(item => {
     item.addEventListener("click", () => {
       const viewId = item.getAttribute("data-view");
-      
       navItems.forEach(el => el.classList.remove("active"));
       item.classList.add("active");
-      
       viewContents.forEach(view => {
         view.classList.remove("active");
-        if (view.id === `view-${viewId}`) {
-          view.classList.add("active");
-        }
+        if (view.id === `view-${viewId}`) view.classList.add("active");
       });
-
-      // Update titles
       if (viewInfo[viewId]) {
         titleEl.textContent = viewInfo[viewId].title;
         subtitleEl.textContent = viewInfo[viewId].sub;
       }
-
-      // Re-trigger specific setups if needed (like charts)
       if (viewId === 'dashboard') {
         renderCashFlowChart();
         renderDashboardNotifications();
@@ -231,6 +338,7 @@ function initComercial() {
   renderCommercialUpgradeDraft("orcamento");
   renderCommercialUpgradeDraft("pedido");
   renderComercialTables();
+  initContratosComerciais();
 }
 
 function buildCommercialUpgradeForms() {
@@ -539,11 +647,35 @@ function renderComercialTables() {
   if (conBody) {
     conBody.innerHTML = ERP_DATA.comercial.contratos.map(function(con) {
       const badge = con.status === "Ativo" ? "badge-success" : "badge-warning";
-      return "<tr><td>" + con.titulo + "</td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + con.vigenciaFim + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td></tr>";
+      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + con.vigenciaFim + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></td></tr>";
     }).join("");
   }
   lucide.createIcons();
 }
+
+window.faturarContrato = function(id) {
+  const con = ERP_DATA.comercial.contratos.find(c => c.id === id);
+  if (!con) return;
+  const today = new Date();
+  const dueDate = new Date(today);
+  dueDate.setDate(today.getDate() + 30);
+  const fatId = 'FAT-' + String(ERP_DATA.financeiro.contasReceber.length + 1).padStart(3, '0');
+  const newFat = {
+    id: fatId,
+    descricao: 'Fatura Contrato: ' + con.titulo,
+    cliente: con.parceiro,
+    vencimento: dueDate.toISOString().split('T')[0],
+    valor: con.valorMensal,
+    status: 'A Receber',
+    contratoId: con.id,
+    nfseEmitida: false,
+    boletoGerado: false
+  };
+  ERP_DATA.financeiro.contasReceber.push(newFat);
+  saveState();
+  renderFinanceiroTables();
+  alert('Fatura ' + fatId + ' gerada no valor de ' + formatBRL(con.valorMensal) + ' para ' + con.parceiro + '!\nAcesse Financeiro > Faturamento para emitir NFS-e e Boleto Pix.');
+};
 
 function commercialActionsHtml(kind, id) {
   const primaryAction = kind === "orcamento" ? "generate-order" : "generate-invoice";
@@ -741,12 +873,67 @@ function generateCommercialPdf(kind, id) {
 
 window.generateCommercialPdf = generateCommercialPdf;
 
+// ============================================================
+// CONTRACTS COMMERCIAL MODULE (Novo Contrato Comercial)
+// ============================================================
+function initContratosComerciais() {
+  const btnNovo = document.getElementById('btn-novo-contrato-comercial');
+  const panel = document.getElementById('panel-form-contrato-comercial');
+  const btnCancelar = document.getElementById('btn-cancelar-contrato-c');
+  const form = document.getElementById('form-novo-contrato-comercial');
+  const parceiroSelect = document.getElementById('contrato-c-parceiro');
+
+  if (parceiroSelect) {
+    const allParceiros = [
+      ...ERP_DATA.cadastro.clientes.map(c => ({ nome: c.nome, tipo: 'Cliente' })),
+      ...ERP_DATA.cadastro.fornecedores.map(f => ({ nome: f.nome, tipo: 'Fornecedor' }))
+    ];
+    parceiroSelect.innerHTML = allParceiros.map(p => `<option value="${p.nome}">${p.nome} (${p.tipo})</option>`).join('');
+  }
+
+  if (btnNovo && panel) {
+    btnNovo.addEventListener('click', () => {
+      panel.classList.remove('hidden');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+  if (btnCancelar && panel) {
+    btnCancelar.addEventListener('click', () => {
+      panel.classList.add('hidden');
+      form?.reset();
+    });
+  }
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newContract = {
+        id: 'CON-' + String(ERP_DATA.comercial.contratos.length + 1).padStart(3, '0'),
+        titulo: document.getElementById('contrato-c-titulo').value.trim(),
+        tipo: document.getElementById('contrato-c-tipo').value,
+        parceiro: document.getElementById('contrato-c-parceiro').value,
+        vigenciaInicio: new Date().toISOString().split('T')[0],
+        vigenciaFim: document.getElementById('contrato-c-fim').value,
+        valorMensal: parseFloat(document.getElementById('contrato-c-valor').value) || 0,
+        status: 'Ativo'
+      };
+      ERP_DATA.comercial.contratos.unshift(newContract);
+      saveState();
+      panel.classList.add('hidden');
+      form.reset();
+      renderComercialTables();
+      alert('Contrato ' + newContract.id + ' criado com sucesso!');
+    });
+  }
+}
+
 // 3. CADASTRO CONTROLLER
 let editingProductId = null;
 
 function initCadastro() {
   setupProductManagement();
+  initEmpresasUsuarios();
   renderCadastroTables();
+  renderEmpresasUsuariosTable();
 }
 
 function setupProductManagement() {
@@ -1103,25 +1290,129 @@ function renderFinanceiroTables() {
     `).join('');
   }
 
-  // Faturamento
+  // Faturamento – agora inclui contas a receber vindas de contratos
   const fatBody = document.getElementById("table-faturamento-body");
   if (fatBody) {
-    // Populate with recent invoices billed
-    fatBody.innerHTML = ERP_DATA.fiscal.notasEmitidas.map(nf => `
-      <tr>
-        <td>FAT-${nf.id.replace('NF-', '')}</td>
-        <td>${nf.destinatario}</td>
-        <td>2026-06-30</td>
-        <td>2026-07-30</td>
-        <td><strong>${formatBRL(nf.valor)}</strong></td>
-        <td><span class="badge badge-primary" style="cursor: pointer;"><i data-lucide="download"></i> PDF Boleto</span></td>
-        <td><span class="badge badge-success"><i data-lucide="check"></i> Emitido</span></td>
-      </tr>
-    `).join('');
+    const faturas = ERP_DATA.financeiro.contasReceber.filter(r => r.contratoId || r.descricao?.startsWith('Faturamento'));
+    const fromNFs = ERP_DATA.fiscal.notasEmitidas.map(nf => ({
+      id: 'FAT-' + nf.id.replace('NF-',''),
+      cliente: nf.destinatario,
+      emissao: nf.emissao ? nf.emissao.split('T')[0] : '',
+      vencimento: '',
+      valor: nf.valor,
+      nfseEmitida: true,
+      boletoGerado: false,
+      fromNF: nf.id
+    }));
+
+    const allFaturas = [
+      ...faturas.map(f => ({ id: f.id, cliente: f.cliente, emissao: new Date().toISOString().split('T')[0], vencimento: f.vencimento, valor: f.valor, nfseEmitida: f.nfseEmitida || false, boletoGerado: f.boletoGerado || false, recId: f.id })),
+      ...fromNFs.filter(nf => !faturas.some(f => f.fromNF === nf.fromNF))
+    ];
+
+    if (!allFaturas.length) {
+      fatBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhuma fatura gerada. Acesse Comercial > Contratos e clique em Faturar.</td></tr>';
+    } else {
+      fatBody.innerHTML = allFaturas.map(fat => `
+        <tr>
+          <td><strong>${fat.id}</strong></td>
+          <td>${fat.cliente}</td>
+          <td>${fat.emissao}</td>
+          <td>${fat.vencimento || '–'}</td>
+          <td><strong>${formatBRL(fat.valor)}</strong></td>
+          <td>
+            ${fat.nfseEmitida
+              ? '<span class="badge badge-success"><i data-lucide="check"></i> NFS-e Emitida</span>'
+              : `<button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="emitirNFSe('${fat.recId||fat.id}', ${fat.valor}, '${fat.cliente}')"><i data-lucide="file-check"></i> Gerar NFS-e</button>`
+            }
+          </td>
+          <td>
+            <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirBoletoPix('${fat.id}', ${fat.valor}, '${fat.cliente}')"><i data-lucide="qr-code"></i> Boleto Pix</button>
+          </td>
+        </tr>
+      `).join('');
+    }
   }
 
   lucide.createIcons();
 }
+
+// ============================================================
+// NFS-E E BOLETO PIX
+// ============================================================
+window.emitirNFSe = function(recId, valor, destinatario) {
+  const btn = event.target.closest('button');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="refresh-cw"></i> Transmitindo...';
+    lucide.createIcons();
+  }
+  setTimeout(() => {
+    // Simulate Receita Federal API NFS-e Nacional
+    const nf = {
+      id: 'NF-' + String(2000 + ERP_DATA.fiscal.notasEmitidas.length).padStart(4, '0'),
+      destinatario: destinatario,
+      tipo: 'NFs',
+      valor: valor,
+      emissao: new Date().toISOString(),
+      status: 'Autorizada (API Nacional NFS-e - Receita Federal)',
+      xmlFile: 'NFs' + Date.now() + '.xml'
+    };
+    ERP_DATA.fiscal.notasEmitidas.unshift(nf);
+    // Mark invoice as issued
+    const rec = ERP_DATA.financeiro.contasReceber.find(r => r.id === recId);
+    if (rec) rec.nfseEmitida = true;
+    saveState();
+    renderFinanceiroTables();
+    renderFiscalData();
+    alert('✅ NFS-e Nacional ' + nf.id + ' transmitida com sucesso!\n\nAPI Receita Federal: Nota Fiscal de Serviço autorizada.\nProtocolo: ' + Math.floor(Math.random()*9000000000+1000000000));
+  }, 1800);
+};
+
+window.abrirBoletoPix = function(fatId, valor, cliente) {
+  const comp = getActiveCompany();
+  const pixKey = comp ? comp.pixKey : 'chave-pix-nao-configurada';
+  const razaoSocial = comp ? comp.razaoSocial : 'Empresa';
+  const today = new Date();
+  const due = new Date(today); due.setDate(today.getDate() + 5);
+
+  openModal('Boleto Pix - ' + fatId, `
+    <div class="modal-pix-card">
+      <div style="text-align:center;margin-bottom:1.5rem;">
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:0.25rem;">Chave Pix</div>
+        <div style="font-size:1.1rem;font-weight:800;color:#fff;">${razaoSocial}</div>
+      </div>
+      <div class="pix-qr-placeholder" id="pix-qr-canvas">
+        <span style="position:relative;z-index:1;font-weight:700;color:#6366f1;">QR CODE<br>PIX</span>
+      </div>
+      <div class="pix-key-display">
+        <span>${pixKey}</span>
+        <button onclick="navigator.clipboard.writeText('${pixKey}').then(()=>alert('Chave Pix copiada!'))" title="Copiar chave">Copiar</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-size:0.85rem;margin-top:1rem;">
+      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">PAGADOR</div>
+        <strong>${cliente}</strong>
+      </div>
+      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">VALOR</div>
+        <strong style="color:var(--color-success);font-size:1.1rem;">${formatBRL(valor)}</strong>
+      </div>
+      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">EMISSÃO</div>
+        <strong>${today.toLocaleDateString('pt-BR')}</strong>
+      </div>
+      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">VENCIMENTO</div>
+        <strong>${due.toLocaleDateString('pt-BR')}</strong>
+      </div>
+    </div>
+    <div style="margin-top:1.25rem;padding:0.85rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--color-success);">
+      <strong>💡 Pagamento via Pix</strong><br>Transfira o valor exato para a chave acima. O crédito é identificado automaticamente em até 5 segundos.
+    </div>
+  `);
+};
 
 function renderForecastChart() {
   const ctx = document.getElementById("finance-forecast-chart");
@@ -1618,3 +1909,124 @@ function renderAdministrativoDocs() {
     lucide.createIcons();
   }
 }
+
+// ============================================================
+// MODAL MODULE
+// ============================================================
+function initModal() {
+  const overlay = document.getElementById('modal-financeiro');
+  const closeBtn = document.getElementById('btn-close-modal');
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+}
+
+function openModal(title, bodyHtml) {
+  const overlay = document.getElementById('modal-financeiro');
+  const titleEl = document.getElementById('modal-title');
+  const bodyEl = document.getElementById('modal-body-content');
+  if (!overlay || !titleEl || !bodyEl) return;
+  titleEl.textContent = title;
+  bodyEl.innerHTML = bodyHtml;
+  overlay.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modal-financeiro');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+// ============================================================
+// EMPRESAS & USUÁRIOS MODULE
+// ============================================================
+function initEmpresasUsuarios() {
+  const formEmpresa = document.getElementById('form-cadastro-empresa');
+  const formUsuario = document.getElementById('form-cadastro-usuario');
+
+  if (formEmpresa) {
+    formEmpresa.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('empresa-nome').value.trim();
+      const cnpj = document.getElementById('empresa-cnpj').value.trim();
+      const pix = document.getElementById('empresa-pix').value.trim();
+
+      if (GLOBAL_STATE.companies.find(c => c.cnpj === cnpj)) {
+        alert('Já existe uma empresa com este CNPJ cadastrado!');
+        return;
+      }
+
+      GLOBAL_STATE.companies.push({
+        id: 'comp-' + Date.now(),
+        cnpj, razaoSocial: nome, pixKey: pix,
+        data: {
+          comercial: { orcamentos: [], pedidos: [], contratos: [] },
+          cadastro: { clientes: [], fornecedores: [], colaboradores: [], veiculos: [], produtos: [] },
+          fiscal: { notasEmitidas: [], comunicacaoContabilidade: { ultimoEnvio: '', arquivosPendentes: 0, competenciaAtual: '' } },
+          financeiro: { contasPagar: [], contasReceber: [], fluxoCaixa: { diario: [], saldoAtual: 0, projecaoMes: 0 } },
+          rh: { contratosTrabalho: [] },
+          frota: { manutencoes: [], abastecimentos: [], multas: [] },
+          estoque: { movimentacoes: [] },
+          administrativo: { documentos: [] }
+        }
+      });
+      saveState();
+      formEmpresa.reset();
+      renderEmpresasUsuariosTable();
+      populateUsuarioEmpresaSelect();
+      alert('Empresa "' + nome + '" cadastrada! CNPJ: ' + cnpj + '\nAgora cadastre um usuário para ela.');
+    });
+  }
+
+  if (formUsuario) {
+    formUsuario.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const cnpj = document.getElementById('usuario-empresa-select').value;
+      const username = document.getElementById('usuario-nome').value.trim();
+      const password = document.getElementById('usuario-senha').value.trim();
+
+      if (password.length !== 6 || !/^\d{6}$/.test(password)) {
+        alert('A senha deve conter exatamente 6 dígitos numéricos!');
+        return;
+      }
+      if (GLOBAL_STATE.users.find(u => u.username === username && u.cnpj === cnpj)) {
+        alert('Usuário "' + username + '" já existe para esta empresa!');
+        return;
+      }
+
+      GLOBAL_STATE.users.push({ username, password, cnpj });
+      saveState();
+      formUsuario.reset();
+      renderEmpresasUsuariosTable();
+      alert('Usuário "' + username + '" criado!\nCNPJ: ' + cnpj + '\nUsuário: ' + username + '\nSenha: ●●●●●●');
+    });
+  }
+
+  populateUsuarioEmpresaSelect();
+}
+
+function populateUsuarioEmpresaSelect() {
+  const sel = document.getElementById('usuario-empresa-select');
+  if (!sel) return;
+  sel.innerHTML = GLOBAL_STATE.companies.map(c =>
+    `<option value="${c.cnpj}">${c.razaoSocial} (${c.cnpj})</option>`
+  ).join('');
+}
+
+function renderEmpresasUsuariosTable() {
+  const body = document.getElementById('table-empresas-usuarios-body');
+  if (!body) return;
+  body.innerHTML = GLOBAL_STATE.companies.map(comp => {
+    const users = GLOBAL_STATE.users.filter(u => u.cnpj === comp.cnpj);
+    const userList = users.length
+      ? users.map(u => `<span class="badge badge-primary" style="margin-right:0.25rem;">${u.username}</span>`).join('')
+      : '<span style="color:var(--text-muted);font-size:0.8rem;">Nenhum usuário</span>';
+    return `<tr>
+      <td><strong>${comp.razaoSocial}</strong></td>
+      <td><code style="font-size:0.8rem;">${comp.cnpj}</code></td>
+      <td><code style="font-size:0.8rem;color:var(--color-secondary);">${comp.pixKey}</code></td>
+      <td>${userList}</td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons();
+}
+

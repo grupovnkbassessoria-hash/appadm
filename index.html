@@ -10,7 +10,37 @@
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+
+  <!-- Login Layout -->
+  <div id="login-layout" class="login-container hidden">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="brand-logo" style="margin: 0 auto 1.5rem; width: 48px; height: 48px;">
+          <i data-lucide="layers"></i>
+        </div>
+        <h2>Acesso ao APP ADM</h2>
+        <p>Insira os dados da sua empresa para entrar</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-cnpj">CNPJ da Empresa</label>
+          <input type="text" id="login-cnpj" class="form-input" placeholder="00.000.000/0001-00" required>
+        </div>
+        <div class="form-group">
+          <label for="login-username">Nome de Usuário</label>
+          <input type="text" id="login-username" class="form-input" placeholder="Seu usuário" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Senha (6 dígitos)</label>
+          <input type="password" id="login-password" class="form-input" placeholder="••••••" maxlength="6" pattern="\d{6}" required title="A senha deve conter exatamente 6 dígitos numéricos">
+        </div>
+        <div id="login-error-msg" class="login-error hidden" style="color: var(--color-danger); margin-bottom: 1rem; font-size: 0.85rem; text-align: center;">
+          CNPJ, usuário ou senha incorretos!
+        </div>
+        <button type="submit" class="btn btn-primary login-btn" style="width: 100%; justify-content: center; padding: 0.85rem;"><i data-lucide="log-in"></i> Entrar no Sistema</button>
+      </form>
+    </div>
+  </div>
 
   <div id="app-layout">
     <!-- Sidebar Navigation -->
@@ -276,9 +306,49 @@
 
           <!-- Contratos Sub-tab -->
           <div class="tab-content" id="tab-contratos">
+            
+            <!-- Novo Contrato Form Panel -->
+            <div class="panel hidden" id="panel-form-contrato-comercial" style="margin-bottom: 2rem;">
+              <div class="panel-header">
+                <h3 class="panel-title">Novo Contrato Comercial</h3>
+              </div>
+              <form id="form-novo-contrato-comercial" class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem 0;">
+                <div class="form-group">
+                  <label>Título do Contrato</label>
+                  <input type="text" class="form-input" id="contrato-c-titulo" placeholder="Ex: Prestação de Serviços de TI" required>
+                </div>
+                <div class="form-group">
+                  <label>Tipo de Contrato</label>
+                  <select class="form-select" id="contrato-c-tipo" required>
+                    <option value="Cliente" selected>Cliente (Receita)</option>
+                    <option value="Fornecedor">Fornecedor (Despesa)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label>Parceiro Comercial</label>
+                  <select class="form-select" id="contrato-c-parceiro" required>
+                    <!-- Populated from Clients / Providers -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Vigência Fim</label>
+                  <input type="date" class="form-input" id="contrato-c-fim" required>
+                </div>
+                <div class="form-group">
+                  <label>Valor Mensal (R$)</label>
+                  <input type="number" class="form-input" id="contrato-c-valor" min="0" step="0.01" placeholder="Ex: 5000.00" required>
+                </div>
+                <div class="form-group" style="grid-column: span 2; display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                  <button type="button" class="btn btn-secondary" id="btn-cancelar-contrato-c"><i data-lucide="x"></i> Cancelar</button>
+                  <button type="submit" class="btn btn-primary"><i data-lucide="check"></i> Criar Contrato</button>
+                </div>
+              </form>
+            </div>
+
             <div class="panel">
               <div class="panel-header">
                 <h3 class="panel-title">Gestão Digital de Contratos</h3>
+                <button class="btn btn-primary" id="btn-novo-contrato-comercial"><i data-lucide="plus"></i> Novo Contrato</button>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -291,6 +361,7 @@
                       <th>Valor Mensal</th>
                       <th>Assinatura</th>
                       <th>Status</th>
+                      <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody id="table-contratos-body">
@@ -310,6 +381,7 @@
             <button class="tab-btn" data-tab="tab-colaboradores">Colaboradores</button>
             <button class="tab-btn" data-tab="tab-veiculos">Veículos</button>
             <button class="tab-btn" data-tab="tab-produtos">Produtos</button>
+            <button class="tab-btn" data-tab="tab-empresas-usuarios">Empresas & Usuários</button>
           </div>
 
           <!-- Clientes Sub-tab -->
@@ -417,6 +489,82 @@
                 <!-- Javascript dynamic cards -->
               </div>
             </div>
+          </div>
+
+          <!-- Empresas & Usuários Sub-tab -->
+          <div class="tab-content" id="tab-empresas-usuarios">
+            <div class="section-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+              
+              <!-- Cadastro de Empresas -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title"><i data-lucide="building"></i> Cadastrar Nova Empresa</h3>
+                </div>
+                <form id="form-cadastro-empresa" class="form-row" style="grid-template-columns: 1fr; gap: 1rem; padding: 1rem 0;">
+                  <div class="form-group">
+                    <label>Razão Social</label>
+                    <input type="text" class="form-input" id="empresa-nome" placeholder="Ex: Minha Empresa Ltda" required>
+                  </div>
+                  <div class="form-group">
+                    <label>CNPJ</label>
+                    <input type="text" class="form-input" id="empresa-cnpj" placeholder="00.000.000/0001-00" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Chave Pix para Cobranças</label>
+                    <input type="text" class="form-input" id="empresa-pix" placeholder="E-mail, CNPJ ou Celular" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="save"></i> Salvar Empresa</button>
+                </form>
+              </div>
+
+              <!-- Cadastro de Usuários -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title"><i data-lucide="user-plus"></i> Cadastrar Novo Usuário</h3>
+                </div>
+                <form id="form-cadastro-usuario" class="form-row" style="grid-template-columns: 1fr; gap: 1rem; padding: 1rem 0;">
+                  <div class="form-group">
+                    <label>Empresa Vinculada (CNPJ)</label>
+                    <select class="form-select" id="usuario-empresa-select" required>
+                      <!-- Populated dynamically with registered companies -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Nome do Usuário</label>
+                    <input type="text" class="form-input" id="usuario-nome" placeholder="Ex: joaosilva" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Senha de Acesso (6 dígitos)</label>
+                    <input type="password" class="form-input" id="usuario-senha" placeholder="••••••" maxlength="6" pattern="\d{6}" required title="A senha deve conter exatamente 6 dígitos numéricos">
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="user-check"></i> Salvar Usuário</button>
+                </form>
+              </div>
+
+            </div>
+            
+            <!-- Listagem de Empresas & Usuários Cadastrados -->
+            <div class="panel" style="margin-top: 2rem;">
+              <div class="panel-header">
+                <h3 class="panel-title"><i data-lucide="list"></i> Empresas & Usuários no Sistema</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Razão Social</th>
+                      <th>CNPJ</th>
+                      <th>Chave Pix</th>
+                      <th>Usuários Cadastrados</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-empresas-usuarios-body">
+                    <!-- Dynamic -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -1173,6 +1321,19 @@
 
       </div>
     </main>
+  </div>
+
+  <!-- Modal NFS-e Nacional / Boleto Pix -->
+  <div id="modal-financeiro" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title" style="font-size: 1.25rem; font-weight: 700;">Detalhes da Cobrança</h3>
+        <button class="btn-close" id="btn-close-modal" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" id="modal-body-content" style="padding: 1.5rem 0;">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
   </div>
 
   <!-- Main JS file -->
