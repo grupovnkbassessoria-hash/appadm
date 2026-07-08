@@ -7,6 +7,19 @@ let GLOBAL_STATE = JSON.parse(localStorage.getItem('erp_global'));
 if (!GLOBAL_STATE || !GLOBAL_STATE.users || !GLOBAL_STATE.users.length) {
   GLOBAL_STATE = JSON.parse(JSON.stringify(initialData));
   localStorage.setItem('erp_global', JSON.stringify(GLOBAL_STATE));
+} else {
+  // Developer Seeding Merge: Ensure new companies and users in initialData are merged into existing localStorage state
+  initialData.companies.forEach(ic => {
+    if (!GLOBAL_STATE.companies.some(c => c.cnpj === ic.cnpj)) {
+      GLOBAL_STATE.companies.push(JSON.parse(JSON.stringify(ic)));
+    }
+  });
+  initialData.users.forEach(iu => {
+    if (!GLOBAL_STATE.users.some(u => u.username === iu.username && u.cnpj === iu.cnpj)) {
+      GLOBAL_STATE.users.push(iu);
+    }
+  });
+  localStorage.setItem('erp_global', JSON.stringify(GLOBAL_STATE));
 }
 let ACTIVE_SESSION = null; // { companyId, username, cnpj }
 let ERP_DATA = null;       // Active company data (shortcut)
