@@ -1225,11 +1225,162 @@ function renderFiscalData() {
         <td>${nf.tipo}</td>
         <td>${formatBRL(nf.valor)}</td>
         <td><span class="badge badge-success"><i data-lucide="shield-check"></i> ${nf.status}</span></td>
+        <td style="text-align: right; white-space: nowrap;">
+          <button class="btn btn-secondary btn-icon-only" onclick="baixarXML('${nf.id}', '${nf.xmlFile}')" title="Baixar XML"><i data-lucide="code"></i></button>
+          <button class="btn btn-secondary btn-icon-only" onclick="baixarPDFNota('${nf.id}', '${nf.destinatario}', ${nf.valor}, '${nf.tipo}')" title="Visualizar/Imprimir Danfe"><i data-lucide="file-text"></i></button>
+        </td>
       </tr>
     `).join('');
     lucide.createIcons();
   }
 }
+
+window.baixarXML = function(id, xmlFilename) {
+  const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe Id="${xmlFilename.replace('.xml', '')}" versao="4.00">
+      <ide>
+        <cUF>35</cUF>
+        <cNF>${Math.floor(10000000 + Math.random() * 90000000)}</cNF>
+        <natOp>Venda de servico/mercadoria</natOp>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>${id.replace(/\D/g, '') || '1026'}</nNF>
+        <dhEmi>${new Date().toISOString()}</dhEmi>
+        <tpNF>1</tpNF>
+      </ide>
+      <emit>
+        <CNPJ>${getActiveCompany()?.cnpj || '00000000000000'}</CNPJ>
+        <xNome>${getActiveCompany()?.razaoSocial || 'Empresa'}</xNome>
+      </emit>
+      <dest>
+        <xNome>${document.getElementById("fiscal-destinatario")?.value || 'Destinatário'}</xNome>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>0001</cProd>
+          <xProd>Prestacao de Servicos Gerais / Venda Integrada</xProd>
+          <vProd>1.00</vProd>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vNF>1.00</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+</nfeProc>`;
+  
+  const blob = new Blob([xmlContent], { type: 'text/xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = xmlFilename || `${id}.xml`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+window.baixarPDFNota = function(id, dest, valor, tipo) {
+  const comp = getActiveCompany();
+  const rz = comp ? comp.razaoSocial : 'Empresa';
+  const cnpj = comp ? comp.cnpj : '00.000.000/0001-00';
+  
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>DANFE - ${id}</title>
+  <style>
+    body { font-family: 'Courier New', monospace; font-size: 12px; margin: 20px; color: #000; }
+    .border-box { border: 2px solid #000; padding: 10px; margin-bottom: 10px; }
+    .header-table { width: 100%; border-collapse: collapse; }
+    .header-table td { border: 1px solid #000; padding: 6px; }
+    .title { font-size: 16px; font-weight: bold; text-align: center; }
+    .label { font-size: 9px; text-transform: uppercase; color: #555; }
+    .value { font-weight: bold; font-size: 11px; }
+    .footer { text-align: center; margin-top: 30px; font-size: 10px; border-top: 1px dashed #000; padding-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="border-box" style="text-align: center; font-size: 14px; font-weight: bold;">
+    RECEBEMOS OS PRODUTOS/SERVIÇOS CONSTANTES DA NOTA FISCAL INDICADA AO LADO
+  </div>
+  <table class="header-table">
+    <tr>
+      <td width="50%">
+        <span class="label">EMISSOR</span><br>
+        <span class="value">${rz}</span><br>
+        CNPJ: ${cnpj}
+      </td>
+      <td width="25%" style="text-align: center;">
+        <strong>DANFE</strong><br>
+        Documento Auxiliar da Nota Fiscal Eletrônica
+      </td>
+      <td width="25%">
+        <span class="label">NÚMERO / CONTROLE</span><br>
+        <span class="value" style="font-size: 14px;">${id}</span><br>
+        SÉRIE: 001
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="label">DESTINATÁRIO</span><br>
+        <span class="value">${dest}</span>
+      </td>
+      <td>
+        <span class="label">DATA EMISSÃO</span><br>
+        <span class="value">${new Date().toLocaleDateString('pt-BR')}</span>
+      </td>
+      <td>
+        <span class="label">VALOR TOTAL</span><br>
+        <span class="value" style="font-size: 14px; color: green;">${formatBRL(valor)}</span>
+      </td>
+    </tr>
+  </table>
+  
+  <div class="border-box" style="margin-top: 20px; min-height: 150px;">
+    <span class="label">DADOS DOS PRODUTOS / SERVIÇOS</span>
+    <table width="100%" style="border-collapse: collapse; margin-top: 10px;">
+      <thead>
+        <tr style="border-bottom: 1px solid #000;">
+          <th align="left">CÓD</th>
+          <th align="left">DESCRIÇÃO</th>
+          <th align="right">QTD</th>
+          <th align="right">UNIT</th>
+          <th align="right">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>0001</td>
+          <td>PRESTAÇÃO DE SERVIÇOS COMPLEMENTARES E CONTRATUAIS (${tipo})</td>
+          <td align="right">1.0</td>
+          <td align="right">${formatBRL(valor)}</td>
+          <td align="right"><strong>${formatBRL(valor)}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="border-box">
+    <span class="label">DADOS ADICIONAIS / OBSERVAÇÕES</span><br>
+    <span class="value">Emissão Homologada via API Receita Federal / SEFAZ Nacional.</span>
+  </div>
+  
+  <div class="footer">
+    DANFE gerado eletronicamente pelo APP ADM ERP.
+  </div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+};
 
 // 5. FINANCEIRO CONTROLLER
 function initFinanceiro() {
