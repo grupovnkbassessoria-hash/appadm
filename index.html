@@ -493,41 +493,44 @@
 
           <!-- Empresas & Usuários Sub-tab -->
           <div class="tab-content" id="tab-empresas-usuarios">
+            <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+              <strong>ℹ️ Regras de Licenciamento & Acesso:</strong> O cadastro e liberação de novos CNPJs é realizado exclusivamente pela equipe de programadores/desenvolvedores. As empresas liberadas podem realizar o complemento do seu cadastro (como Chave Pix) e gerenciar a criação de seus próprios usuários internos com acesso ao sistema.
+            </div>
+
             <div class="section-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
               
-              <!-- Cadastro de Empresas -->
+              <!-- Complemento de Cadastro da Empresa Logada -->
               <div class="panel">
                 <div class="panel-header">
-                  <h3 class="panel-title"><i data-lucide="building"></i> Cadastrar Nova Empresa</h3>
+                  <h3 class="panel-title"><i data-lucide="building"></i> Configurar Empresa Logada</h3>
                 </div>
                 <form id="form-cadastro-empresa" class="form-row" style="grid-template-columns: 1fr; gap: 1rem; padding: 1rem 0;">
                   <div class="form-group">
                     <label>Razão Social</label>
-                    <input type="text" class="form-input" id="empresa-nome" placeholder="Ex: Minha Empresa Ltda" required>
+                    <input type="text" class="form-input" id="empresa-nome" required>
                   </div>
                   <div class="form-group">
-                    <label>CNPJ</label>
-                    <input type="text" class="form-input" id="empresa-cnpj" placeholder="00.000.000/0001-00" required>
+                    <label>CNPJ (Liberado)</label>
+                    <input type="text" class="form-input" id="empresa-cnpj" readonly style="opacity: 0.65; cursor: not-allowed;">
                   </div>
                   <div class="form-group">
                     <label>Chave Pix para Cobranças</label>
                     <input type="text" class="form-input" id="empresa-pix" placeholder="E-mail, CNPJ ou Celular" required>
                   </div>
-                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="save"></i> Salvar Empresa</button>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="save"></i> Atualizar Informações</button>
                 </form>
               </div>
 
-              <!-- Cadastro de Usuários -->
+              <!-- Cadastro de Usuários (Restrito a empresa do usuário logado) -->
               <div class="panel">
                 <div class="panel-header">
-                  <h3 class="panel-title"><i data-lucide="user-plus"></i> Cadastrar Novo Usuário</h3>
+                  <h3 class="panel-title"><i data-lucide="user-plus"></i> Cadastrar Usuário Interno</h3>
                 </div>
                 <form id="form-cadastro-usuario" class="form-row" style="grid-template-columns: 1fr; gap: 1rem; padding: 1rem 0;">
                   <div class="form-group">
-                    <label>Empresa Vinculada (CNPJ)</label>
-                    <select class="form-select" id="usuario-empresa-select" required>
-                      <!-- Populated dynamically with registered companies -->
-                    </select>
+                    <label>Empresa Autorizada</label>
+                    <input type="text" class="form-input" id="usuario-empresa-readonly" readonly style="opacity: 0.65; cursor: not-allowed;">
+                    <input type="hidden" id="usuario-empresa-select">
                   </div>
                   <div class="form-group">
                     <label>Nome do Usuário</label>
@@ -537,16 +540,16 @@
                     <label>Senha de Acesso (6 dígitos)</label>
                     <input type="password" class="form-input" id="usuario-senha" placeholder="••••••" maxlength="6" pattern="\d{6}" required title="A senha deve conter exatamente 6 dígitos numéricos">
                   </div>
-                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="user-check"></i> Salvar Usuário</button>
+                  <button type="submit" class="btn btn-primary" style="margin-top: 1rem;"><i data-lucide="user-check"></i> Criar Usuário Interno</button>
                 </form>
               </div>
 
             </div>
             
-            <!-- Listagem de Empresas & Usuários Cadastrados -->
+            <!-- Listagem de Usuários Criados para a Empresa Logada -->
             <div class="panel" style="margin-top: 2rem;">
               <div class="panel-header">
-                <h3 class="panel-title"><i data-lucide="list"></i> Empresas & Usuários no Sistema</h3>
+                <h3 class="panel-title"><i data-lucide="list"></i> Dados de Acesso da Sua Empresa</h3>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -555,7 +558,7 @@
                       <th>Razão Social</th>
                       <th>CNPJ</th>
                       <th>Chave Pix</th>
-                      <th>Usuários Cadastrados</th>
+                      <th>Usuários com Acesso Liberado</th>
                     </tr>
                   </thead>
                   <tbody id="table-empresas-usuarios-body">

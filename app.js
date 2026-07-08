@@ -2100,37 +2100,38 @@ function initEmpresasUsuarios() {
   const formEmpresa = document.getElementById('form-cadastro-empresa');
   const formUsuario = document.getElementById('form-cadastro-usuario');
 
+  // Pre-fill forms with active company details
+  const comp = getActiveCompany();
+  if (comp) {
+    const nomeEl = document.getElementById('empresa-nome');
+    const cnpjEl = document.getElementById('empresa-cnpj');
+    const pixEl = document.getElementById('empresa-pix');
+    if (nomeEl) nomeEl.value = comp.razaoSocial || '';
+    if (cnpjEl) cnpjEl.value = comp.cnpj || '';
+    if (pixEl) pixEl.value = comp.pixKey || '';
+
+    // Bind values to readonly UI inputs
+    const userReadonly = document.getElementById('usuario-empresa-readonly');
+    const userSelectVal = document.getElementById('usuario-empresa-select');
+    if (userReadonly) userReadonly.value = `${comp.razaoSocial} (${comp.cnpj})`;
+    if (userSelectVal) userSelectVal.value = comp.cnpj;
+  }
+
   if (formEmpresa) {
     formEmpresa.addEventListener('submit', (e) => {
       e.preventDefault();
       const nome = document.getElementById('empresa-nome').value.trim();
-      const cnpj = document.getElementById('empresa-cnpj').value.trim();
       const pix = document.getElementById('empresa-pix').value.trim();
 
-      if (GLOBAL_STATE.companies.find(c => c.cnpj === cnpj)) {
-        alert('Já existe uma empresa com este CNPJ cadastrado!');
-        return;
+      const currentComp = getActiveCompany();
+      if (currentComp) {
+        currentComp.razaoSocial = nome;
+        currentComp.pixKey = pix;
+        saveState();
+        renderEmpresasUsuariosTable();
+        initSidebarSession(); // Refresh profile name
+        alert('Cadastro da empresa atualizado com sucesso!');
       }
-
-      GLOBAL_STATE.companies.push({
-        id: 'comp-' + Date.now(),
-        cnpj, razaoSocial: nome, pixKey: pix,
-        data: {
-          comercial: { orcamentos: [], pedidos: [], contratos: [] },
-          cadastro: { clientes: [], fornecedores: [], colaboradores: [], veiculos: [], produtos: [] },
-          fiscal: { notasEmitidas: [], comunicacaoContabilidade: { ultimoEnvio: '', arquivosPendentes: 0, competenciaAtual: '' } },
-          financeiro: { contasPagar: [], contasReceber: [], fluxoCaixa: { diario: [], saldoAtual: 0, projecaoMes: 0 } },
-          rh: { contratosTrabalho: [] },
-          frota: { manutencoes: [], abastecimentos: [], multas: [] },
-          estoque: { movimentacoes: [] },
-          administrativo: { documentos: [] }
-        }
-      });
-      saveState();
-      formEmpresa.reset();
-      renderEmpresasUsuariosTable();
-      populateUsuarioEmpresaSelect();
-      alert('Empresa "' + nome + '" cadastrada! CNPJ: ' + cnpj + '\nAgora cadastre um usuário para ela.');
     });
   }
 
@@ -2153,37 +2154,42 @@ function initEmpresasUsuarios() {
       GLOBAL_STATE.users.push({ username, password, cnpj });
       saveState();
       formUsuario.reset();
+      
+      // Keep hidden input populated
+      const currentComp = getActiveCompany();
+      if (currentComp) {
+        document.getElementById('usuario-empresa-select').value = currentComp.cnpj;
+      }
+
       renderEmpresasUsuariosTable();
-      alert('Usuário "' + username + '" criado!\nCNPJ: ' + cnpj + '\nUsuário: ' + username + '\nSenha: ●●●●●●');
+      alert('Usuário "' + username + '" criado com sucesso!\nCNPJ: ' + cnpj + '\nSenha: ●●●●●●');
     });
   }
-
-  populateUsuarioEmpresaSelect();
-}
-
-function populateUsuarioEmpresaSelect() {
-  const sel = document.getElementById('usuario-empresa-select');
-  if (!sel) return;
-  sel.innerHTML = GLOBAL_STATE.companies.map(c =>
-    `<option value="${c.cnpj}">${c.razaoSocial} (${c.cnpj})</option>`
-  ).join('');
 }
 
 function renderEmpresasUsuariosTable() {
   const body = document.getElementById('table-empresas-usuarios-body');
   if (!body) return;
-  body.innerHTML = GLOBAL_STATE.companies.map(comp => {
-    const users = GLOBAL_STATE.users.filter(u => u.cnpj === comp.cnpj);
-    const userList = users.length
-      ? users.map(u => `<span class="badge badge-primary" style="margin-right:0.25rem;">${u.username}</span>`).join('')
-      : '<span style="color:var(--text-muted);font-size:0.8rem;">Nenhum usuário</span>';
-    return `<tr>
-      <td><strong>${comp.razaoSocial}</strong></td>
-      <td><code style="font-size:0.8rem;">${comp.cnpj}</code></td>
-      <td><code style="font-size:0.8rem;color:var(--color-secondary);">${comp.pixKey}</code></td>
-      <td>${userList}</td>
-    </tr>`;
-  }).join('');
+
+  // Filter to show ONLY the logged-in company details and its users
+  const comp = getActiveCompany();
+  if (!comp) {
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Nenhuma empresa ativa na sessão.</td></tr>';
+    return;
+  }
+
+  const users = GLOBAL_STATE.users.filter(u => u.cnpj === comp.cnpj);
+  const userList = users.length
+    ? users.map(u => `<span class="badge badge-primary" style="margin-right:0.25rem;">${u.username}</span>`).join('')
+    : '<span style="color:var(--text-muted);font-size:0.8rem;">Nenhum usuário cadastrado</span>';
+
+  body.innerHTML = `<tr>
+    <td><strong>${comp.razaoSocial}</strong></td>
+    <td><code style="font-size:0.8rem;">${comp.cnpj}</code></td>
+    <td><code style="font-size:0.8rem;color:var(--color-secondary);">${comp.pixKey || 'Não configurada'}</code></td>
+    <td>${userList}</td>
+  </tr>`;
+  
   lucide.createIcons();
 }
 
