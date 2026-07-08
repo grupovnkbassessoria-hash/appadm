@@ -1954,6 +1954,14 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
   const emissao = fat.emissao || today.toISOString().split("T")[0];
   const vencimento = fat.vencimento || emissao;
   const linhaDigitavel = "00190.00009 00000.000000 00000.000000 1 " + String(Math.round((fat.valor || 0) * 100)).padStart(10, "0");
+  const pixPayload = buildPixPayload({
+    pixKey,
+    merchantName: razaoSocial,
+    merchantCity: "BRASIL",
+    amount: fat.valor || 0,
+    txid: (fat.id || fallbackFatId || "FAT").replace(/[^A-Za-z0-9]/g, "").slice(0, 25)
+  });
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=" + encodeURIComponent(pixPayload);
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1967,6 +1975,9 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
     .muted { color: #4b5563; font-size: 12px; text-transform: uppercase; font-weight: 700; }
     .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 22px 0; }
     .box { border: 1px solid #d1d5db; padding: 12px; min-height: 54px; }
+    .pix { display: grid; grid-template-columns: 210px 1fr; gap: 18px; align-items: center; border: 2px solid #111827; padding: 16px; margin-top: 20px; }
+    .pix img { width: 180px; height: 180px; display: block; }
+    .copy { word-break: break-all; font-family: "Courier New", monospace; font-size: 11px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; margin-top: 8px; }
     .amount { font-size: 24px; font-weight: 800; }
     .barcode { margin-top: 24px; border: 1px solid #111827; padding: 14px; font-family: "Courier New", monospace; font-size: 18px; letter-spacing: 1px; text-align: center; }
     .bars { display: flex; height: 62px; gap: 3px; align-items: stretch; justify-content: center; margin-top: 12px; }
@@ -1997,6 +2008,17 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
       <div class="box"><div class="muted">Descrição</div><strong>${fat.descricao || "Faturamento"}</strong></div>
       <div class="box"><div class="muted">Chave Pix</div><strong>${pixKey}</strong></div>
     </div>
+    <div class="pix">
+      <div>
+        <div class="muted">QR Code Pix</div>
+        <img src="${qrUrl}" alt="QR Code Pix">
+      </div>
+      <div>
+        <strong>Pagamento via Pix</strong>
+        <p>Escaneie o QR Code no aplicativo do banco ou use o Pix copia e cola abaixo.</p>
+        <div class="copy">${pixPayload}</div>
+      </div>
+    </div>
     <div class="barcode">${linhaDigitavel}</div>
     <div class="bars">${Array.from({ length: 42 }, (_, i) => `<span style="width:${(i % 4) + 2}px"></span>`).join("")}</div>
     <div class="footer">Documento gerado pelo APP ADM para impressão/PDF. Para cobrança bancária registrada, envie os dados ao banco/integrador responsável.</div>
@@ -2011,6 +2033,48 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
   saveState();
   renderFinanceiroTables();
 };
+
+function buildPixPayload({ pixKey, merchantName, merchantCity, amount, txid }) {
+  const merchantAccount = emv("00", "BR.GOV.BCB.PIX") + emv("01", String(pixKey || ""));
+  const payloadWithoutCrc =
+    emv("00", "01") +
+    emv("26", merchantAccount) +
+    emv("52", "0000") +
+    emv("53", "986") +
+    emv("54", Number(amount || 0).toFixed(2)) +
+    emv("58", "BR") +
+    emv("59", sanitizePixText(merchantName || "EMPRESA").slice(0, 25)) +
+    emv("60", sanitizePixText(merchantCity || "BRASIL").slice(0, 15)) +
+    emv("62", emv("05", sanitizePixText(txid || "FAT").slice(0, 25))) +
+    "6304";
+  return payloadWithoutCrc + crc16Pix(payloadWithoutCrc);
+}
+
+function emv(id, value) {
+  const text = String(value || "");
+  return id + String(text.length).padStart(2, "0") + text;
+}
+
+function sanitizePixText(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 .-]/g, "")
+    .trim()
+    .toUpperCase();
+}
+
+function crc16Pix(payload) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < payload.length; i++) {
+    crc ^= payload.charCodeAt(i) << 8;
+    for (let bit = 0; bit < 8; bit++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
 
 function renderForecastChart() {
   const ctx = document.getElementById("finance-forecast-chart");
