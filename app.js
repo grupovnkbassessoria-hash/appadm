@@ -92,14 +92,17 @@ function initLogin() {
   const form = document.getElementById('login-form');
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const cnpj = document.getElementById('login-cnpj').value.trim();
+    const cnpjInput = document.getElementById('login-cnpj').value.trim();
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value.trim();
     const errorMsg = document.getElementById('login-error-msg');
 
-    // Validate
+    // Helper to sanitize CNPJ
+    const cleanCNPJ = (val) => val.replace(/\D/g, '');
+
+    // Validate using cleaned CNPJ comparison
     const user = GLOBAL_STATE.users.find(
-      u => u.cnpj === cnpj && u.username === username && u.password === password
+      u => cleanCNPJ(u.cnpj) === cleanCNPJ(cnpjInput) && u.username === username && u.password === password
     );
 
     if (!user) {
@@ -111,7 +114,7 @@ function initLogin() {
     errorMsg.classList.add('hidden');
     ACTIVE_SESSION = { cnpj: user.cnpj, username: user.username };
     sessionStorage.setItem('erp_session', JSON.stringify(ACTIVE_SESSION));
-    ERP_DATA = loadCompanyData(cnpj);
+    ERP_DATA = loadCompanyData(user.cnpj);
 
     loginLayout.classList.add('hidden');
     appLayout.style.display = '';
