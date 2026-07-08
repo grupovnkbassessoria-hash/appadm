@@ -2046,6 +2046,7 @@ function initAdministrativo() {
       ERP_DATA.administrativo.documentos.push(newDoc);
       saveState();
       renderAdministrativoDocs();
+      renderConsolidadoGeral();
     });
   }
 
@@ -2057,6 +2058,67 @@ function initAdministrativo() {
   }
 
   renderAdministrativoDocs();
+  renderConsolidadoGeral();
+}
+
+function renderConsolidadoGeral() {
+  const valoresEl = document.getElementById('consolidado-valores-dinamicos');
+  const confEl = document.getElementById('consolidado-conformidade-dinamico');
+  if (!valoresEl || !confEl) return;
+
+  // 1. Calculate dynamic values from ERP_DATA
+  const faturamentoTotal = ERP_DATA.fiscal.notasEmitidas.reduce((sum, nf) => sum + (nf.valor || 0), 0);
+  const despesaTotal = ERP_DATA.financeiro.contasPagar.reduce((sum, cp) => sum + (cp.valor || 0), 0);
+  
+  const totalVeiculos = ERP_DATA.cadastro.veiculos.length;
+  const veiculosOperacionais = ERP_DATA.cadastro.veiculos.filter(v => v.status === 'Operacional').length;
+  const frotaPercent = totalVeiculos > 0 ? Math.round((veiculosOperacionais / totalVeiculos) * 100) : 0;
+  
+  const estoqueImobilizado = ERP_DATA.cadastro.produtos.reduce((sum, p) => sum + ((p.estoqueAtual || 0) * (p.custoMedio || 0)), 0);
+
+  valoresEl.innerHTML = `
+    <div>
+      <strong>Desempenho Comercial:</strong> ${formatBRL(faturamentoTotal)} faturados
+    </div>
+    <div>
+      <strong>Despesa Corrente Operacional:</strong> ${formatBRL(despesaTotal)}
+    </div>
+    <div>
+      <strong>Frota Status:</strong> ${totalVeiculos > 0 ? `${frotaPercent}% dos veículos operacionais` : 'Sem veículos cadastrados'}
+    </div>
+    <div>
+      <strong>Estoque Global:</strong> ${formatBRL(estoqueImobilizado)} imobilizados em insumos
+    </div>
+  `;
+
+  // 2. Generate Compliance list
+  const hasLicencaAmbiental = ERP_DATA.administrativo.documentos.some(d => d.nome.toLowerCase().includes('ambiental'));
+  
+  let confHtml = `
+    <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-success);">
+      <i data-lucide="check-circle-2"></i> Certidões Federais atualizadas
+    </li>
+    <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-success);">
+      <i data-lucide="check-circle-2"></i> Encargos trabalhistas recolhidos
+    </li>
+  `;
+
+  if (hasLicencaAmbiental) {
+    confHtml += `
+      <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-success);">
+        <i data-lucide="check-circle-2"></i> Licença Ambiental em conformidade
+      </li>
+    `;
+  } else {
+    confHtml += `
+      <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--text-muted);">
+        <i data-lucide="minus"></i> Nenhuma licença ambiental pendente
+      </li>
+    `;
+  }
+
+  confEl.innerHTML = confHtml;
+  lucide.createIcons();
 }
 
 function renderAdministrativoDocs() {

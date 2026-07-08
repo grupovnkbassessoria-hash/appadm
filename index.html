@@ -1287,19 +1287,8 @@
                 <div class="table-wrapper" style="border: none;">
                   <div style="padding: 1.5rem; background: var(--surface-primary); border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 1rem;">
                     <div style="font-size: 1.2rem; font-weight: 800; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">RELATÓRIO CONSOLIDADO ANUAL 2026</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                      <div>
-                        <strong>Desempenho Comercial:</strong> R$ 177.000,00 faturados no trimestre
-                      </div>
-                      <div>
-                        <strong>Despesa Corrente Operacional:</strong> R$ 48.200,00
-                      </div>
-                      <div>
-                        <strong>Frota Status:</strong> 100% dos motoristas com licenças regulares
-                      </div>
-                      <div>
-                        <strong>Estoque Global:</strong> R$ 56.560,00 imobilizados em insumos
-                      </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" id="consolidado-valores-dinamicos">
+                      <!-- Rendered dynamically based on company data -->
                     </div>
                   </div>
                 </div>
@@ -1309,16 +1298,8 @@
                 <div class="panel-header">
                   <h3 class="panel-title">Auditorias & Conformidade</h3>
                 </div>
-                <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 0.75rem;">
-                  <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-success);">
-                    <i data-lucide="check-circle-2"></i> Certidões Federais atualizadas
-                  </li>
-                  <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-success);">
-                    <i data-lucide="check-circle-2"></i> Encargos trabalhistas recolhidos
-                  </li>
-                  <li style="display: flex; gap: 0.5rem; align-items: center; color: var(--color-warning);">
-                    <i data-lucide="alert-circle"></i> Licença Ambiental expira em 20 dias
-                  </li>
+                <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 0.75rem;" id="consolidado-conformidade-dinamico">
+                  <!-- Rendered dynamically -->
                 </ul>
               </div>
             </div>
