@@ -1101,9 +1101,15 @@ const CADASTRO_CONFIG = {
     title: "Cliente",
     fields: [
       { key: "nome", label: "Nome / Razão Social", required: true },
-      { key: "cnpj", label: "CNPJ", required: true },
+      { key: "cnpj", label: "CNPJ", required: true, placeholder: "00.000.000/0001-00", lookup: "cnpj" },
       { key: "email", label: "Email", required: true },
       { key: "telefone", label: "Telefone", required: true },
+      { key: "cep", label: "CEP", placeholder: "00000-000", lookup: "cep" },
+      { key: "endereco", label: "Endereço" },
+      { key: "numero", label: "Número" },
+      { key: "bairro", label: "Bairro" },
+      { key: "cidade", label: "Cidade" },
+      { key: "uf", label: "UF" },
       { key: "totalComprado", label: "Total Comprado", type: "number", defaultValue: 0 }
     ]
   },
@@ -1114,9 +1120,16 @@ const CADASTRO_CONFIG = {
     title: "Fornecedor",
     fields: [
       { key: "nome", label: "Razão Social", required: true },
-      { key: "cnpj", label: "CNPJ", required: true },
+      { key: "cnpj", label: "CNPJ", required: true, placeholder: "00.000.000/0001-00", lookup: "cnpj" },
       { key: "contato", label: "Contato", required: true },
       { key: "telefone", label: "Telefone", required: true },
+      { key: "email", label: "Email" },
+      { key: "cep", label: "CEP", placeholder: "00000-000", lookup: "cep" },
+      { key: "endereco", label: "Endereço" },
+      { key: "numero", label: "Número" },
+      { key: "bairro", label: "Bairro" },
+      { key: "cidade", label: "Cidade" },
+      { key: "uf", label: "UF" },
       { key: "qualidade", label: "Qualidade", defaultValue: "Bom" },
       { key: "prazoMedio", label: "Prazo Médio", defaultValue: "7 dias" }
     ]
@@ -1179,6 +1192,7 @@ function setupBasicCadastroManagement() {
 
     const form = document.getElementById(`form-${kind}`);
     if (form) {
+      setupCadastroAutoFill(kind, config);
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         saveCadastroForm(kind);
@@ -1194,9 +1208,137 @@ function cadastroFormHtml(kind, config) {
     const value = field.defaultValue !== undefined ? ` value="${field.defaultValue}"` : "";
     const required = field.required ? " required" : "";
     const step = type === "number" ? ' step="0.01" min="0"' : "";
-    return `<div class="form-group"><label>${field.label}</label><input type="${type}" class="form-input" id="${kind}-${field.key}"${value}${required}${step}></div>`;
+    const placeholder = field.placeholder ? ` placeholder="${field.placeholder}"` : "";
+    const lookup = field.lookup ? ` data-lookup="${field.lookup}"` : "";
+    return `<div class="form-group"><label>${field.label}</label><input type="${type}" class="form-input" id="${kind}-${field.key}"${value}${required}${step}${placeholder}${lookup}></div>`;
   }).join("");
   return `<form id="form-${kind}" class="cadastro-form hidden"><div class="form-row">${fields}</div><div class="product-form-actions"><button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar ${config.title}</button><button type="button" class="btn btn-secondary" data-cadastro-cancel="${kind}"><i data-lucide="x"></i> Cancelar</button></div></form>`;
+}
+
+function setupCadastroAutoFill(kind, config) {
+  if (!["clientes", "fornecedores"].includes(kind)) return;
+  const form = document.getElementById(`form-${kind}`);
+  if (!form || form.dataset.autoFillSetup === "true") return;
+  form.dataset.autoFillSetup = "true";
+
+  const cnpjInput = document.getElementById(`${kind}-cnpj`);
+  const cepInput = document.getElementById(`${kind}-cep`);
+
+  if (cnpjInput) {
+    cnpjInput.addEventListener("blur", () => autofillCadastroByCnpj(kind));
+    cnpjInput.addEventListener("input", () => {
+      cnpjInput.value = formatCnpjInput(cnpjInput.value);
+    });
+  }
+
+  if (cepInput) {
+    cepInput.addEventListener("blur", () => autofillCadastroByCep(kind));
+    cepInput.addEventListener("input", () => {
+      cepInput.value = formatCepInput(cepInput.value);
+    });
+  }
+}
+
+async function autofillCadastroByCnpj(kind) {
+  const cnpjInput = document.getElementById(`${kind}-cnpj`);
+  const cnpj = cleanCnpjValue(cnpjInput?.value);
+  if (cnpj.length !== 14) return;
+
+  setCadastroLookupState(kind, true);
+  try {
+    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+    if (!response.ok) throw new Error("CNPJ não encontrado");
+    const data = await response.json();
+    fillCadastroFromCnpj(kind, data);
+    const cep = cleanCnpjValue(data.cep);
+    if (cep.length === 8) {
+      await autofillCadastroByCep(kind, cep);
+    }
+  } catch (error) {
+    console.warn("Não foi possível buscar o CNPJ:", error);
+    alert("Não foi possível buscar os dados desse CNPJ. Confira o número e tente novamente.");
+  } finally {
+    setCadastroLookupState(kind, false);
+  }
+}
+
+async function autofillCadastroByCep(kind, cepOverride) {
+  const cepInput = document.getElementById(`${kind}-cep`);
+  const cep = cleanCnpjValue(cepOverride || cepInput?.value);
+  if (cep.length !== 8) return;
+
+  setCadastroLookupState(kind, true);
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!response.ok) throw new Error("CEP não encontrado");
+    const data = await response.json();
+    if (data.erro) throw new Error("CEP não encontrado");
+    setCadastroField(kind, "cep", formatCepInput(cep), true);
+    setCadastroField(kind, "endereco", data.logradouro, false);
+    setCadastroField(kind, "bairro", data.bairro, false);
+    setCadastroField(kind, "cidade", data.localidade, false);
+    setCadastroField(kind, "uf", data.uf, false);
+  } catch (error) {
+    console.warn("Não foi possível buscar o CEP:", error);
+    alert("Não foi possível buscar os dados desse CEP. Confira o número e tente novamente.");
+  } finally {
+    setCadastroLookupState(kind, false);
+  }
+}
+
+function fillCadastroFromCnpj(kind, data) {
+  const razaoSocial = data.razao_social || data.nome_fantasia || "";
+  setCadastroField(kind, "nome", razaoSocial, true);
+  setCadastroField(kind, "contato", data.nome_fantasia || razaoSocial, false);
+  setCadastroField(kind, "email", data.email || "", false);
+  setCadastroField(kind, "telefone", formatPhoneInput([data.ddd_telefone_1, data.ddd_telefone_2].filter(Boolean)[0] || ""), false);
+  setCadastroField(kind, "cep", formatCepInput(data.cep || ""), true);
+  setCadastroField(kind, "endereco", buildCnpjStreet(data), false);
+  setCadastroField(kind, "numero", data.numero || "", false);
+  setCadastroField(kind, "bairro", data.bairro || "", false);
+  setCadastroField(kind, "cidade", data.municipio || "", false);
+  setCadastroField(kind, "uf", data.uf || "", false);
+}
+
+function buildCnpjStreet(data) {
+  return [data.descricao_tipo_de_logradouro, data.logradouro].filter(Boolean).join(" ").trim();
+}
+
+function setCadastroField(kind, key, value, overwrite) {
+  const input = document.getElementById(`${kind}-${key}`);
+  if (!input || value === undefined || value === null || value === "") return;
+  if (!overwrite && input.value.trim()) return;
+  input.value = value;
+}
+
+function setCadastroLookupState(kind, loading) {
+  const form = document.getElementById(`form-${kind}`);
+  if (!form) return;
+  form.querySelectorAll("[data-lookup]").forEach(input => {
+    input.disabled = loading;
+  });
+}
+
+function formatCnpjInput(value) {
+  const digits = cleanCnpjValue(value).slice(0, 14);
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
+
+function formatCepInput(value) {
+  const digits = cleanCnpjValue(value).slice(0, 8);
+  return digits.replace(/^(\d{5})(\d)/, "$1-$2");
+}
+
+function formatPhoneInput(value) {
+  const digits = cleanCnpjValue(value).slice(0, 11);
+  if (digits.length <= 10) {
+    return digits.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3").replace(/-$/, "");
+  }
+  return digits.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, "($1) $2-$3").replace(/-$/, "");
 }
 
 function openCadastroForm(kind) {
