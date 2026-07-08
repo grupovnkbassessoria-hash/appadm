@@ -924,6 +924,66 @@ function futureDateIso(days) {
   return date.toISOString().split("T")[0];
 }
 
+const DOC_ASSESSORIA_CNPJ = "67873641000121";
+const DOC_ASSESSORIA_LOGO = "assets/doc-assessoria/logo.png";
+
+function cleanCnpjValue(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function getDocumentBranding() {
+  const comp = getActiveCompany();
+  if (!comp || cleanCnpjValue(comp.cnpj) !== DOC_ASSESSORIA_CNPJ) {
+    return {
+      className: "",
+      stylesheet: "",
+      headerHtml: "",
+      footerHtml: ""
+    };
+  }
+
+  return {
+    className: "doc-assessoria-letterhead",
+    stylesheet: `
+      body.doc-assessoria-letterhead { margin: 0; color: #0f2533; background: #fff; }
+      body.doc-assessoria-letterhead .letterhead-page { min-height: calc(100vh - 44px); padding: 38px 44px 70px; position: relative; box-sizing: border-box; }
+      body.doc-assessoria-letterhead .brand-watermark { position: fixed; left: 50%; top: 50%; width: 540px; max-width: 78%; opacity: 0.055; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; }
+      body.doc-assessoria-letterhead .letterhead-header { border-bottom: 2px solid #1b5c72; padding: 0 0 14px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; gap: 24px; position: relative; z-index: 1; }
+      body.doc-assessoria-letterhead .letterhead-header img { width: 214px; height: auto; display: block; }
+      body.doc-assessoria-letterhead .letterhead-company { text-align: right; font-size: 11px; line-height: 1.45; color: #24475a; }
+      body.doc-assessoria-letterhead .letterhead-content { position: relative; z-index: 1; }
+      body.doc-assessoria-letterhead .letterhead-footer { position: fixed; left: 44px; right: 44px; bottom: 22px; border-top: 1px solid #8aaaba; padding-top: 8px; text-align: center; color: #31596b; font-size: 10px; }
+      @media print {
+        body.doc-assessoria-letterhead .letterhead-page { min-height: auto; padding: 10mm 0 18mm; }
+        body.doc-assessoria-letterhead .letterhead-footer { left: 0; right: 0; bottom: 0; }
+      }
+    `,
+    headerHtml: `
+      <img class="brand-watermark" src="${DOC_ASSESSORIA_LOGO}" alt="">
+      <div class="letterhead-header">
+        <img src="${DOC_ASSESSORIA_LOGO}" alt="D.O.C. Assessoria e Consultoria">
+        <div class="letterhead-company">
+          <strong>D.O.C. Assessoria e Consultoria</strong><br>
+          CNPJ: 67.873.641/0001-21<br>
+          Documento gerado pelo APP ADM
+        </div>
+      </div>
+    `,
+    footerHtml: `<div class="letterhead-footer">D.O.C. Assessoria e Consultoria - documento emitido eletronicamente</div>`
+  };
+}
+
+function wrapPdfWithBranding(contentHtml, extraStyles) {
+  const branding = getDocumentBranding();
+  const pageClass = branding.className ? "letterhead-page" : "";
+  const contentClass = branding.className ? "letterhead-content" : "";
+  return {
+    bodyClass: branding.className,
+    styles: (branding.stylesheet || "") + (extraStyles || ""),
+    body: `<section class="${pageClass}">${branding.headerHtml}<main class="${contentClass}">${contentHtml}</main>${branding.footerHtml}</section>`
+  };
+}
+
 function generateCommercialPdf(kind, id) {
   const record = getCommercialRecord(kind, id);
   if (!record) return;
@@ -937,7 +997,9 @@ function generateCommercialPdf(kind, id) {
     ? "<div><span class='muted'>Previsão de entrega</span><br><strong>" + formatDateBR(record.entregaEstimada) + "</strong></div>"
     : "";
   const taxLine = "";
-  const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>" + title + " " + record.id + "</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body><header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div>" + extraHtml + "</section><section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section></body></html>";
+  const contentHtml = "<header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div>" + extraHtml + "</section><section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section>";
+  const branded = wrapPdfWithBranding(contentHtml, "body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}");
+  const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>" + title + " " + record.id + "</title><style>" + branded.styles + "</style></head><body class='" + branded.bodyClass + "'>" + branded.body + "</body></html>";
   const oldFrame = document.getElementById("commercial-pdf-frame");
   if (oldFrame) oldFrame.remove();
   const frame = document.createElement("iframe");
@@ -1546,24 +1608,7 @@ window.baixarPDFNota = function(id, dest, valor, tipo) {
   const comp = getActiveCompany();
   const rz = comp ? comp.razaoSocial : 'Empresa';
   const cnpj = comp ? comp.cnpj : '00.000.000/0001-00';
-  
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>DANFE - ${id}</title>
-  <style>
-    body { font-family: 'Courier New', monospace; font-size: 12px; margin: 20px; color: #000; }
-    .border-box { border: 2px solid #000; padding: 10px; margin-bottom: 10px; }
-    .header-table { width: 100%; border-collapse: collapse; }
-    .header-table td { border: 1px solid #000; padding: 6px; }
-    .title { font-size: 16px; font-weight: bold; text-align: center; }
-    .label { font-size: 9px; text-transform: uppercase; color: #555; }
-    .value { font-weight: bold; font-size: 11px; }
-    .footer { text-align: center; margin-top: 30px; font-size: 10px; border-top: 1px dashed #000; padding-top: 10px; }
-  </style>
-</head>
-<body>
+  const contentHtml = `
   <div class="border-box" style="text-align: center; font-size: 14px; font-weight: bold;">
     RECEBEMOS OS PRODUTOS/SERVIÇOS CONSTANTES DA NOTA FISCAL INDICADA AO LADO
   </div>
@@ -1631,7 +1676,27 @@ window.baixarPDFNota = function(id, dest, valor, tipo) {
   
   <div class="footer">
     DANFE gerado eletronicamente pelo APP ADM ERP.
-  </div>
+  </div>`;
+  const branded = wrapPdfWithBranding(contentHtml, `
+    body { font-family: 'Courier New', monospace; font-size: 12px; margin: 20px; color: #000; }
+    .border-box { border: 2px solid #000; padding: 10px; margin-bottom: 10px; }
+    .header-table { width: 100%; border-collapse: collapse; }
+    .header-table td { border: 1px solid #000; padding: 6px; }
+    .title { font-size: 16px; font-weight: bold; text-align: center; }
+    .label { font-size: 9px; text-transform: uppercase; color: #555; }
+    .value { font-weight: bold; font-size: 11px; }
+    .footer { text-align: center; margin-top: 30px; font-size: 10px; border-top: 1px dashed #000; padding-top: 10px; }
+  `);
+  
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>DANFE - ${id}</title>
+  <style>${branded.styles}</style>
+</head>
+<body class="${branded.bodyClass}">
+  ${branded.body}
 </body>
 </html>`;
 
@@ -1972,32 +2037,7 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
     txid: (fat.id || fallbackFatId || "FAT").replace(/[^A-Za-z0-9]/g, "").slice(0, 25)
   });
   const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=" + encodeURIComponent(pixPayload);
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Boleto ${fat.id || fallbackFatId}</title>
-  <style>
-    body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
-    .doc { max-width: 820px; margin: 0 auto; border: 1px solid #111827; padding: 24px; }
-    .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #111827; padding-bottom: 16px; }
-    h1 { margin: 0; font-size: 22px; }
-    .muted { color: #4b5563; font-size: 12px; text-transform: uppercase; font-weight: 700; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 22px 0; }
-    .box { border: 1px solid #d1d5db; padding: 12px; min-height: 54px; }
-    .pix { display: grid; grid-template-columns: 210px 1fr; gap: 18px; align-items: center; border: 2px solid #111827; padding: 16px; margin-top: 20px; }
-    .pix img { width: 180px; height: 180px; display: block; }
-    .copy { word-break: break-all; font-family: "Courier New", monospace; font-size: 11px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; margin-top: 8px; }
-    .amount { font-size: 24px; font-weight: 800; }
-    .barcode { margin-top: 24px; border: 1px solid #111827; padding: 14px; font-family: "Courier New", monospace; font-size: 18px; letter-spacing: 1px; text-align: center; }
-    .bars { display: flex; height: 62px; gap: 3px; align-items: stretch; justify-content: center; margin-top: 12px; }
-    .bars span { background: #111827; display: block; }
-    .footer { margin-top: 24px; font-size: 12px; color: #374151; border-top: 1px dashed #9ca3af; padding-top: 12px; }
-    @page { size: A4; margin: 12mm; }
-    @media print { body { margin: 0; } .doc { border: 0; } }
-  </style>
-</head>
-<body>
+  const contentHtml = `
   <section class="doc">
     <div class="top">
       <div>
@@ -2032,7 +2072,35 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
     <div class="barcode">${linhaDigitavel}</div>
     <div class="bars">${Array.from({ length: 42 }, (_, i) => `<span style="width:${(i % 4) + 2}px"></span>`).join("")}</div>
     <div class="footer">Documento gerado pelo APP ADM para impressão/PDF. Para cobrança bancária registrada, envie os dados ao banco/integrador responsável.</div>
-  </section>
+  </section>`;
+  const branded = wrapPdfWithBranding(contentHtml, `
+    body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
+    .doc { max-width: 820px; margin: 0 auto; border: 1px solid #111827; padding: 24px; }
+    .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #111827; padding-bottom: 16px; }
+    h1 { margin: 0; font-size: 22px; }
+    .muted { color: #4b5563; font-size: 12px; text-transform: uppercase; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 22px 0; }
+    .box { border: 1px solid #d1d5db; padding: 12px; min-height: 54px; }
+    .pix { display: grid; grid-template-columns: 210px 1fr; gap: 18px; align-items: center; border: 2px solid #111827; padding: 16px; margin-top: 20px; }
+    .pix img { width: 180px; height: 180px; display: block; }
+    .copy { word-break: break-all; font-family: "Courier New", monospace; font-size: 11px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; margin-top: 8px; }
+    .amount { font-size: 24px; font-weight: 800; }
+    .barcode { margin-top: 24px; border: 1px solid #111827; padding: 14px; font-family: "Courier New", monospace; font-size: 18px; letter-spacing: 1px; text-align: center; }
+    .bars { display: flex; height: 62px; gap: 3px; align-items: stretch; justify-content: center; margin-top: 12px; }
+    .bars span { background: #111827; display: block; }
+    .footer { margin-top: 24px; font-size: 12px; color: #374151; border-top: 1px dashed #9ca3af; padding-top: 12px; }
+    @page { size: A4; margin: 12mm; }
+    @media print { body { margin: 0; } .doc { border: 0; } }
+  `);
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Boleto ${fat.id || fallbackFatId}</title>
+  <style>${branded.styles}</style>
+</head>
+<body class="${branded.bodyClass}">
+  ${branded.body}
   <script>window.onload = () => { window.print(); };</script>
 </body>
 </html>`;

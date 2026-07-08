@@ -195,7 +195,7 @@ export const initialData = {
     {
       id: "comp-3",
       cnpj: "67.873.641/0001-21",
-      razaoSocial: "Nova Empresa Licenciada",
+      razaoSocial: "D.O.C. Assessoria e Consultoria",
       pixKey: "67.873.641/0001-21",
       data: {
         comercial: { orcamentos: [], pedidos: [], contratos: [] },
