@@ -879,13 +879,15 @@ tr:hover td {
 
 /* Product catalog management */
 .product-form.hidden { display: none; }
-.product-form {
+.product-form,
+.cadastro-form {
   background: var(--surface-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1rem;
   margin-bottom: 1rem;
 }
+.cadastro-form.hidden { display: none; }
 .product-form-actions {
   display: flex;
   gap: 0.75rem;
@@ -1150,4 +1152,3 @@ tr:hover td {
 
 /* Faturamento table actions spacing */
 #table-faturamento-body td:last-child { white-space: nowrap; }
-

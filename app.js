@@ -1007,10 +1007,165 @@ function initContratosComerciais() {
 let editingProductId = null;
 
 function initCadastro() {
+  setupBasicCadastroManagement();
   setupProductManagement();
   initEmpresasUsuarios();
   renderCadastroTables();
   renderEmpresasUsuariosTable();
+}
+
+const CADASTRO_CONFIG = {
+  clientes: {
+    tabId: "tab-clientes",
+    buttonLabel: "Novo Cliente",
+    idPrefix: "CLI",
+    title: "Cliente",
+    fields: [
+      { key: "nome", label: "Nome / Razão Social", required: true },
+      { key: "cnpj", label: "CNPJ", required: true },
+      { key: "email", label: "Email", required: true },
+      { key: "telefone", label: "Telefone", required: true },
+      { key: "totalComprado", label: "Total Comprado", type: "number", defaultValue: 0 }
+    ]
+  },
+  fornecedores: {
+    tabId: "tab-fornecedores",
+    buttonLabel: "Novo Fornecedor",
+    idPrefix: "FOR",
+    title: "Fornecedor",
+    fields: [
+      { key: "nome", label: "Razão Social", required: true },
+      { key: "cnpj", label: "CNPJ", required: true },
+      { key: "contato", label: "Contato", required: true },
+      { key: "telefone", label: "Telefone", required: true },
+      { key: "qualidade", label: "Qualidade", defaultValue: "Bom" },
+      { key: "prazoMedio", label: "Prazo Médio", defaultValue: "7 dias" }
+    ]
+  },
+  colaboradores: {
+    tabId: "tab-colaboradores",
+    buttonLabel: "Novo Colaborador",
+    idPrefix: "COL",
+    title: "Colaborador",
+    fields: [
+      { key: "nome", label: "Nome", required: true },
+      { key: "cargo", label: "Cargo", required: true },
+      { key: "departamento", label: "Departamento", required: true },
+      { key: "salario", label: "Salário Base", type: "number", defaultValue: 0 },
+      { key: "admissao", label: "Data Admissão", type: "date", required: true },
+      { key: "status", label: "Status", defaultValue: "Ativo" }
+    ]
+  },
+  veiculos: {
+    tabId: "tab-veiculos",
+    buttonLabel: "Novo Veículo",
+    idPrefix: "VEI",
+    title: "Veículo",
+    fields: [
+      { key: "placa", label: "Placa", required: true },
+      { key: "marca", label: "Marca", required: true },
+      { key: "modelo", label: "Modelo", required: true },
+      { key: "ano", label: "Ano", type: "number", required: true },
+      { key: "vencimentoLicenciamento", label: "Venc. Licenciamento", type: "date", required: true },
+      { key: "status", label: "Status", defaultValue: "Operacional" }
+    ]
+  }
+};
+
+function setupBasicCadastroManagement() {
+  Object.entries(CADASTRO_CONFIG).forEach(([kind, config]) => {
+    const tab = document.getElementById(config.tabId);
+    if (!tab || tab.dataset.basicCadastroSetup === "true") return;
+    tab.dataset.basicCadastroSetup = "true";
+
+    const panel = tab.querySelector(".panel");
+    const header = panel?.querySelector(".panel-header");
+    if (header && !header.querySelector(`[data-cadastro-new="${kind}"]`)) {
+      header.insertAdjacentHTML("beforeend", `<button type="button" class="btn btn-primary" data-cadastro-new="${kind}"><i data-lucide="plus"></i> ${config.buttonLabel}</button>`);
+    }
+
+    const tableWrapper = tab.querySelector(".table-wrapper");
+    if (tableWrapper && !document.getElementById(`form-${kind}`)) {
+      tableWrapper.insertAdjacentHTML("beforebegin", cadastroFormHtml(kind, config));
+    }
+
+    tab.addEventListener("click", (event) => {
+      if (event.target.closest(`[data-cadastro-new="${kind}"]`)) {
+        openCadastroForm(kind);
+      }
+      if (event.target.closest(`[data-cadastro-cancel="${kind}"]`)) {
+        closeCadastroForm(kind);
+      }
+    });
+
+    const form = document.getElementById(`form-${kind}`);
+    if (form) {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveCadastroForm(kind);
+      });
+    }
+  });
+  lucide.createIcons();
+}
+
+function cadastroFormHtml(kind, config) {
+  const fields = config.fields.map(field => {
+    const type = field.type || "text";
+    const value = field.defaultValue !== undefined ? ` value="${field.defaultValue}"` : "";
+    const required = field.required ? " required" : "";
+    const step = type === "number" ? ' step="0.01" min="0"' : "";
+    return `<div class="form-group"><label>${field.label}</label><input type="${type}" class="form-input" id="${kind}-${field.key}"${value}${required}${step}></div>`;
+  }).join("");
+  return `<form id="form-${kind}" class="cadastro-form hidden"><div class="form-row">${fields}</div><div class="product-form-actions"><button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar ${config.title}</button><button type="button" class="btn btn-secondary" data-cadastro-cancel="${kind}"><i data-lucide="x"></i> Cancelar</button></div></form>`;
+}
+
+function openCadastroForm(kind) {
+  const form = document.getElementById(`form-${kind}`);
+  if (!form) return;
+  form.classList.remove("hidden");
+  const firstInput = form.querySelector("input");
+  if (firstInput) firstInput.focus();
+}
+
+function closeCadastroForm(kind) {
+  const form = document.getElementById(`form-${kind}`);
+  if (!form) return;
+  form.reset();
+  CADASTRO_CONFIG[kind].fields.forEach(field => {
+    if (field.defaultValue !== undefined) {
+      const input = document.getElementById(`${kind}-${field.key}`);
+      if (input) input.value = field.defaultValue;
+    }
+  });
+  form.classList.add("hidden");
+}
+
+function saveCadastroForm(kind) {
+  const config = CADASTRO_CONFIG[kind];
+  const payload = { id: nextCadastroId(kind, config.idPrefix) };
+  config.fields.forEach(field => {
+    const input = document.getElementById(`${kind}-${field.key}`);
+    payload[field.key] = field.type === "number" ? (parseFloat(input.value) || 0) : input.value.trim();
+  });
+  ERP_DATA.cadastro[kind].unshift(payload);
+  saveState();
+  closeCadastroForm(kind);
+  renderCadastroTables();
+  if (kind === "clientes") populateClientSelectors();
+  if (kind === "colaboradores") reloadColaboradoresSelect();
+  if (kind === "veiculos") initFrota();
+}
+
+function nextCadastroId(kind, prefix) {
+  const used = new Set(ERP_DATA.cadastro[kind].map(item => item.id));
+  let counter = ERP_DATA.cadastro[kind].length + 1;
+  let id = `${prefix}-${String(counter).padStart(3, "0")}`;
+  while (used.has(id)) {
+    counter += 1;
+    id = `${prefix}-${String(counter).padStart(3, "0")}`;
+  }
+  return id;
 }
 
 function setupProductManagement() {
@@ -1220,11 +1375,11 @@ function initFiscal() {
       const originalText = submitBtn.innerHTML;
       submitBtn.disabled = true;
 
-      let message = "Transmitindo para SEFAZ...";
+      let message = "Registrando simulação fiscal...";
       if (tipo === "NFs") {
-        message = "Transmitindo via API Nacional NFS-e...";
+        message = "Registrando simulação NFS-e...";
       } else if (tipo === "NFe") {
-        message = "Transmitindo via API de Produtos NF-e...";
+        message = "Registrando simulação NF-e...";
       }
 
       submitBtn.innerHTML = `<i data-lucide="refresh-cw" class="animate-spin" style="width: 16px; height: 16px; display: inline-block;"></i> ${message}`;
@@ -1237,7 +1392,7 @@ function initFiscal() {
           tipo: tipo,
           valor: val,
           emissao: new Date().toISOString(),
-          status: tipo === "NFs" ? "Autorizada (API Nacional)" : "Autorizada (SEFAZ)",
+          status: tipo === "NFs" ? "Simulada (NFS-e Nacional pendente)" : "Simulada (integração pendente)",
           xmlFile: `NF352606${Math.floor(1000000000 + Math.random() * 9000000000)}.xml`
         };
 
@@ -1250,7 +1405,7 @@ function initFiscal() {
         submitBtn.innerHTML = originalText;
         lucide.createIcons();
 
-        alert(`Documento Fiscal ${newNF.id} emitido e homologado via API com sucesso!`);
+        alert(`Documento Fiscal ${newNF.id} registrado como simulação.\n\nPara emissão oficial, ainda é necessário integrar com a API fiscal correspondente.`);
       }, 1500);
     });
   }
@@ -1576,14 +1731,14 @@ window.emitirNFSe = function(recId, valor, destinatario) {
     lucide.createIcons();
   }
   setTimeout(() => {
-    // Simulate Receita Federal API NFS-e Nacional
+    // Simulação local. A emissão real exige integração com a API oficial da NFS-e Nacional.
     const nf = {
       id: 'NF-' + String(2000 + ERP_DATA.fiscal.notasEmitidas.length).padStart(4, '0'),
       destinatario: destinatario,
       tipo: 'NFs',
       valor: valor,
       emissao: new Date().toISOString(),
-      status: 'Autorizada (API Nacional NFS-e - Receita Federal)',
+      status: 'Simulada (NFS-e Nacional pendente)',
       xmlFile: 'NFs' + Date.now() + '.xml'
     };
     ERP_DATA.fiscal.notasEmitidas.unshift(nf);
@@ -1593,7 +1748,7 @@ window.emitirNFSe = function(recId, valor, destinatario) {
     saveState();
     renderFinanceiroTables();
     renderFiscalData();
-    alert('✅ NFS-e Nacional ' + nf.id + ' transmitida com sucesso!\n\nAPI Receita Federal: Nota Fiscal de Serviço autorizada.\nProtocolo: ' + Math.floor(Math.random()*9000000000+1000000000));
+    alert('NFS-e ' + nf.id + ' registrada como simulação.\n\nA emissão oficial pela NFS-e Nacional ainda precisa ser implementada com a API/documentação oficial.');
   }, 1800);
 };
 
@@ -2325,4 +2480,3 @@ function renderEmpresasUsuariosTable() {
   
   lucide.createIcons();
 }
-
