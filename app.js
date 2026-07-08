@@ -758,7 +758,7 @@ window.faturarContrato = function(id) {
   ERP_DATA.financeiro.contasReceber.push(newFat);
   saveState();
   renderFinanceiroTables();
-  alert('Fatura ' + fatId + ' gerada no valor de ' + formatBRL(con.valorMensal) + ' para ' + con.parceiro + '!\nAcesse Financeiro > Faturamento para emitir NFS-e e Boleto Pix.');
+  alert('Fatura ' + fatId + ' gerada no valor de ' + formatBRL(con.valorMensal) + ' para ' + con.parceiro + '!\nAcesse Financeiro > Faturamento para abrir o Emissor Nacional e gerar Boleto Pix.');
 };
 
 function commercialActionsHtml(kind, id) {
@@ -1416,7 +1416,7 @@ function initFiscal() {
           tipo: tipo,
           valor: val,
           emissao: new Date().toISOString(),
-          status: tipo === "NFs" ? "Simulada (NFS-e Nacional pendente)" : "Simulada (integração pendente)",
+          status: "Simulada (integração pendente)",
           xmlFile: `NF352606${Math.floor(1000000000 + Math.random() * 9000000000)}.xml`
         };
 
@@ -1634,6 +1634,7 @@ window.baixarPDFNota = function(id, dest, valor, tipo) {
 
 // 5. FINANCEIRO CONTROLLER
 function initFinanceiro() {
+  setupFinancialLaunchers();
   setupManualBilling();
   renderFinanceiroTables();
 
@@ -1661,6 +1662,109 @@ function initFinanceiro() {
       updateDashboardKPIs();
     }
   };
+}
+
+function setupFinancialLaunchers() {
+  bindFinancialForm("pagar", {
+    list: ERP_DATA.financeiro.contasPagar,
+    prefix: "PAG",
+    build: () => ({
+      id: nextFinanceId("PAG", ERP_DATA.financeiro.contasPagar),
+      descricao: document.getElementById("pagar-descricao").value.trim(),
+      fornecedor: document.getElementById("pagar-fornecedor").value.trim(),
+      vencimento: document.getElementById("pagar-vencimento").value,
+      valor: parseFloat(document.getElementById("pagar-valor").value) || 0,
+      status: "A Pagar"
+    })
+  });
+
+  const receberCliente = document.getElementById("receber-cliente");
+  if (receberCliente) {
+    receberCliente.innerHTML = ERP_DATA.cadastro.clientes.map(c => `<option value="${c.nome}">${c.nome}</option>`).join("");
+  }
+  bindFinancialForm("receber", {
+    list: ERP_DATA.financeiro.contasReceber,
+    prefix: "REC",
+    build: () => ({
+      id: nextFinanceId("REC", ERP_DATA.financeiro.contasReceber),
+      descricao: document.getElementById("receber-descricao").value.trim(),
+      cliente: document.getElementById("receber-cliente").value,
+      vencimento: document.getElementById("receber-vencimento").value,
+      valor: parseFloat(document.getElementById("receber-valor").value) || 0,
+      status: "A Receber"
+    })
+  });
+
+  bindFinancialForm("fluxo", {
+    list: ERP_DATA.financeiro.fluxoCaixa.diario,
+    build: () => {
+      const tipo = document.getElementById("fluxo-tipo").value;
+      const valor = parseFloat(document.getElementById("fluxo-valor").value) || 0;
+      return {
+        data: formatShortDate(document.getElementById("fluxo-data").value),
+        receita: tipo === "receita" ? valor : 0,
+        despesa: tipo === "despesa" ? valor : 0
+      };
+    },
+    afterSave: (item) => {
+      ERP_DATA.financeiro.fluxoCaixa.saldoAtual += (item.receita || 0) - (item.despesa || 0);
+      renderForecastChart();
+      renderCashFlowChart();
+      updateDashboardKPIs();
+    }
+  });
+}
+
+function bindFinancialForm(kind, options) {
+  const btnNovo = document.getElementById(`btn-novo-${kind}`);
+  const btnCancelar = document.getElementById(`btn-cancelar-${kind}`);
+  const form = document.getElementById(`form-novo-${kind}`);
+  if (!form) return;
+  if (btnNovo && btnNovo.dataset.bound !== "true") {
+    btnNovo.dataset.bound = "true";
+    btnNovo.addEventListener("click", () => {
+      setDefaultFinancialDates(kind);
+      form.classList.remove("hidden");
+    });
+  }
+  if (btnCancelar && btnCancelar.dataset.bound !== "true") {
+    btnCancelar.dataset.bound = "true";
+    btnCancelar.addEventListener("click", () => {
+      form.reset();
+      form.classList.add("hidden");
+    });
+  }
+  if (form.dataset.bound === "true") return;
+  form.dataset.bound = "true";
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const item = options.build();
+    options.list.unshift(item);
+    if (options.afterSave) options.afterSave(item);
+    saveState();
+    form.reset();
+    form.classList.add("hidden");
+    renderFinanceiroTables();
+  });
+}
+
+function setDefaultFinancialDates(kind) {
+  const today = new Date().toISOString().split("T")[0];
+  const fields = {
+    pagar: ["pagar-vencimento"],
+    receber: ["receber-vencimento"],
+    fluxo: ["fluxo-data"]
+  }[kind] || [];
+  fields.forEach(id => {
+    const input = document.getElementById(id);
+    if (input && !input.value) input.value = today;
+  });
+}
+
+function formatShortDate(isoDate) {
+  if (!isoDate) return new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}`;
 }
 
 function setupManualBilling() {
@@ -1700,7 +1804,7 @@ function setupManualBilling() {
         valor: parseFloat(document.getElementById("fat-valor").value) || 0,
         status: "A Receber",
         manualFaturamento: true,
-        nfseEmitida: false,
+    nfseEmitida: false,
         boletoGerado: false
       };
       ERP_DATA.financeiro.contasReceber.unshift(newFat);
@@ -1776,10 +1880,7 @@ function renderFinanceiroTables() {
           <td>${fat.vencimento || '–'}</td>
           <td><strong>${formatBRL(fat.valor)}</strong></td>
           <td>
-            ${fat.nfseEmitida
-              ? '<span class="badge badge-success"><i data-lucide="check"></i> NFS-e Emitida</span>'
-              : `<button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="emitirNFSe('${fat.recId||fat.id}', ${fat.valor}, '${fat.cliente}')"><i data-lucide="file-check"></i> Gerar NFS-e</button>`
-            }
+            <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirEmissorNacional()"><i data-lucide="external-link"></i> Abrir Emissor</button>
           </td>
           <td>
             <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirBoletoPix('${fat.id}', ${fat.valor}, '${fat.cliente}')"><i data-lucide="qr-code"></i> Boleto Pix</button>
@@ -1793,116 +1894,10 @@ function renderFinanceiroTables() {
 }
 
 // ============================================================
-// NFS-E E BOLETO PIX
+// NFS-E EXTERNA E BOLETO PIX
 // ============================================================
-window.emitirNFSe = async function(recId, valor, destinatario) {
-  const btn = event.target.closest('button');
-  openNfseMeiAssistant(recId, valor, destinatario);
-  return;
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="refresh-cw"></i> Transmitindo...';
-    lucide.createIcons();
-  }
-
-  try {
-    const response = await fetch("/api/nfse/emitir", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recId,
-        valor,
-        destinatario,
-        prestador: getActiveCompany()
-      })
-    });
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      throw new Error(result.message || "Não foi possível processar a NFS-e.");
-    }
-
-    const nfse = result.nfse || {};
-    const nf = {
-      id: nfse.id || 'NF-' + String(2000 + ERP_DATA.fiscal.notasEmitidas.length).padStart(4, '0'),
-      destinatario: destinatario,
-      tipo: 'NFs',
-      valor: valor,
-      emissao: new Date().toISOString(),
-      status: result.official ? 'Autorizada (NFS-e Nacional)' : 'Pré-registro (NFS-e pendente)',
-      xmlFile: nfse.xmlFile || 'NFs' + Date.now() + '.xml',
-      protocolo: nfse.protocolo || ''
-    };
-    ERP_DATA.fiscal.notasEmitidas.unshift(nf);
-    const rec = ERP_DATA.financeiro.contasReceber.find(r => r.id === recId);
-    if (rec) rec.nfseEmitida = true;
-    saveState();
-    renderFinanceiroTables();
-    renderFiscalData();
-    alert((result.official ? 'NFS-e ' : 'Pré-registro de NFS-e ') + nf.id + ' salvo com sucesso.\n\n' + result.message);
-  } catch (error) {
-    alert("Não foi possível emitir a NFS-e.\n\n" + error.message);
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i data-lucide="file-check"></i> Gerar NFS-e';
-      lucide.createIcons();
-    }
-  }
-};
-
-function openNfseMeiAssistant(recId, valor, destinatario) {
-  const comp = getActiveCompany();
-  const razaoSocial = comp?.razaoSocial || "Empresa";
-  const cnpj = comp?.cnpj || "";
-  const emissorUrl = "https://www.nfse.gov.br/EmissorNacional";
-  openModal("Preparar NFS-e MEI", `
-    <div style="display:flex;flex-direction:column;gap:1rem;">
-      <div style="background:var(--surface-secondary);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:1rem;">
-        <div style="font-size:0.78rem;color:var(--text-secondary);font-weight:800;margin-bottom:0.5rem;">DADOS PARA EMISSÃO NO PORTAL GOV.BR</div>
-        <div><strong>Prestador:</strong> ${razaoSocial}</div>
-        <div><strong>CNPJ:</strong> ${cnpj}</div>
-        <div><strong>Tomador:</strong> ${destinatario}</div>
-        <div><strong>Valor:</strong> ${formatBRL(valor)}</div>
-        <div><strong>Descrição:</strong> Prestação de serviços</div>
-      </div>
-      <a class="btn btn-primary" href="${emissorUrl}" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Abrir Emissor Nacional</a>
-      <div class="form-group">
-        <label>Número/Chave da NFS-e emitida</label>
-        <input type="text" class="form-input" id="nfse-chave-manual" placeholder="Cole aqui após emitir no portal gov.br">
-      </div>
-      <div class="product-form-actions">
-        <button type="button" class="btn btn-primary" onclick="confirmarNfseManual('${recId}', ${valor}, '${destinatario.replace(/'/g, "\\'")}')"><i data-lucide="check"></i> Registrar NFS-e Emitida</button>
-      </div>
-    </div>
-  `);
-}
-
-window.confirmarNfseManual = function(recId, valor, destinatario) {
-  const chave = document.getElementById("nfse-chave-manual")?.value.trim();
-  if (!chave) {
-    alert("Informe o número ou chave da NFS-e emitida no portal gov.br.");
-    return;
-  }
-  const nf = {
-    id: chave,
-    destinatario,
-    tipo: "NFs",
-    valor,
-    emissao: new Date().toISOString(),
-    status: "Emitida no Portal Nacional (MEI)",
-    xmlFile: "NFS-e-" + chave + ".xml",
-    emissaoManual: true
-  };
-  ERP_DATA.fiscal.notasEmitidas.unshift(nf);
-  const rec = ERP_DATA.financeiro.contasReceber.find(r => r.id === recId);
-  if (rec) {
-    rec.nfseEmitida = true;
-    rec.nfseChave = chave;
-  }
-  saveState();
-  closeModal();
-  renderFinanceiroTables();
-  renderFiscalData();
-  alert("NFS-e registrada com sucesso no sistema.");
+window.abrirEmissorNacional = function() {
+  window.open("https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional", "_blank", "noopener");
 };
 
 window.abrirBoletoPix = function(fatId, valor, cliente) {

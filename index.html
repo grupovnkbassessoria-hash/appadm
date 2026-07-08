@@ -596,7 +596,6 @@
                     <label>Tipo de Documento</label>
                     <select class="form-select" id="fiscal-tipo" required>
                       <option value="NFe">Nota Fiscal Eletrônica de Produto (NFe)</option>
-                      <option value="NFs">Nota Fiscal de Serviço (NFs-e)</option>
                       <option value="CTe">Conhecimento de Transporte (CTe)</option>
                     </select>
                   </div>
@@ -668,37 +667,25 @@
           <!-- Configuração de APIs Fiscais -->
           <div class="tab-content" id="tab-fiscal-apis">
             <div class="section-grid">
-              <!-- NFS-e API Configuration -->
+              <!-- Portal NFS-e MEI -->
               <div class="panel">
                 <div class="panel-header">
-                  <h3 class="panel-title"><i data-lucide="api"></i> API Nota Fiscal de Serviço (NFS-e Nacional)</h3>
-                  <span class="badge badge-primary"><i data-lucide="user-check"></i> Modo MEI</span>
+                  <h3 class="panel-title"><i data-lucide="external-link"></i> Portal de Emissão NFS-e</h3>
+                  <span class="badge badge-primary"><i data-lucide="user-check"></i> Site Oficial</span>
                 </div>
                 <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 1rem;">
                   <p style="font-size: 0.85rem; color: var(--text-secondary);">
-                    Para MEI sem certificado digital, o app prepara os dados da NFS-e e abre o Emissor Nacional. A emissão oficial é concluída com login gov.br, e depois o número/chave pode ser registrado no sistema.
+                    A emissão de nota fiscal de serviço será feita diretamente no Emissor Nacional. O APP ADM mantém os faturamentos e boletos, mas não transmite NFS-e por API.
                   </p>
                   <div class="form-group">
-                    <label>Documentação oficial</label>
-                    <input type="text" class="form-input" value="APIs NFS-e: Produção Restrita e Produção (gov.br/nfse)" disabled>
+                    <label>Portal oficial</label>
+                    <input type="text" class="form-input" value="https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional" disabled>
                   </div>
                   <div class="form-group">
-                    <label>Fluxo ativo</label>
-                    <input type="text" class="form-input" value="Modo MEI manual gov.br - sem certificado digital" disabled>
+                    <label>Status no sistema</label>
+                    <input type="text" class="form-input" value="Emissão externa pelo site oficial" disabled>
                   </div>
-                  <div class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                      <label>Ambiente</label>
-                      <select class="form-select" id="api-nfse-ambiente">
-                        <option value="producao" selected>Produção</option>
-                        <option value="homologacao">Homologação (Testes)</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label>Time-out da Conexão (s)</label>
-                      <input type="number" class="form-input" value="15" disabled>
-                    </div>
-                  </div>
+                  <a class="btn btn-primary" href="https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Abrir Emissor Nacional</a>
                 </div>
               </div>
 
@@ -753,7 +740,32 @@
             <div class="panel">
               <div class="panel-header">
                 <h3 class="panel-title">Contas a Pagar</h3>
+                <button class="btn btn-primary" id="btn-novo-pagar"><i data-lucide="plus"></i> Novo Lançamento</button>
               </div>
+              <form id="form-novo-pagar" class="cadastro-form hidden">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" class="form-input" id="pagar-descricao" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Credor</label>
+                    <input type="text" class="form-input" id="pagar-fornecedor" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Vencimento</label>
+                    <input type="date" class="form-input" id="pagar-vencimento" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" class="form-input" id="pagar-valor" min="0" step="0.01" required>
+                  </div>
+                </div>
+                <div class="product-form-actions">
+                  <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Lançamento</button>
+                  <button type="button" class="btn btn-secondary" id="btn-cancelar-pagar"><i data-lucide="x"></i> Cancelar</button>
+                </div>
+              </form>
               <div class="table-wrapper">
                 <table>
                   <thead>
@@ -777,7 +789,32 @@
             <div class="panel">
               <div class="panel-header">
                 <h3 class="panel-title">Contas a Receber</h3>
+                <button class="btn btn-primary" id="btn-novo-receber"><i data-lucide="plus"></i> Novo Lançamento</button>
               </div>
+              <form id="form-novo-receber" class="cadastro-form hidden">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" class="form-input" id="receber-descricao" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Devedor</label>
+                    <select class="form-select" id="receber-cliente" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label>Vencimento</label>
+                    <input type="date" class="form-input" id="receber-vencimento" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" class="form-input" id="receber-valor" min="0" step="0.01" required>
+                  </div>
+                </div>
+                <div class="product-form-actions">
+                  <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Lançamento</button>
+                  <button type="button" class="btn btn-secondary" id="btn-cancelar-receber"><i data-lucide="x"></i> Cancelar</button>
+                </div>
+              </form>
               <div class="table-wrapper">
                 <table>
                   <thead>
@@ -860,6 +897,7 @@
                 <div class="panel-header">
                   <h3 class="panel-title">Projeção Estratégica (Próximos 6 meses)</h3>
                   <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" id="btn-novo-fluxo"><i data-lucide="plus"></i> Novo Lançamento</button>
                     <select class="form-select" id="select-cenario" style="width: auto; padding: 0.25rem 0.75rem;">
                       <option value="conservador">Cenário Conservador</option>
                       <option value="realista" selected>Cenário Realista</option>
@@ -867,6 +905,29 @@
                     </select>
                   </div>
                 </div>
+                <form id="form-novo-fluxo" class="cadastro-form hidden">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Data</label>
+                      <input type="date" class="form-input" id="fluxo-data" required>
+                    </div>
+                    <div class="form-group">
+                      <label>Tipo</label>
+                      <select class="form-select" id="fluxo-tipo" required>
+                        <option value="receita">Entrada</option>
+                        <option value="despesa">Saída</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Valor (R$)</label>
+                      <input type="number" class="form-input" id="fluxo-valor" min="0" step="0.01" required>
+                    </div>
+                  </div>
+                  <div class="product-form-actions">
+                    <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Lançamento</button>
+                    <button type="button" class="btn btn-secondary" id="btn-cancelar-fluxo"><i data-lucide="x"></i> Cancelar</button>
+                  </div>
+                </form>
                 <div class="chart-container">
                   <canvas id="finance-forecast-chart"></canvas>
                 </div>
