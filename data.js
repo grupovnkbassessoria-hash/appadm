@@ -207,11 +207,28 @@ export const initialData = {
         estoque: { movimentacoes: [] },
         administrativo: { documentos: [] }
       }
+    },
+    {
+      id: "comp-4",
+      cnpj: "57.135.668/0001-63",
+      razaoSocial: "Empresa Lucas",
+      pixKey: "57.135.668/0001-63",
+      data: {
+        comercial: { orcamentos: [], pedidos: [], contratos: [] },
+        cadastro: { clientes: [], fornecedores: [], colaboradores: [], veiculos: [], produtos: [] },
+        fiscal: { notasEmitidas: [], comunicacaoContabilidade: { ultimoEnvio: '', arquivosPendentes: 0, competenciaAtual: '' } },
+        financeiro: { contasPagar: [], contasReceber: [], fluxoCaixa: { diario: [], saldoAtual: 0, projecaoMes: 0 } },
+        rh: { contratosTrabalho: [] },
+        frota: { manutencoes: [], abastecimentos: [], multas: [] },
+        estoque: { movimentacoes: [] },
+        administrativo: { documentos: [] }
+      }
     }
   ],
   users: [
     { username: "admin", password: "123456", cnpj: "12.345.678/0001-90" },
     { username: "veloz", password: "654321", cnpj: "98.765.432/0001-10" },
-    { username: "osnei", password: "031705", cnpj: "67.873.641/0001-21" }
+    { username: "osnei", password: "031705", cnpj: "67.873.641/0001-21" },
+    { username: "lucas", password: "688551", cnpj: "57.135.668/0001-63" }
   ]
 };
