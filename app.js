@@ -248,6 +248,14 @@ function initTabs() {
 
 // Helper formatting utilities
 const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+const formatDateBR = (value) => {
+  if (!value) return "–";
+  if (typeof value !== "string") return value;
+  const isoDate = value.split("T")[0];
+  const parts = isoDate.split("-");
+  if (parts.length !== 3) return value;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
 
 // 1. DASHBOARD CONTROLLER
 function initDashboard() {
@@ -717,7 +725,7 @@ function renderComercialTables() {
   if (pedBody) {
     pedBody.innerHTML = ERP_DATA.comercial.pedidos.map(function(ped) {
       const badge = ped.status === "Entregue" ? "badge-success" : ped.status === "Preparando" ? "badge-primary" : ped.status === "Cancelado" ? "badge-danger" : "badge-warning";
-      return "<tr><td><strong>" + ped.id + "</strong></td><td>" + ped.cliente + "</td><td>" + ped.data + "</td><td>" + formatBRL(ped.total) + "</td><td>" + ped.entregaEstimada + "</td><td><span class='badge " + badge + "'>" + ped.status + "</span></td><td>" + commercialActionsHtml("pedido", ped.id) + "</td></tr>";
+      return "<tr><td><strong>" + ped.id + "</strong></td><td>" + ped.cliente + "</td><td>" + formatDateBR(ped.data) + "</td><td>" + formatBRL(ped.total) + "</td><td>" + formatDateBR(ped.entregaEstimada) + "</td><td><span class='badge " + badge + "'>" + ped.status + "</span></td><td>" + commercialActionsHtml("pedido", ped.id) + "</td></tr>";
     }).join("");
   }
 
@@ -725,7 +733,7 @@ function renderComercialTables() {
   if (conBody) {
     conBody.innerHTML = ERP_DATA.comercial.contratos.map(function(con) {
       const badge = con.status === "Ativo" ? "badge-success" : "badge-warning";
-      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + (con.vigenciaInicio || "–") + "</td><td>" + con.vigenciaFim + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></td></tr>";
+      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + formatDateBR(con.vigenciaInicio) + "</td><td>" + formatDateBR(con.vigenciaFim) + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></td></tr>";
     }).join("");
   }
   lucide.createIcons();
@@ -926,7 +934,7 @@ function generateCommercialPdf(kind, id) {
     return "<tr><td>" + item.tipo + "</td><td>" + item.descricao + "</td><td>" + item.quantidade + "</td><td>" + formatBRL(item.valorUnitario) + "</td><td>" + formatBRL(item.total) + "</td></tr>";
   }).join("");
   const extraHtml = kind === "pedido" 
-    ? "<div><span class='muted'>Previsão de entrega</span><br><strong>" + record.entregaEstimada + "</strong></div>"
+    ? "<div><span class='muted'>Previsão de entrega</span><br><strong>" + formatDateBR(record.entregaEstimada) + "</strong></div>"
     : "";
   const taxLine = "";
   const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>" + title + " " + record.id + "</title><style>body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body><header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div>" + extraHtml + "</section><section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section></body></html>";
@@ -1349,7 +1357,7 @@ function renderCadastroTables() {
         <td>${col.cargo}</td>
         <td>${col.departamento}</td>
         <td>${formatBRL(col.salario)}</td>
-        <td>${col.admissao}</td>
+        <td>${formatDateBR(col.admissao)}</td>
         <td><span class="badge badge-success">${col.status}</span></td>
       </tr>
     `).join('');
@@ -1363,7 +1371,7 @@ function renderCadastroTables() {
         <td><strong>${v.placa}</strong></td>
         <td>${v.marca} ${v.modelo}</td>
         <td>${v.ano}</td>
-        <td>${v.vencimentoLicenciamento}</td>
+        <td>${formatDateBR(v.vencimentoLicenciamento)}</td>
         <td><span class="badge ${v.status === 'Operacional' ? 'badge-success' : 'badge-warning'}">${v.status}</span></td>
       </tr>
     `).join('');
@@ -1377,7 +1385,7 @@ function renderCadastroTables() {
         '<div><strong>' + p.nome + '</strong><span>' + (p.tipo || 'Produto') + ' • ' + p.categoria + '</span></div>' +
         '<div><span>Preço</span><strong>' + formatBRL(p.precoVenda) + '</strong></div>' +
         '<div><span>Estoque</span><strong>' + ((p.tipo === 'Serviço') ? 'Não se aplica' : (p.estoqueAtual + ' unid')) + '</strong></div>' +
-        '<div><span>Validade</span><strong>' + ((p.tipo === 'Serviço') ? 'Não se aplica' : (p.validade || 'Sem validade')) + '</strong></div>' +
+          '<div><span>Validade</span><strong>' + ((p.tipo === 'Serviço') ? 'Não se aplica' : (p.validade ? formatDateBR(p.validade) : 'Sem validade')) + '</strong></div>' +
         '<button type="button" class="btn btn-secondary btn-icon-only" data-product-action="edit" data-id="' + p.id + '" title="Editar cadastro"><i data-lucide="pencil"></i></button>' +
       '</div>'
     ).join('');
@@ -1849,7 +1857,7 @@ function renderFinanceiroTables() {
       <tr>
         <td>${b.descricao}</td>
         <td>${b.fornecedor}</td>
-        <td>${b.vencimento}</td>
+        <td>${formatDateBR(b.vencimento)}</td>
         <td>${formatBRL(b.valor)}</td>
         <td><span class="badge ${b.status === 'Pago' ? 'badge-success' : b.status === 'Atrasado' ? 'badge-danger' : 'badge-warning'}">${b.status}</span></td>
         <td>
@@ -1866,7 +1874,7 @@ function renderFinanceiroTables() {
       <tr>
         <td>${b.descricao}</td>
         <td>${b.cliente}</td>
-        <td>${b.vencimento}</td>
+        <td>${formatDateBR(b.vencimento)}</td>
         <td>${formatBRL(b.valor)}</td>
         <td><span class="badge ${b.status === 'Recebido' ? 'badge-success' : 'badge-warning'}">${b.status}</span></td>
         <td>
@@ -1890,8 +1898,8 @@ function renderFinanceiroTables() {
         <tr>
           <td><strong>${fat.id}</strong></td>
           <td>${fat.cliente}</td>
-          <td>${fat.emissao}</td>
-          <td>${fat.vencimento || '–'}</td>
+          <td>${formatDateBR(fat.emissao)}</td>
+          <td>${formatDateBR(fat.vencimento)}</td>
           <td><strong>${formatBRL(fat.valor)}</strong></td>
           <td>
             <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirEmissorNacional()"><i data-lucide="external-link"></i> Abrir Emissor</button>
@@ -1953,6 +1961,8 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
   const today = new Date();
   const emissao = fat.emissao || today.toISOString().split("T")[0];
   const vencimento = fat.vencimento || emissao;
+  const emissaoBR = formatDateBR(emissao);
+  const vencimentoBR = formatDateBR(vencimento);
   const linhaDigitavel = "00190.00009 00000.000000 00000.000000 1 " + String(Math.round((fat.valor || 0) * 100)).padStart(10, "0");
   const pixPayload = buildPixPayload({
     pixKey,
@@ -2003,8 +2013,8 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
     <div class="grid">
       <div class="box"><div class="muted">Pagador</div><strong>${fat.cliente}</strong></div>
       <div class="box"><div class="muted">Valor</div><span class="amount">${formatBRL(fat.valor || 0)}</span></div>
-      <div class="box"><div class="muted">Emissão</div><strong>${emissao}</strong></div>
-      <div class="box"><div class="muted">Vencimento</div><strong>${vencimento}</strong></div>
+      <div class="box"><div class="muted">Emissão</div><strong>${emissaoBR}</strong></div>
+      <div class="box"><div class="muted">Vencimento</div><strong>${vencimentoBR}</strong></div>
       <div class="box"><div class="muted">Descrição</div><strong>${fat.descricao || "Faturamento"}</strong></div>
       <div class="box"><div class="muted">Chave Pix</div><strong>${pixKey}</strong></div>
     </div>
@@ -2376,7 +2386,7 @@ function renderFrotaTables() {
       <tr>
         <td><strong>${v.placa}</strong></td>
         <td>${v.marca} ${v.modelo}</td>
-        <td>${v.vencimentoLicenciamento}</td>
+        <td>${formatDateBR(v.vencimentoLicenciamento)}</td>
         <td><span class="badge badge-success">Vendido / Vigente</span></td>
         <td><span class="badge badge-success">Pago</span></td>
         <td><span class="badge ${v.status === 'Operacional' ? 'badge-success' : 'badge-warning'}">${v.status}</span></td>
@@ -2509,7 +2519,7 @@ function renderEstoqueTables() {
           <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Estoque: ${p.estoqueAtual} unidades</div>
         </div>
         <div style="text-align: right;">
-          <span class="badge badge-danger" style="margin-bottom: 0.25rem;">Vencimento: ${p.validade}</span>
+          <span class="badge badge-danger" style="margin-bottom: 0.25rem;">Vencimento: ${formatDateBR(p.validade)}</span>
           <div style="font-size: 0.75rem; color: var(--color-danger); font-weight: bold;">Lote sob observação</div>
         </div>
       </div>
@@ -2625,7 +2635,7 @@ function renderAdministrativoDocs() {
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);">
           <span>Vencimento:</span>
-          <strong>${doc.vencimento}</strong>
+          <strong>${formatDateBR(doc.vencimento)}</strong>
         </div>
         <span class="badge ${doc.status === 'Válido' ? 'badge-success' : 'badge-warning'}" style="align-self: flex-start; margin-top: 0.25rem;">${doc.status}</span>
       </div>
