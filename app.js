@@ -758,7 +758,7 @@ window.faturarContrato = function(id) {
   ERP_DATA.financeiro.contasReceber.push(newFat);
   saveState();
   renderFinanceiroTables();
-  alert('Fatura ' + fatId + ' gerada no valor de ' + formatBRL(con.valorMensal) + ' para ' + con.parceiro + '!\nAcesse Financeiro > Faturamento para abrir o Emissor Nacional e gerar Boleto Pix.');
+  alert('Fatura ' + fatId + ' gerada no valor de ' + formatBRL(con.valorMensal) + ' para ' + con.parceiro + '!\nAcesse Financeiro > Faturamento para abrir o Emissor Nacional e gerar o boleto em PDF.');
 };
 
 function commercialActionsHtml(kind, id) {
@@ -1633,6 +1633,8 @@ window.baixarPDFNota = function(id, dest, valor, tipo) {
 };
 
 // 5. FINANCEIRO CONTROLLER
+let editingFaturamentoId = null;
+
 function initFinanceiro() {
   setupFinancialLaunchers();
   setupManualBilling();
@@ -1779,8 +1781,11 @@ function setupManualBilling() {
     btnNovo.dataset.bound = "true";
     btnNovo.addEventListener("click", () => {
       const today = new Date().toISOString().split("T")[0];
+      editingFaturamentoId = null;
       document.getElementById("fat-emissao").value = today;
       document.getElementById("fat-vencimento").value = today;
+      document.getElementById("fat-descricao").value = "";
+      document.getElementById("fat-valor").value = "";
       form.classList.remove("hidden");
     });
   }
@@ -1795,19 +1800,28 @@ function setupManualBilling() {
     form.dataset.bound = "true";
     form.addEventListener("submit", event => {
       event.preventDefault();
-      const newFat = {
-        id: nextFinanceId("FAT", ERP_DATA.financeiro.contasReceber),
+      const fatData = {
         descricao: document.getElementById("fat-descricao").value.trim(),
         cliente: document.getElementById("fat-cliente").value,
         emissao: document.getElementById("fat-emissao").value,
         vencimento: document.getElementById("fat-vencimento").value,
-        valor: parseFloat(document.getElementById("fat-valor").value) || 0,
+        valor: parseFloat(document.getElementById("fat-valor").value) || 0
+      };
+      if (editingFaturamentoId) {
+        const fat = ERP_DATA.financeiro.contasReceber.find(item => item.id === editingFaturamentoId);
+        if (fat) Object.assign(fat, fatData);
+      } else {
+        const newFat = {
+          id: nextFinanceId("FAT", ERP_DATA.financeiro.contasReceber),
+          ...fatData,
         status: "A Receber",
         manualFaturamento: true,
-    nfseEmitida: false,
+        nfseEmitida: false,
         boletoGerado: false
-      };
-      ERP_DATA.financeiro.contasReceber.unshift(newFat);
+        };
+        ERP_DATA.financeiro.contasReceber.unshift(newFat);
+      }
+      editingFaturamentoId = null;
       saveState();
       form.reset();
       form.classList.add("hidden");
@@ -1867,7 +1881,7 @@ function renderFinanceiroTables() {
   if (fatBody) {
     const allFaturas = ERP_DATA.financeiro.contasReceber
       .filter(r => r.contratoId || r.manualFaturamento || r.descricao?.startsWith('Faturamento'))
-      .map(f => ({ id: f.id, cliente: f.cliente, emissao: f.emissao || new Date().toISOString().split('T')[0], vencimento: f.vencimento, valor: f.valor, nfseEmitida: f.nfseEmitida || false, boletoGerado: f.boletoGerado || false, recId: f.id }));
+      .map(f => ({ id: f.id, descricao: f.descricao || '', cliente: f.cliente, emissao: f.emissao || new Date().toISOString().split('T')[0], vencimento: f.vencimento, valor: f.valor, nfseEmitida: f.nfseEmitida || false, boletoGerado: f.boletoGerado || false, recId: f.id }));
 
     if (!allFaturas.length) {
       fatBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhuma fatura gerada.</td></tr>';
@@ -1883,7 +1897,13 @@ function renderFinanceiroTables() {
             <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirEmissorNacional()"><i data-lucide="external-link"></i> Abrir Emissor</button>
           </td>
           <td>
-            <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirBoletoPix('${fat.id}', ${fat.valor}, '${fat.cliente}')"><i data-lucide="qr-code"></i> Boleto Pix</button>
+            <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="gerarBoletoPdf('${fat.recId}', '${fat.id}')"><i data-lucide="file-text"></i> Boleto PDF</button>
+          </td>
+          <td>
+            <div class="commercial-actions">
+              <button class="btn btn-secondary btn-icon-only" onclick="editarFaturamento('${fat.recId}')" title="Editar faturamento"><i data-lucide="pencil"></i></button>
+              <button class="btn btn-danger btn-icon-only" onclick="excluirFaturamento('${fat.recId}')" title="Excluir faturamento"><i data-lucide="trash-2"></i></button>
+            </div>
           </td>
         </tr>
       `).join('');
@@ -1894,55 +1914,102 @@ function renderFinanceiroTables() {
 }
 
 // ============================================================
-// NFS-E EXTERNA E BOLETO PIX
+// NFS-E EXTERNA E BOLETO PDF
 // ============================================================
 window.abrirEmissorNacional = function() {
   window.open("https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional", "_blank", "noopener");
 };
 
-window.abrirBoletoPix = function(fatId, valor, cliente) {
+window.editarFaturamento = function(id) {
+  const fat = ERP_DATA.financeiro.contasReceber.find(item => item.id === id);
+  const form = document.getElementById("form-novo-faturamento");
+  if (!fat || !form) return;
+  editingFaturamentoId = id;
+  document.getElementById("fat-cliente").value = fat.cliente || "";
+  document.getElementById("fat-descricao").value = fat.descricao || "";
+  document.getElementById("fat-emissao").value = fat.emissao || new Date().toISOString().split("T")[0];
+  document.getElementById("fat-vencimento").value = fat.vencimento || "";
+  document.getElementById("fat-valor").value = fat.valor || 0;
+  form.classList.remove("hidden");
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+window.excluirFaturamento = function(id) {
+  const index = ERP_DATA.financeiro.contasReceber.findIndex(item => item.id === id);
+  if (index < 0) return;
+  if (!confirm("Excluir este faturamento?")) return;
+  ERP_DATA.financeiro.contasReceber.splice(index, 1);
+  saveState();
+  renderFinanceiroTables();
+};
+
+window.gerarBoletoPdf = function(recId, fallbackFatId) {
+  const fat = ERP_DATA.financeiro.contasReceber.find(item => item.id === recId);
+  if (!fat) return;
   const comp = getActiveCompany();
   const pixKey = comp ? comp.pixKey : 'chave-pix-nao-configurada';
   const razaoSocial = comp ? comp.razaoSocial : 'Empresa';
+  const cnpj = comp ? comp.cnpj : '00.000.000/0001-00';
   const today = new Date();
-  const due = new Date(today); due.setDate(today.getDate() + 5);
-
-  openModal('Boleto Pix - ' + fatId, `
-    <div class="modal-pix-card">
-      <div style="text-align:center;margin-bottom:1.5rem;">
-        <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:0.25rem;">Chave Pix</div>
-        <div style="font-size:1.1rem;font-weight:800;color:#fff;">${razaoSocial}</div>
+  const emissao = fat.emissao || today.toISOString().split("T")[0];
+  const vencimento = fat.vencimento || emissao;
+  const linhaDigitavel = "00190.00009 00000.000000 00000.000000 1 " + String(Math.round((fat.valor || 0) * 100)).padStart(10, "0");
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Boleto ${fat.id || fallbackFatId}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
+    .doc { max-width: 820px; margin: 0 auto; border: 1px solid #111827; padding: 24px; }
+    .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #111827; padding-bottom: 16px; }
+    h1 { margin: 0; font-size: 22px; }
+    .muted { color: #4b5563; font-size: 12px; text-transform: uppercase; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 22px 0; }
+    .box { border: 1px solid #d1d5db; padding: 12px; min-height: 54px; }
+    .amount { font-size: 24px; font-weight: 800; }
+    .barcode { margin-top: 24px; border: 1px solid #111827; padding: 14px; font-family: "Courier New", monospace; font-size: 18px; letter-spacing: 1px; text-align: center; }
+    .bars { display: flex; height: 62px; gap: 3px; align-items: stretch; justify-content: center; margin-top: 12px; }
+    .bars span { background: #111827; display: block; }
+    .footer { margin-top: 24px; font-size: 12px; color: #374151; border-top: 1px dashed #9ca3af; padding-top: 12px; }
+    @page { size: A4; margin: 12mm; }
+    @media print { body { margin: 0; } .doc { border: 0; } }
+  </style>
+</head>
+<body>
+  <section class="doc">
+    <div class="top">
+      <div>
+        <h1>Boleto de Cobrança</h1>
+        <div>${fat.id || fallbackFatId}</div>
       </div>
-      <div class="pix-qr-placeholder" id="pix-qr-canvas">
-        <span style="position:relative;z-index:1;font-weight:700;color:#6366f1;">QR CODE<br>PIX</span>
-      </div>
-      <div class="pix-key-display">
-        <span>${pixKey}</span>
-        <button onclick="navigator.clipboard.writeText('${pixKey}').then(()=>alert('Chave Pix copiada!'))" title="Copiar chave">Copiar</button>
+      <div style="text-align:right">
+        <div class="muted">Beneficiário</div>
+        <strong>${razaoSocial}</strong><br>
+        CNPJ: ${cnpj}
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-size:0.85rem;margin-top:1rem;">
-      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
-        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">PAGADOR</div>
-        <strong>${cliente}</strong>
-      </div>
-      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
-        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">VALOR</div>
-        <strong style="color:var(--color-success);font-size:1.1rem;">${formatBRL(valor)}</strong>
-      </div>
-      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
-        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">EMISSÃO</div>
-        <strong>${today.toLocaleDateString('pt-BR')}</strong>
-      </div>
-      <div style="background:var(--surface-secondary);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
-        <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:0.2rem;">VENCIMENTO</div>
-        <strong>${due.toLocaleDateString('pt-BR')}</strong>
-      </div>
+    <div class="grid">
+      <div class="box"><div class="muted">Pagador</div><strong>${fat.cliente}</strong></div>
+      <div class="box"><div class="muted">Valor</div><span class="amount">${formatBRL(fat.valor || 0)}</span></div>
+      <div class="box"><div class="muted">Emissão</div><strong>${emissao}</strong></div>
+      <div class="box"><div class="muted">Vencimento</div><strong>${vencimento}</strong></div>
+      <div class="box"><div class="muted">Descrição</div><strong>${fat.descricao || "Faturamento"}</strong></div>
+      <div class="box"><div class="muted">Chave Pix</div><strong>${pixKey}</strong></div>
     </div>
-    <div style="margin-top:1.25rem;padding:0.85rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--color-success);">
-      <strong>💡 Pagamento via Pix</strong><br>Transfira o valor exato para a chave acima. O crédito é identificado automaticamente em até 5 segundos.
-    </div>
-  `);
+    <div class="barcode">${linhaDigitavel}</div>
+    <div class="bars">${Array.from({ length: 42 }, (_, i) => `<span style="width:${(i % 4) + 2}px"></span>`).join("")}</div>
+    <div class="footer">Documento gerado pelo APP ADM para impressão/PDF. Para cobrança bancária registrada, envie os dados ao banco/integrador responsável.</div>
+  </section>
+  <script>window.onload = () => { window.print(); };</script>
+</body>
+</html>`;
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+  fat.boletoGerado = true;
+  saveState();
+  renderFinanceiroTables();
 };
 
 function renderForecastChart() {
