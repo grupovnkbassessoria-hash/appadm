@@ -734,54 +734,56 @@
         <!-- 5. FINANCEIRO VIEW -->
         <div class="view-content" id="view-financeiro">
           <div class="tab-headers">
-            <button class="tab-btn active" data-tab="tab-contas">Contas Pagar / Receber</button>
-            <button class="tab-btn" data-tab="tab-faturamento">Faturamento & Boletos</button>
-            <button class="tab-btn" data-tab="tab-fluxo">Projeção de Fluxo de Caixa</button>
+            <button class="tab-btn active" data-tab="tab-contas-pagar">Contas a Pagar</button>
+            <button class="tab-btn" data-tab="tab-contas-receber">Contas a Receber</button>
+            <button class="tab-btn" data-tab="tab-faturamento">Faturamento & Cobrança</button>
+            <button class="tab-btn" data-tab="tab-fluxo">Fluxo de Caixa</button>
           </div>
 
-          <!-- Contas Pagar / Receber -->
-          <div class="tab-content active" id="tab-contas">
-            <div class="section-grid">
-              <div class="panel">
-                <div class="panel-header">
-                  <h3 class="panel-title">Contas a Pagar</h3>
-                </div>
-                <div class="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Descrição</th>
-                        <th>Credor</th>
-                        <th>Vencimento</th>
-                        <th>Valor</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody id="table-pagar-body"></tbody>
-                  </table>
-                </div>
+          <!-- Contas a Pagar -->
+          <div class="tab-content active" id="tab-contas-pagar">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Contas a Pagar</h3>
               </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Descrição</th>
+                      <th>Credor</th>
+                      <th>Vencimento</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-pagar-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
-              <div class="panel">
-                <div class="panel-header">
-                  <h3 class="panel-title">Contas a Receber</h3>
-                </div>
-                <div class="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Descrição</th>
-                        <th>Devedor</th>
-                        <th>Vencimento</th>
-                        <th>Valor</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody id="table-receber-body"></tbody>
-                  </table>
-                </div>
+          <!-- Contas a Receber -->
+          <div class="tab-content" id="tab-contas-receber">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Contas a Receber</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Descrição</th>
+                      <th>Devedor</th>
+                      <th>Vencimento</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-receber-body"></tbody>
+                </table>
               </div>
             </div>
           </div>
