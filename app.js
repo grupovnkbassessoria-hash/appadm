@@ -1913,7 +1913,8 @@ function setupFinancialLaunchers() {
       vencimento: document.getElementById("pagar-vencimento").value,
       valor: parseFloat(document.getElementById("pagar-valor").value) || 0,
       status: "A Pagar"
-    })
+    }),
+    repeatMonths: () => parseInt(document.getElementById("pagar-meses")?.value, 10) || 1
   });
 
   const receberCliente = document.getElementById("receber-cliente");
@@ -1930,7 +1931,8 @@ function setupFinancialLaunchers() {
       vencimento: document.getElementById("receber-vencimento").value,
       valor: parseFloat(document.getElementById("receber-valor").value) || 0,
       status: "A Receber"
-    })
+    }),
+    repeatMonths: () => parseInt(document.getElementById("receber-meses")?.value, 10) || 1
   });
 
   bindFinancialForm("fluxo", {
@@ -1977,13 +1979,39 @@ function bindFinancialForm(kind, options) {
   form.addEventListener("submit", event => {
     event.preventDefault();
     const item = options.build();
-    options.list.unshift(item);
-    if (options.afterSave) options.afterSave(item);
+    const repeatMonths = Math.max(1, Math.min(120, options.repeatMonths ? options.repeatMonths() : 1));
+    const items = buildRepeatedFinancialItems(item, options.prefix, options.list, repeatMonths);
+    options.list.unshift(...items);
+    if (options.afterSave) items.forEach(savedItem => options.afterSave(savedItem));
     saveState();
     form.reset();
     form.classList.add("hidden");
     renderFinanceiroTables();
   });
+}
+
+function buildRepeatedFinancialItems(baseItem, prefix, list, repeatMonths) {
+  if (repeatMonths <= 1 || !baseItem.vencimento) return [baseItem];
+  const originalDescription = baseItem.descricao || "";
+  const usedIds = new Set(list.map(item => item.id));
+  return Array.from({ length: repeatMonths }, (_, index) => {
+    const item = Object.assign({}, baseItem);
+    item.id = nextFinanceId(prefix, list, usedIds);
+    usedIds.add(item.id);
+    item.vencimento = addMonthsToIsoDate(baseItem.vencimento, index);
+    item.descricao = `${originalDescription} (${index + 1}/${repeatMonths})`;
+    item.parcela = index + 1;
+    item.totalParcelas = repeatMonths;
+    return item;
+  });
+}
+
+function addMonthsToIsoDate(isoDate, monthsToAdd) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const date = new Date(year, month - 1 + monthsToAdd, 1);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(day, lastDay));
+  return date.toISOString().split("T")[0];
 }
 
 function setDefaultFinancialDates(kind) {
@@ -2066,8 +2094,8 @@ function setupManualBilling() {
   }
 }
 
-function nextFinanceId(prefix, list) {
-  const used = new Set(list.map(item => item.id));
+function nextFinanceId(prefix, list, reservedIds) {
+  const used = reservedIds || new Set(list.map(item => item.id));
   let counter = list.length + 1;
   let id = `${prefix}-${String(counter).padStart(3, "0")}`;
   while (used.has(id)) {
