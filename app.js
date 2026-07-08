@@ -261,21 +261,79 @@ function updateDashboardKPIs() {
   const totalReceitas = ERP_DATA.financeiro.fluxoCaixa.saldoAtual;
   const activeOrdersCount = ERP_DATA.comercial.pedidos.filter(p => p.status !== "Entregue").length;
   const vehiclesActiveCount = ERP_DATA.cadastro.veiculos.length;
+
+  // Calculate alerts dynamically
+  let alertCount = 0;
+  const today = new Date();
   
-  document.getElementById("kpi-receita").textContent = formatBRL(totalReceitas);
-  document.getElementById("kpi-vendas").textContent = `${activeOrdersCount} Pedidos`;
-  document.getElementById("kpi-frota").textContent = `${vehiclesActiveCount} Veículos`;
+  // Expiry alerts for products
+  ERP_DATA.cadastro.produtos.forEach(p => {
+    if (p.validade) {
+      const expDate = new Date(p.validade);
+      const diffTime = expDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays <= 30) alertCount++;
+    }
+  });
+
+  // Expiry alerts for official documents
+  ERP_DATA.administrativo.documentos.forEach(d => {
+    if (d.vencimento) {
+      const expDate = new Date(d.vencimento);
+      const diffTime = expDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays <= 30) alertCount++;
+    }
+  });
+
+  const kpiReceita = document.getElementById("kpi-receita");
+  const kpiVendas = document.getElementById("kpi-vendas");
+  const kpiFrota = document.getElementById("kpi-frota");
+  const kpiAlertas = document.getElementById("kpi-alertas");
+
+  if (kpiReceita) kpiReceita.textContent = formatBRL(totalReceitas);
+  if (kpiVendas) kpiVendas.textContent = `${activeOrdersCount} Pedidos`;
+  if (kpiFrota) kpiFrota.textContent = `${vehiclesActiveCount} Veículos`;
+  if (kpiAlertas) kpiAlertas.textContent = `${alertCount} Pendentes`;
 }
 
 function renderDashboardNotifications() {
   const container = document.getElementById("dashboard-notifications");
   if (!container) return;
 
-  const notifications = [
-    { type: "danger", text: "Licença Ambiental Simplificada (LAS) vence em breve." },
-    { type: "warning", text: "Produto [Película Protetora] próximo ao vencimento." },
-    { type: "info", text: "Contrato Fornecimento Gamma expira em 30 dias." }
-  ];
+  const notifications = [];
+  const today = new Date();
+
+  // 1. Process Product Expirations
+  ERP_DATA.cadastro.produtos.forEach(p => {
+    if (p.validade) {
+      const expDate = new Date(p.validade);
+      const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) {
+        notifications.push({ type: "danger", text: `Produto [${p.nome}] está VENCIDO há ${Math.abs(diffDays)} dias.` });
+      } else if (diffDays <= 30) {
+        notifications.push({ type: "warning", text: `Produto [${p.nome}] vence em ${diffDays} dias.` });
+      }
+    }
+  });
+
+  // 2. Process Document Expirations
+  ERP_DATA.administrativo.documentos.forEach(d => {
+    if (d.vencimento) {
+      const expDate = new Date(d.vencimento);
+      const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) {
+        notifications.push({ type: "danger", text: `Documento [${d.nome}] EXPIRADO.` });
+      } else if (diffDays <= 30) {
+        notifications.push({ type: "warning", text: `Documento [${d.nome}] vence em ${diffDays} dias.` });
+      }
+    }
+  });
+
+  // 3. Fallback default if clean
+  if (notifications.length === 0) {
+    notifications.push({ type: "info", text: "Tudo certo! Nenhuma pendência crítica ou vencimento nos próximos 30 dias." });
+  }
 
   container.innerHTML = notifications.map(notif => `
     <div class="notification-item">
