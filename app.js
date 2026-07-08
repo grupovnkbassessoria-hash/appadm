@@ -1408,7 +1408,7 @@ function initFiscal() {
         submitBtn.innerHTML = originalText;
         lucide.createIcons();
 
-        alert(`Documento Fiscal ${newNF.id} registrado como simulação.\n\nPara emissão oficial, ainda é necessário integrar com a API fiscal correspondente.`);
+        alert(`Pré-registro fiscal ${newNF.id} salvo com sucesso.\n\nA autorização oficial será liberada quando a integração fiscal estiver configurada.`);
       }, 1500);
     });
   }
@@ -1726,33 +1726,56 @@ function renderFinanceiroTables() {
 // ============================================================
 // NFS-E E BOLETO PIX
 // ============================================================
-window.emitirNFSe = function(recId, valor, destinatario) {
+window.emitirNFSe = async function(recId, valor, destinatario) {
   const btn = event.target.closest('button');
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i data-lucide="refresh-cw"></i> Transmitindo...';
     lucide.createIcons();
   }
-  setTimeout(() => {
-    // Simulação local. A emissão real exige integração com a API oficial da NFS-e Nacional.
+
+  try {
+    const response = await fetch("/api/nfse/emitir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recId,
+        valor,
+        destinatario,
+        prestador: getActiveCompany()
+      })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.message || "Não foi possível processar a NFS-e.");
+    }
+
+    const nfse = result.nfse || {};
     const nf = {
-      id: 'NF-' + String(2000 + ERP_DATA.fiscal.notasEmitidas.length).padStart(4, '0'),
+      id: nfse.id || 'NF-' + String(2000 + ERP_DATA.fiscal.notasEmitidas.length).padStart(4, '0'),
       destinatario: destinatario,
       tipo: 'NFs',
       valor: valor,
       emissao: new Date().toISOString(),
-      status: 'Simulada (NFS-e Nacional pendente)',
-      xmlFile: 'NFs' + Date.now() + '.xml'
+      status: result.official ? 'Autorizada (NFS-e Nacional)' : 'Pré-registro (NFS-e pendente)',
+      xmlFile: nfse.xmlFile || 'NFs' + Date.now() + '.xml',
+      protocolo: nfse.protocolo || ''
     };
     ERP_DATA.fiscal.notasEmitidas.unshift(nf);
-    // Mark invoice as issued
     const rec = ERP_DATA.financeiro.contasReceber.find(r => r.id === recId);
     if (rec) rec.nfseEmitida = true;
     saveState();
     renderFinanceiroTables();
     renderFiscalData();
-    alert('NFS-e ' + nf.id + ' registrada como simulação.\n\nA emissão oficial pela NFS-e Nacional ainda precisa ser implementada com a API/documentação oficial.');
-  }, 1800);
+    alert((result.official ? 'NFS-e ' : 'Pré-registro de NFS-e ') + nf.id + ' salvo com sucesso.\n\n' + result.message);
+  } catch (error) {
+    alert("Não foi possível emitir a NFS-e.\n\n" + error.message);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="file-check"></i> Gerar NFS-e';
+      lucide.createIcons();
+    }
+  }
 };
 
 window.abrirBoletoPix = function(fatId, valor, cliente) {

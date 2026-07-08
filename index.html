@@ -671,15 +671,15 @@
                 </div>
                 <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 1rem;">
                   <p style="font-size: 0.85rem; color: var(--text-secondary);">
-                    Esta tela ainda não transmite para a NFS-e Nacional. Para emissão real, precisa implementar os endpoints oficiais do ADN/NFS-e, credenciais, certificado/assinatura digital, DPS/RPS no leiaute vigente, tratamento de retorno, consulta e DANFSE.
+                    A emissão passa pelo backend do app. Configure as credenciais fiscais no Vercel para liberar a autorização oficial; sem elas, o sistema salva um pré-registro seguro da NFS-e.
                   </p>
                   <div class="form-group">
                     <label>Documentação oficial</label>
                     <input type="text" class="form-input" value="APIs NFS-e: Produção Restrita e Produção (gov.br/nfse)" disabled>
                   </div>
                   <div class="form-group">
-                    <label>Status da integração</label>
-                    <input type="text" class="form-input" value="Não implementada no app: emissão atual é simulada" disabled>
+                    <label>Configurações necessárias no servidor</label>
+                    <input type="text" class="form-input" value="NFSE_API_BASE_URL, NFSE_CERT_BASE64, NFSE_CERT_PASSWORD, NFSE_CITY_CODE" disabled>
                   </div>
                   <div class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
