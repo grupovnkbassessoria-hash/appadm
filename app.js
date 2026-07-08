@@ -3,12 +3,15 @@ import { initialData } from './data.js';
 // ============================================================
 // MULTI-COMPANY STATE MANAGEMENT
 // ============================================================
-let GLOBAL_STATE = JSON.parse(localStorage.getItem('erp_global')) || JSON.parse(JSON.stringify(initialData));
+let GLOBAL_STATE = JSON.parse(localStorage.getItem('erp_global'));
+if (!GLOBAL_STATE || !GLOBAL_STATE.users || !GLOBAL_STATE.users.length) {
+  GLOBAL_STATE = JSON.parse(JSON.stringify(initialData));
+  localStorage.setItem('erp_global', JSON.stringify(GLOBAL_STATE));
+}
 let ACTIVE_SESSION = null; // { companyId, username, cnpj }
 let ERP_DATA = null;       // Active company data (shortcut)
 
 function saveState() {
-  // Persist active company data back into GLOBAL_STATE
   if (ACTIVE_SESSION && ERP_DATA) {
     const comp = GLOBAL_STATE.companies.find(c => c.cnpj === ACTIVE_SESSION.cnpj);
     if (comp) comp.data = ERP_DATA;
