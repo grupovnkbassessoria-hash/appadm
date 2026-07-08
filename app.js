@@ -545,7 +545,8 @@ function setupCommercialUpgradeLauncher(kind) {
 }
 
 function getCommercialUpgradeCatalog(tipo) {
-  return tipo === "Serviço" ? COMMERCIAL_SERVICES_UPGRADE : ERP_DATA.cadastro.produtos;
+  const catalog = ERP_DATA.cadastro.produtos.filter(item => tipo === "Serviço" ? item.tipo === "Serviço" : item.tipo !== "Serviço");
+  return tipo === "Serviço" && !catalog.length ? COMMERCIAL_SERVICES_UPGRADE : catalog;
 }
 
 function renderCommercialUpgradeDraft(kind) {
@@ -724,7 +725,7 @@ function renderComercialTables() {
   if (conBody) {
     conBody.innerHTML = ERP_DATA.comercial.contratos.map(function(con) {
       const badge = con.status === "Ativo" ? "badge-success" : "badge-warning";
-      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + con.vigenciaFim + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></td></tr>";
+      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + (con.vigenciaInicio || "–") + "</td><td>" + con.vigenciaFim + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></td></tr>";
     }).join("");
   }
   lucide.createIcons();
@@ -736,11 +737,17 @@ window.faturarContrato = function(id) {
   const today = new Date();
   const dueDate = new Date(today);
   dueDate.setDate(today.getDate() + 30);
+  const existing = ERP_DATA.financeiro.contasReceber.find(r => r.contratoId === con.id && r.status !== "Recebido");
+  if (existing) {
+    alert('Já existe uma fatura em aberto para este contrato: ' + existing.id + '.');
+    return;
+  }
   const fatId = 'FAT-' + String(ERP_DATA.financeiro.contasReceber.length + 1).padStart(3, '0');
   const newFat = {
     id: fatId,
     descricao: 'Fatura Contrato: ' + con.titulo,
     cliente: con.parceiro,
+    emissao: today.toISOString().split('T')[0],
     vencimento: dueDate.toISOString().split('T')[0],
     valor: con.valorMensal,
     status: 'A Receber',
@@ -959,6 +966,7 @@ function initContratosComerciais() {
   const btnCancelar = document.getElementById('btn-cancelar-contrato-c');
   const form = document.getElementById('form-novo-contrato-comercial');
   const parceiroSelect = document.getElementById('contrato-c-parceiro');
+  const inicioInput = document.getElementById('contrato-c-inicio');
 
   if (parceiroSelect) {
     const allParceiros = [
@@ -970,6 +978,7 @@ function initContratosComerciais() {
 
   if (btnNovo && panel) {
     btnNovo.addEventListener('click', () => {
+      if (inicioInput && !inicioInput.value) inicioInput.value = new Date().toISOString().split('T')[0];
       panel.classList.remove('hidden');
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -988,7 +997,7 @@ function initContratosComerciais() {
         titulo: document.getElementById('contrato-c-titulo').value.trim(),
         tipo: document.getElementById('contrato-c-tipo').value,
         parceiro: document.getElementById('contrato-c-parceiro').value,
-        vigenciaInicio: new Date().toISOString().split('T')[0],
+        vigenciaInicio: document.getElementById('contrato-c-inicio').value,
         vigenciaFim: document.getElementById('contrato-c-fim').value,
         valorMensal: parseFloat(document.getElementById('contrato-c-valor').value) || 0,
         status: 'Ativo'
@@ -1194,9 +1203,9 @@ function setupProductManagement() {
       '<div class="form-group"><label>Nome do Produto/Serviço</label><input type="text" class="form-input" id="produto-nome" required></div>' +
       '<div class="form-group"><label>Categoria</label><input type="text" class="form-input" id="produto-categoria" required></div>' +
       '<div class="form-group"><label>Preço de Venda</label><input type="number" class="form-input" id="produto-preco" min="0" step="0.01" required></div>' +
-      '<div class="form-group"><label>Estoque Atual</label><input type="number" class="form-input" id="produto-estoque" min="0" step="1" required></div>' +
-      '<div class="form-group"><label>Custo Médio</label><input type="number" class="form-input" id="produto-custo" min="0" step="0.01" required></div>' +
-      '<div class="form-group"><label>Validade</label><input type="date" class="form-input" id="produto-validade"></div>' +
+      '<div class="form-group product-stock-field"><label>Estoque Atual</label><input type="number" class="form-input" id="produto-estoque" min="0" step="1" required></div>' +
+      '<div class="form-group product-stock-field"><label>Custo Médio</label><input type="number" class="form-input" id="produto-custo" min="0" step="0.01" required></div>' +
+      '<div class="form-group product-stock-field"><label>Validade</label><input type="date" class="form-input" id="produto-validade"></div>' +
       '</div><div class="product-form-actions">' +
       '<button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Cadastro</button>' +
       '<button type="button" class="btn btn-secondary" id="btn-cancelar-produto"><i data-lucide="x"></i> Cancelar</button>' +
@@ -1220,6 +1229,8 @@ function setupProductManagement() {
       saveProductForm();
     });
   }
+  const tipoSelect = document.getElementById("produto-tipo");
+  if (tipoSelect) tipoSelect.addEventListener("change", syncProductServiceFields);
   lucide.createIcons();
 }
 
@@ -1235,7 +1246,21 @@ function openProductForm(product) {
   document.getElementById("produto-estoque").value = product?.estoqueAtual ?? "";
   document.getElementById("produto-custo").value = product?.custoMedio ?? "";
   document.getElementById("produto-validade").value = product?.validade || "";
+  syncProductServiceFields();
   document.getElementById("produto-nome").focus();
+}
+
+function syncProductServiceFields() {
+  const isService = document.getElementById("produto-tipo")?.value === "Serviço";
+  document.querySelectorAll(".product-stock-field").forEach(field => field.classList.toggle("hidden", isService));
+  ["produto-estoque", "produto-custo"].forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.required = !isService;
+    if (isService) input.value = "0";
+  });
+  const validade = document.getElementById("produto-validade");
+  if (validade && isService) validade.value = "";
 }
 
 function closeProductForm() {
@@ -1252,14 +1277,15 @@ function editProduct(id) {
 }
 
 function saveProductForm() {
+  const isService = document.getElementById("produto-tipo").value === "Serviço";
   const productData = {
     tipo: document.getElementById("produto-tipo").value,
     nome: document.getElementById("produto-nome").value.trim(),
     categoria: document.getElementById("produto-categoria").value.trim(),
     precoVenda: parseFloat(document.getElementById("produto-preco").value) || 0,
-    estoqueAtual: parseInt(document.getElementById("produto-estoque").value, 10) || 0,
-    custoMedio: parseFloat(document.getElementById("produto-custo").value) || 0,
-    validade: document.getElementById("produto-validade").value || null
+    estoqueAtual: isService ? 0 : (parseInt(document.getElementById("produto-estoque").value, 10) || 0),
+    custoMedio: isService ? 0 : (parseFloat(document.getElementById("produto-custo").value) || 0),
+    validade: isService ? null : (document.getElementById("produto-validade").value || null)
   };
   if (editingProductId) {
     const product = ERP_DATA.cadastro.produtos.find(p => p.id === editingProductId);
@@ -1343,21 +1369,16 @@ function renderCadastroTables() {
     `).join('');
   }
 
-  // Produtos Catalog Grid
+  // Produtos e Serviços
   const prodGrid = document.getElementById("catalog-produtos-grid");
   if (prodGrid) {
     prodGrid.innerHTML = ERP_DATA.cadastro.produtos.map(p =>
-      '<div class="product-card">' +
-        '<div class="product-card-header">' +
-          '<div><h4>' + p.nome + '</h4><span>' + (p.tipo || 'Produto') + ' • ' + p.categoria + '</span></div>' +
-          '<button type="button" class="btn btn-secondary btn-icon-only" data-product-action="edit" data-id="' + p.id + '" title="Editar cadastro"><i data-lucide="pencil"></i></button>' +
-        '</div>' +
-        '<div class="product-metrics">' +
-          '<div><span>PREÇO</span><strong>' + formatBRL(p.precoVenda) + '</strong></div>' +
-          '<div><span>ESTOQUE</span><strong style="color: ' + (p.estoqueAtual < 10 ? 'var(--color-danger)' : 'var(--color-success)') + ';">' + p.estoqueAtual + ' unid</strong></div>' +
-          '<div><span>CUSTO</span><strong>' + formatBRL(p.custoMedio || 0) + '</strong></div>' +
-          '<div><span>VALIDADE</span><strong>' + (p.validade || 'Sem validade') + '</strong></div>' +
-        '</div>' +
+      '<div class="product-list-row">' +
+        '<div><strong>' + p.nome + '</strong><span>' + (p.tipo || 'Produto') + ' • ' + p.categoria + '</span></div>' +
+        '<div><span>Preço</span><strong>' + formatBRL(p.precoVenda) + '</strong></div>' +
+        '<div><span>Estoque</span><strong>' + ((p.tipo === 'Serviço') ? 'Não se aplica' : (p.estoqueAtual + ' unid')) + '</strong></div>' +
+        '<div><span>Validade</span><strong>' + ((p.tipo === 'Serviço') ? 'Não se aplica' : (p.validade || 'Sem validade')) + '</strong></div>' +
+        '<button type="button" class="btn btn-secondary btn-icon-only" data-product-action="edit" data-id="' + p.id + '" title="Editar cadastro"><i data-lucide="pencil"></i></button>' +
       '</div>'
     ).join('');
     lucide.createIcons();
@@ -1613,6 +1634,7 @@ window.baixarPDFNota = function(id, dest, valor, tipo) {
 
 // 5. FINANCEIRO CONTROLLER
 function initFinanceiro() {
+  setupManualBilling();
   renderFinanceiroTables();
 
   // Accounts Payable/Receivable buttons Actions (Mark as Paid/Received)
@@ -1639,6 +1661,66 @@ function initFinanceiro() {
       updateDashboardKPIs();
     }
   };
+}
+
+function setupManualBilling() {
+  const btnNovo = document.getElementById("btn-novo-faturamento");
+  const btnCancelar = document.getElementById("btn-cancelar-faturamento");
+  const form = document.getElementById("form-novo-faturamento");
+  const clienteSelect = document.getElementById("fat-cliente");
+  if (clienteSelect) {
+    clienteSelect.innerHTML = ERP_DATA.cadastro.clientes.map(c => `<option value="${c.nome}">${c.nome}</option>`).join("");
+  }
+  if (btnNovo && form && btnNovo.dataset.bound !== "true") {
+    btnNovo.dataset.bound = "true";
+    btnNovo.addEventListener("click", () => {
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("fat-emissao").value = today;
+      document.getElementById("fat-vencimento").value = today;
+      form.classList.remove("hidden");
+    });
+  }
+  if (btnCancelar && form && btnCancelar.dataset.bound !== "true") {
+    btnCancelar.dataset.bound = "true";
+    btnCancelar.addEventListener("click", () => {
+      form.reset();
+      form.classList.add("hidden");
+    });
+  }
+  if (form && form.dataset.bound !== "true") {
+    form.dataset.bound = "true";
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const newFat = {
+        id: nextFinanceId("FAT", ERP_DATA.financeiro.contasReceber),
+        descricao: document.getElementById("fat-descricao").value.trim(),
+        cliente: document.getElementById("fat-cliente").value,
+        emissao: document.getElementById("fat-emissao").value,
+        vencimento: document.getElementById("fat-vencimento").value,
+        valor: parseFloat(document.getElementById("fat-valor").value) || 0,
+        status: "A Receber",
+        manualFaturamento: true,
+        nfseEmitida: false,
+        boletoGerado: false
+      };
+      ERP_DATA.financeiro.contasReceber.unshift(newFat);
+      saveState();
+      form.reset();
+      form.classList.add("hidden");
+      renderFinanceiroTables();
+    });
+  }
+}
+
+function nextFinanceId(prefix, list) {
+  const used = new Set(list.map(item => item.id));
+  let counter = list.length + 1;
+  let id = `${prefix}-${String(counter).padStart(3, "0")}`;
+  while (used.has(id)) {
+    counter += 1;
+    id = `${prefix}-${String(counter).padStart(3, "0")}`;
+  }
+  return id;
 }
 
 function renderFinanceiroTables() {
@@ -1676,28 +1758,15 @@ function renderFinanceiroTables() {
     `).join('');
   }
 
-  // Faturamento – agora inclui contas a receber vindas de contratos
+  // Faturamento
   const fatBody = document.getElementById("table-faturamento-body");
   if (fatBody) {
-    const faturas = ERP_DATA.financeiro.contasReceber.filter(r => r.contratoId || r.descricao?.startsWith('Faturamento'));
-    const fromNFs = ERP_DATA.fiscal.notasEmitidas.map(nf => ({
-      id: 'FAT-' + nf.id.replace('NF-',''),
-      cliente: nf.destinatario,
-      emissao: nf.emissao ? nf.emissao.split('T')[0] : '',
-      vencimento: '',
-      valor: nf.valor,
-      nfseEmitida: true,
-      boletoGerado: false,
-      fromNF: nf.id
-    }));
-
-    const allFaturas = [
-      ...faturas.map(f => ({ id: f.id, cliente: f.cliente, emissao: new Date().toISOString().split('T')[0], vencimento: f.vencimento, valor: f.valor, nfseEmitida: f.nfseEmitida || false, boletoGerado: f.boletoGerado || false, recId: f.id })),
-      ...fromNFs.filter(nf => !faturas.some(f => f.fromNF === nf.fromNF))
-    ];
+    const allFaturas = ERP_DATA.financeiro.contasReceber
+      .filter(r => r.contratoId || r.manualFaturamento || r.descricao?.startsWith('Faturamento'))
+      .map(f => ({ id: f.id, cliente: f.cliente, emissao: f.emissao || new Date().toISOString().split('T')[0], vencimento: f.vencimento, valor: f.valor, nfseEmitida: f.nfseEmitida || false, boletoGerado: f.boletoGerado || false, recId: f.id }));
 
     if (!allFaturas.length) {
-      fatBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhuma fatura gerada. Acesse Comercial > Contratos e clique em Faturar.</td></tr>';
+      fatBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhuma fatura gerada.</td></tr>';
     } else {
       fatBody.innerHTML = allFaturas.map(fat => `
         <tr>
@@ -1728,6 +1797,8 @@ function renderFinanceiroTables() {
 // ============================================================
 window.emitirNFSe = async function(recId, valor, destinatario) {
   const btn = event.target.closest('button');
+  openNfseMeiAssistant(recId, valor, destinatario);
+  return;
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i data-lucide="refresh-cw"></i> Transmitindo...';
@@ -1776,6 +1847,62 @@ window.emitirNFSe = async function(recId, valor, destinatario) {
       lucide.createIcons();
     }
   }
+};
+
+function openNfseMeiAssistant(recId, valor, destinatario) {
+  const comp = getActiveCompany();
+  const razaoSocial = comp?.razaoSocial || "Empresa";
+  const cnpj = comp?.cnpj || "";
+  const emissorUrl = "https://www.nfse.gov.br/EmissorNacional";
+  openModal("Preparar NFS-e MEI", `
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div style="background:var(--surface-secondary);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:1rem;">
+        <div style="font-size:0.78rem;color:var(--text-secondary);font-weight:800;margin-bottom:0.5rem;">DADOS PARA EMISSÃO NO PORTAL GOV.BR</div>
+        <div><strong>Prestador:</strong> ${razaoSocial}</div>
+        <div><strong>CNPJ:</strong> ${cnpj}</div>
+        <div><strong>Tomador:</strong> ${destinatario}</div>
+        <div><strong>Valor:</strong> ${formatBRL(valor)}</div>
+        <div><strong>Descrição:</strong> Prestação de serviços</div>
+      </div>
+      <a class="btn btn-primary" href="${emissorUrl}" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Abrir Emissor Nacional</a>
+      <div class="form-group">
+        <label>Número/Chave da NFS-e emitida</label>
+        <input type="text" class="form-input" id="nfse-chave-manual" placeholder="Cole aqui após emitir no portal gov.br">
+      </div>
+      <div class="product-form-actions">
+        <button type="button" class="btn btn-primary" onclick="confirmarNfseManual('${recId}', ${valor}, '${destinatario.replace(/'/g, "\\'")}')"><i data-lucide="check"></i> Registrar NFS-e Emitida</button>
+      </div>
+    </div>
+  `);
+}
+
+window.confirmarNfseManual = function(recId, valor, destinatario) {
+  const chave = document.getElementById("nfse-chave-manual")?.value.trim();
+  if (!chave) {
+    alert("Informe o número ou chave da NFS-e emitida no portal gov.br.");
+    return;
+  }
+  const nf = {
+    id: chave,
+    destinatario,
+    tipo: "NFs",
+    valor,
+    emissao: new Date().toISOString(),
+    status: "Emitida no Portal Nacional (MEI)",
+    xmlFile: "NFS-e-" + chave + ".xml",
+    emissaoManual: true
+  };
+  ERP_DATA.fiscal.notasEmitidas.unshift(nf);
+  const rec = ERP_DATA.financeiro.contasReceber.find(r => r.id === recId);
+  if (rec) {
+    rec.nfseEmitida = true;
+    rec.nfseChave = chave;
+  }
+  saveState();
+  closeModal();
+  renderFinanceiroTables();
+  renderFiscalData();
+  alert("NFS-e registrada com sucesso no sistema.");
 };
 
 window.abrirBoletoPix = function(fatId, valor, cliente) {

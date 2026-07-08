@@ -331,6 +331,10 @@
                   </select>
                 </div>
                 <div class="form-group">
+                  <label>Vigência Início</label>
+                  <input type="date" class="form-input" id="contrato-c-inicio" required>
+                </div>
+                <div class="form-group">
                   <label>Vigência Fim</label>
                   <input type="date" class="form-input" id="contrato-c-fim" required>
                 </div>
@@ -357,6 +361,7 @@
                       <th>Título</th>
                       <th>Tipo</th>
                       <th>Parceiro Comercial</th>
+                      <th>Vigência Início</th>
                       <th>Vigência Fim</th>
                       <th>Valor Mensal</th>
                       <th>Assinatura</th>
@@ -667,19 +672,19 @@
               <div class="panel">
                 <div class="panel-header">
                   <h3 class="panel-title"><i data-lucide="api"></i> API Nota Fiscal de Serviço (NFS-e Nacional)</h3>
-                  <span class="badge badge-warning"><i data-lucide="alert-triangle"></i> Pendente</span>
+                  <span class="badge badge-primary"><i data-lucide="user-check"></i> Modo MEI</span>
                 </div>
                 <div style="padding: 1rem 0; display: flex; flex-direction: column; gap: 1rem;">
                   <p style="font-size: 0.85rem; color: var(--text-secondary);">
-                    A emissão passa pelo backend do app. Configure as credenciais fiscais no Vercel para liberar a autorização oficial; sem elas, o sistema salva um pré-registro seguro da NFS-e.
+                    Para MEI sem certificado digital, o app prepara os dados da NFS-e e abre o Emissor Nacional. A emissão oficial é concluída com login gov.br, e depois o número/chave pode ser registrado no sistema.
                   </p>
                   <div class="form-group">
                     <label>Documentação oficial</label>
                     <input type="text" class="form-input" value="APIs NFS-e: Produção Restrita e Produção (gov.br/nfse)" disabled>
                   </div>
                   <div class="form-group">
-                    <label>Configurações necessárias no servidor</label>
-                    <input type="text" class="form-input" value="NFSE_API_BASE_URL, NFSE_CERT_BASE64, NFSE_CERT_PASSWORD, NFSE_CITY_CODE" disabled>
+                    <label>Fluxo ativo</label>
+                    <input type="text" class="form-input" value="Modo MEI manual gov.br - sem certificado digital" disabled>
                   </div>
                   <div class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
@@ -796,8 +801,37 @@
             <div class="panel">
               <div class="panel-header">
                 <h3 class="panel-title">Faturamento e Geração Automática</h3>
+                <button class="btn btn-primary" id="btn-novo-faturamento"><i data-lucide="plus"></i> Novo Faturamento</button>
               </div>
               <p style="color: var(--text-secondary);">Gere cobranças recorrentes e emita boletos integrados com registro em carteiras bancárias diretamente.</p>
+              <form id="form-novo-faturamento" class="cadastro-form hidden">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Cliente</label>
+                    <select class="form-select" id="fat-cliente" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" class="form-input" id="fat-descricao" placeholder="Ex: Serviço mensal" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Data de Emissão</label>
+                    <input type="date" class="form-input" id="fat-emissao" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Data de Vencimento</label>
+                    <input type="date" class="form-input" id="fat-vencimento" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" class="form-input" id="fat-valor" min="0" step="0.01" required>
+                  </div>
+                </div>
+                <div class="product-form-actions">
+                  <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Faturamento</button>
+                  <button type="button" class="btn btn-secondary" id="btn-cancelar-faturamento"><i data-lucide="x"></i> Cancelar</button>
+                </div>
+              </form>
               <div class="table-wrapper">
                 <table>
                   <thead>
