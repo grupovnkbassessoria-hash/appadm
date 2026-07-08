@@ -502,13 +502,34 @@ function commercialUpgradeFormHtml(kind) {
 }
 
 function populateClientSelectors() {
-  const options = ERP_DATA.cadastro.clientes.map(function(c) { return "<option value='" + c.nome + "'>" + c.nome + "</option>"; }).join("");
-  ["orc-cliente", "ped-cliente", "fiscal-destinatario"].forEach(function(id) {
+  ["orc-cliente", "ped-cliente", "fiscal-destinatario", "receber-cliente", "fat-cliente"].forEach(function(id) {
     const select = document.getElementById(id);
     if (!select) return;
+    const currentValue = select.value;
     const placeholder = id === "fiscal-destinatario" ? "" : "<option value=''>Selecione o Cliente</option>";
-    select.innerHTML = placeholder + options;
+    select.innerHTML = placeholder + clientSelectOptionsHtml();
+    if (currentValue && ERP_DATA.cadastro.clientes.some(client => client.nome === currentValue)) {
+      select.value = currentValue;
+    }
   });
+}
+
+function clientSelectOptionsHtml() {
+  return ERP_DATA.cadastro.clientes
+    .map(function(c) {
+      const name = escapeHtml(c.nome || "");
+      return `<option value="${name}">${name}</option>`;
+    })
+    .join("");
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function setupCommercialUpgradeLauncher(kind) {
@@ -1897,7 +1918,7 @@ function setupFinancialLaunchers() {
 
   const receberCliente = document.getElementById("receber-cliente");
   if (receberCliente) {
-    receberCliente.innerHTML = ERP_DATA.cadastro.clientes.map(c => `<option value="${c.nome}">${c.nome}</option>`).join("");
+    populateClientSelectors();
   }
   bindFinancialForm("receber", {
     list: ERP_DATA.financeiro.contasReceber,
@@ -1990,7 +2011,7 @@ function setupManualBilling() {
   const form = document.getElementById("form-novo-faturamento");
   const clienteSelect = document.getElementById("fat-cliente");
   if (clienteSelect) {
-    clienteSelect.innerHTML = ERP_DATA.cadastro.clientes.map(c => `<option value="${c.nome}">${c.nome}</option>`).join("");
+    populateClientSelectors();
   }
   if (btnNovo && form && btnNovo.dataset.bound !== "true") {
     btnNovo.dataset.bound = "true";
