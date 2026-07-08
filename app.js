@@ -946,16 +946,16 @@ function getDocumentBranding() {
     className: "doc-assessoria-letterhead",
     stylesheet: `
       body.doc-assessoria-letterhead { margin: 0; color: #0f2533; background: #fff; }
-      body.doc-assessoria-letterhead .letterhead-page { min-height: calc(100vh - 44px); padding: 38px 44px 70px; position: relative; box-sizing: border-box; }
-      body.doc-assessoria-letterhead .brand-watermark { position: fixed; left: 50%; top: 50%; width: 540px; max-width: 78%; opacity: 0.055; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; }
-      body.doc-assessoria-letterhead .letterhead-header { border-bottom: 2px solid #1b5c72; padding: 0 0 14px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; gap: 24px; position: relative; z-index: 1; }
-      body.doc-assessoria-letterhead .letterhead-header img { width: 214px; height: auto; display: block; }
-      body.doc-assessoria-letterhead .letterhead-company { text-align: right; font-size: 11px; line-height: 1.45; color: #24475a; }
+      body.doc-assessoria-letterhead .letterhead-page { padding: 24px 36px 34px; position: relative; box-sizing: border-box; }
+      body.doc-assessoria-letterhead .brand-watermark { position: fixed; left: 50%; top: 50%; width: 460px; max-width: 72%; opacity: 0.045; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; }
+      body.doc-assessoria-letterhead .letterhead-header { border-bottom: 2px solid #1b5c72; padding: 0 0 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 20px; position: relative; z-index: 1; }
+      body.doc-assessoria-letterhead .letterhead-header img { width: 164px; height: auto; display: block; }
+      body.doc-assessoria-letterhead .letterhead-company { text-align: right; font-size: 10px; line-height: 1.25; color: #24475a; }
       body.doc-assessoria-letterhead .letterhead-content { position: relative; z-index: 1; }
-      body.doc-assessoria-letterhead .letterhead-footer { position: fixed; left: 44px; right: 44px; bottom: 22px; border-top: 1px solid #8aaaba; padding-top: 8px; text-align: center; color: #31596b; font-size: 10px; }
+      body.doc-assessoria-letterhead .letterhead-footer { border-top: 1px solid #8aaaba; padding-top: 5px; margin-top: 12px; text-align: center; color: #31596b; font-size: 9px; }
       @media print {
-        body.doc-assessoria-letterhead .letterhead-page { min-height: auto; padding: 10mm 0 18mm; }
-        body.doc-assessoria-letterhead .letterhead-footer { left: 0; right: 0; bottom: 0; }
+        body.doc-assessoria-letterhead .letterhead-page { padding: 0; }
+        body.doc-assessoria-letterhead .letterhead-footer { position: static; }
       }
     `,
     headerHtml: `
@@ -2074,22 +2074,23 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
     <div class="footer">Documento gerado pelo APP ADM para impressão/PDF. Para cobrança bancária registrada, envie os dados ao banco/integrador responsável.</div>
   </section>`;
   const branded = wrapPdfWithBranding(contentHtml, `
-    body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
-    .doc { max-width: 820px; margin: 0 auto; border: 1px solid #111827; padding: 24px; }
-    .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #111827; padding-bottom: 16px; }
-    h1 { margin: 0; font-size: 22px; }
-    .muted { color: #4b5563; font-size: 12px; text-transform: uppercase; font-weight: 700; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 22px 0; }
-    .box { border: 1px solid #d1d5db; padding: 12px; min-height: 54px; }
-    .pix { display: grid; grid-template-columns: 210px 1fr; gap: 18px; align-items: center; border: 2px solid #111827; padding: 16px; margin-top: 20px; }
-    .pix img { width: 180px; height: 180px; display: block; }
-    .copy { word-break: break-all; font-family: "Courier New", monospace; font-size: 11px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; margin-top: 8px; }
-    .amount { font-size: 24px; font-weight: 800; }
-    .barcode { margin-top: 24px; border: 1px solid #111827; padding: 14px; font-family: "Courier New", monospace; font-size: 18px; letter-spacing: 1px; text-align: center; }
-    .bars { display: flex; height: 62px; gap: 3px; align-items: stretch; justify-content: center; margin-top: 12px; }
+    body { font-family: Arial, sans-serif; color: #111827; margin: 20px; }
+    .doc { max-width: 820px; margin: 0 auto; border: 1px solid #111827; padding: 14px; }
+    .top { display: flex; justify-content: space-between; gap: 18px; border-bottom: 2px solid #111827; padding-bottom: 10px; }
+    h1 { margin: 0; font-size: 20px; }
+    .muted { color: #4b5563; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+    .box { border: 1px solid #d1d5db; padding: 8px; min-height: 42px; }
+    .pix { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; border: 2px solid #111827; padding: 10px; margin-top: 12px; }
+    .pix img { width: 132px; height: 132px; display: block; }
+    .pix p { margin: 6px 0; }
+    .copy { word-break: break-all; font-family: "Courier New", monospace; font-size: 9px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 7px; margin-top: 6px; }
+    .amount { font-size: 21px; font-weight: 800; }
+    .barcode { margin-top: 12px; border: 1px solid #111827; padding: 10px; font-family: "Courier New", monospace; font-size: 16px; letter-spacing: 1px; text-align: center; }
+    .bars { display: flex; height: 38px; gap: 3px; align-items: stretch; justify-content: center; margin-top: 8px; }
     .bars span { background: #111827; display: block; }
-    .footer { margin-top: 24px; font-size: 12px; color: #374151; border-top: 1px dashed #9ca3af; padding-top: 12px; }
-    @page { size: A4; margin: 12mm; }
+    .footer { margin-top: 12px; font-size: 10px; color: #374151; border-top: 1px dashed #9ca3af; padding-top: 8px; }
+    @page { size: A4; margin: 8mm; }
     @media print { body { margin: 0; } .doc { border: 0; } }
   `);
   const html = `<!DOCTYPE html>
