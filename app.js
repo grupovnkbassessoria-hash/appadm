@@ -1180,7 +1180,7 @@ function setupProductManagement() {
     btn.type = "button";
     btn.className = "btn btn-primary";
     btn.id = "btn-novo-produto";
-    btn.innerHTML = '<i data-lucide="plus"></i> Novo Produto';
+    btn.innerHTML = '<i data-lucide="plus"></i> Novo Produto/Serviço';
     header.appendChild(btn);
   }
 
@@ -1190,14 +1190,15 @@ function setupProductManagement() {
     form.id = "form-produto";
     form.className = "product-form hidden";
     form.innerHTML = '<div class="form-row">' +
-      '<div class="form-group"><label>Nome do Produto</label><input type="text" class="form-input" id="produto-nome" required></div>' +
+      '<div class="form-group"><label>Tipo de Cadastro</label><select class="form-select" id="produto-tipo" required><option value="Produto">Produto</option><option value="Serviço">Serviço</option></select></div>' +
+      '<div class="form-group"><label>Nome do Produto/Serviço</label><input type="text" class="form-input" id="produto-nome" required></div>' +
       '<div class="form-group"><label>Categoria</label><input type="text" class="form-input" id="produto-categoria" required></div>' +
       '<div class="form-group"><label>Preço de Venda</label><input type="number" class="form-input" id="produto-preco" min="0" step="0.01" required></div>' +
       '<div class="form-group"><label>Estoque Atual</label><input type="number" class="form-input" id="produto-estoque" min="0" step="1" required></div>' +
       '<div class="form-group"><label>Custo Médio</label><input type="number" class="form-input" id="produto-custo" min="0" step="0.01" required></div>' +
       '<div class="form-group"><label>Validade</label><input type="date" class="form-input" id="produto-validade"></div>' +
       '</div><div class="product-form-actions">' +
-      '<button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Produto</button>' +
+      '<button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Cadastro</button>' +
       '<button type="button" class="btn btn-secondary" id="btn-cancelar-produto"><i data-lucide="x"></i> Cancelar</button>' +
       '</div>';
     grid.parentNode.insertBefore(form, grid);
@@ -1227,6 +1228,7 @@ function openProductForm(product) {
   if (!form) return;
   form.classList.remove("hidden");
   editingProductId = product?.id || null;
+  document.getElementById("produto-tipo").value = product?.tipo || "Produto";
   document.getElementById("produto-nome").value = product?.nome || "";
   document.getElementById("produto-categoria").value = product?.categoria || "";
   document.getElementById("produto-preco").value = product?.precoVenda ?? "";
@@ -1251,6 +1253,7 @@ function editProduct(id) {
 
 function saveProductForm() {
   const productData = {
+    tipo: document.getElementById("produto-tipo").value,
     nome: document.getElementById("produto-nome").value.trim(),
     categoria: document.getElementById("produto-categoria").value.trim(),
     precoVenda: parseFloat(document.getElementById("produto-preco").value) || 0,
@@ -1346,8 +1349,8 @@ function renderCadastroTables() {
     prodGrid.innerHTML = ERP_DATA.cadastro.produtos.map(p =>
       '<div class="product-card">' +
         '<div class="product-card-header">' +
-          '<div><h4>' + p.nome + '</h4><span>' + p.categoria + '</span></div>' +
-          '<button type="button" class="btn btn-secondary btn-icon-only" data-product-action="edit" data-id="' + p.id + '" title="Editar produto"><i data-lucide="pencil"></i></button>' +
+          '<div><h4>' + p.nome + '</h4><span>' + (p.tipo || 'Produto') + ' • ' + p.categoria + '</span></div>' +
+          '<button type="button" class="btn btn-secondary btn-icon-only" data-product-action="edit" data-id="' + p.id + '" title="Editar cadastro"><i data-lucide="pencil"></i></button>' +
         '</div>' +
         '<div class="product-metrics">' +
           '<div><span>PREÇO</span><strong>' + formatBRL(p.precoVenda) + '</strong></div>' +
