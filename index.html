@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>APP ADM - Sistema Integrado de Gestão ERP</title>
+  <title>DOC Finança - Licita Fácil</title>
   <link rel="stylesheet" href="style.css">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -17,10 +17,10 @@
     <div class="login-card">
       <div class="login-header">
         <div class="brand-logo" style="margin: 0 auto 1.5rem; width: 48px; height: 48px;">
-          <i data-lucide="layers"></i>
+          <i data-lucide="landmark"></i>
         </div>
-        <h2>Acesso ao APP ADM</h2>
-        <p>Insira os dados da sua empresa para entrar</p>
+        <h2>DOC Finança</h2>
+        <p>Acesse oportunidades de licitação e acompanhe seus alertas</p>
       </div>
       <form id="login-form">
         <div class="form-group">
@@ -38,7 +38,7 @@
         <div id="login-error-msg" class="login-error hidden" style="color: var(--color-danger); margin-bottom: 1rem; font-size: 0.85rem; text-align: center;">
           CNPJ, usuário ou senha incorretos!
         </div>
-        <button type="submit" class="btn btn-primary login-btn" style="width: 100%; justify-content: center; padding: 0.85rem;"><i data-lucide="log-in"></i> Entrar no Sistema</button>
+        <button type="submit" class="btn btn-primary login-btn" style="width: 100%; justify-content: center; padding: 0.85rem;"><i data-lucide="log-in"></i> Entrar</button>
       </form>
     </div>
   </div>
@@ -48,9 +48,9 @@
     <aside>
       <div class="brand">
         <div class="brand-logo">
-          <i data-lucide="layers"></i>
+          <i data-lucide="landmark"></i>
         </div>
-        <span class="brand-name">APP ADM</span>
+        <span class="brand-name">DOC Finança</span>
       </div>
 
       <nav>
@@ -58,25 +58,25 @@
           <span class="nav-section-title">Principal</span>
           <a class="nav-item active" data-view="dashboard">
             <i data-lucide="layout-dashboard"></i>
-            <span>Dashboard</span>
+            <span>Licitações</span>
           </a>
         </div>
 
         <div class="nav-section">
           <span class="nav-section-title">Módulos</span>
           <a class="nav-item" data-view="comercial">
-            <i data-lucide="shopping-cart"></i>
-            <span>Comercial</span>
+            <i data-lucide="send"></i>
+            <span>Propostas</span>
           </a>
 
           <a class="nav-item" data-view="cadastro">
             <i data-lucide="users"></i>
-            <span>Cadastro</span>
+            <span>Empresas</span>
           </a>
 
           <a class="nav-item" data-view="fiscal">
             <i data-lucide="file-text"></i>
-            <span>Fiscal</span>
+            <span>Documentos</span>
           </a>
 
           <a class="nav-item" data-view="financeiro">
@@ -124,14 +124,14 @@
       <!-- Header -->
       <header>
         <div class="page-title-container">
-          <h1 class="page-title" id="current-view-title">Dashboard</h1>
-          <span class="page-subtitle" id="current-view-subtitle">Visão geral do sistema e indicadores de desempenho</span>
+          <h1 class="page-title" id="current-view-title">Licitações</h1>
+          <span class="page-subtitle" id="current-view-subtitle">Busque editais do PNCP, acompanhe oportunidades e envie alertas</span>
         </div>
 
         <div class="header-actions">
           <div class="search-bar">
             <i data-lucide="search"></i>
-            <input type="text" placeholder="Pesquisar no sistema..." id="global-search">
+            <input type="text" placeholder="Buscar edital, órgão, cidade ou palavra-chave..." id="global-search">
           </div>
           <button class="header-btn" id="btn-notifications" title="Notificações">
             <i data-lucide="bell"></i>
@@ -145,15 +145,45 @@
 
         <!-- 1. DASHBOARD VIEW -->
         <div class="view-content active" id="view-dashboard">
+          <section class="licita-hero">
+            <div>
+              <span class="eyebrow">PNCP em tempo real</span>
+              <h2>Encontre editais de licitação com facilidade</h2>
+              <p>Busque por localização, categoria ou palavra-chave, salve oportunidades e compartilhe editais por email ou WhatsApp.</p>
+            </div>
+            <div class="licita-search-panel">
+              <div class="licita-search">
+                <i data-lucide="search"></i>
+                <input id="licitacao-search" type="text" placeholder="Ex.: merenda escolar, obras, limpeza, tecnologia">
+              </div>
+              <div class="licita-filters">
+                <select id="licitacao-estado" class="form-select">
+                  <option value="">Todos os estados</option>
+                  <option value="SP">SP</option>
+                  <option value="RJ">RJ</option>
+                  <option value="MG">MG</option>
+                  <option value="PR">PR</option>
+                </select>
+                <select id="licitacao-categoria" class="form-select">
+                  <option value="">Todas as categorias</option>
+                  <option value="Serviços">Serviços</option>
+                  <option value="Obras">Obras</option>
+                  <option value="Saúde">Saúde</option>
+                  <option value="Tecnologia">Tecnologia</option>
+                </select>
+                <button class="btn btn-primary" id="btn-buscar-licitacoes"><i data-lucide="sliders-horizontal"></i> Filtrar</button>
+              </div>
+            </div>
+          </section>
           <div class="grid-kpis">
             <div class="card-kpi">
               <div class="kpi-icon primary">
                 <i data-lucide="dollar-sign"></i>
               </div>
               <div class="kpi-details">
-                <span class="kpi-title">Receita Mensal</span>
-                <span class="kpi-value" id="kpi-receita">R$ 148.500,00</span>
-                <span class="kpi-trend up"><i data-lucide="trending-up"></i> +12% vs. mês anterior</span>
+                <span class="kpi-title">Oportunidades abertas</span>
+                <span class="kpi-value" id="kpi-receita">128</span>
+                <span class="kpi-trend up"><i data-lucide="trending-up"></i> +18 novas hoje</span>
               </div>
             </div>
             <div class="card-kpi">
@@ -161,9 +191,9 @@
                 <i data-lucide="shopping-bag"></i>
               </div>
               <div class="kpi-details">
-                <span class="kpi-title">Vendas Ativas</span>
-                <span class="kpi-value" id="kpi-vendas">32 Pedidos</span>
-                <span class="kpi-trend up"><i data-lucide="trending-up"></i> +8% este mês</span>
+                <span class="kpi-title">Editais salvos</span>
+                <span class="kpi-value" id="kpi-vendas">24</span>
+                <span class="kpi-trend up"><i data-lucide="bookmark"></i> Para análise</span>
               </div>
             </div>
             <div class="card-kpi">
@@ -171,9 +201,9 @@
                 <i data-lucide="truck"></i>
               </div>
               <div class="kpi-details">
-                <span class="kpi-title">Frota Operante</span>
-                <span class="kpi-value" id="kpi-frota">2 Veículos</span>
-                <span class="kpi-trend down"><i data-lucide="trending-down"></i> 1 Em Manutenção</span>
+                <span class="kpi-title">Alertas ativos</span>
+                <span class="kpi-value" id="kpi-frota">9</span>
+                <span class="kpi-trend up"><i data-lucide="bell"></i> WhatsApp e email</span>
               </div>
             </div>
             <div class="card-kpi">
@@ -181,9 +211,9 @@
                 <i data-lucide="alert-triangle"></i>
               </div>
               <div class="kpi-details">
-                <span class="kpi-title">Alertas Críticos</span>
-                <span class="kpi-value" id="kpi-alertas">3 Pendentes</span>
-                <span class="kpi-trend down" style="color: var(--color-danger);">Licenças & Validades</span>
+                <span class="kpi-title">Encerram em 7 dias</span>
+                <span class="kpi-value" id="kpi-alertas">12</span>
+                <span class="kpi-trend down" style="color: var(--color-danger);">Prioridade alta</span>
               </div>
             </div>
           </div>
@@ -191,19 +221,27 @@
           <div class="section-grid">
             <div class="panel">
               <div class="panel-header">
-                <h3 class="panel-title"><i data-lucide="activity"></i> Saúde Financeira & Fluxo de Caixa</h3>
+                <h3 class="panel-title"><i data-lucide="list-filter"></i> Oportunidades encontradas</h3>
+                <span class="panel-hint" id="licitacao-count">0 editais</span>
               </div>
-              <div class="chart-container">
-                <canvas id="cashflow-chart"></canvas>
+              <div class="licitacoes-list" id="licitacoes-list">
               </div>
             </div>
 
             <div class="panel">
               <div class="panel-header">
-                <h3 class="panel-title"><i data-lucide="bell-ring"></i> Avisos Urgentes</h3>
+                <h3 class="panel-title"><i data-lucide="bell-ring"></i> Alertas e categorias</h3>
               </div>
-              <div class="notifications-list" id="dashboard-notifications">
-                <!-- JavaScript populated -->
+              <div class="alert-builder">
+                <label>Palavra-chave</label>
+                <input class="form-input" id="alert-keyword" placeholder="Ex.: manutenção predial">
+                <label>Receber por</label>
+                <div class="channel-row">
+                  <button class="btn btn-secondary active" type="button" data-alert-channel="Email"><i data-lucide="mail"></i> Email</button>
+                  <button class="btn btn-secondary" type="button" data-alert-channel="WhatsApp"><i data-lucide="message-circle"></i> WhatsApp</button>
+                </div>
+                <button class="btn btn-primary" id="btn-criar-alerta"><i data-lucide="plus"></i> Criar alerta</button>
+                <div class="saved-alerts" id="saved-alerts"></div>
               </div>
             </div>
           </div>

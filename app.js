@@ -74,8 +74,12 @@ function bootApp() {
   const searchInput = document.getElementById("global-search");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
-      const val = e.target.value.toLowerCase();
-      console.log("Global search: ", val);
+      const val = e.target.value;
+      const licitaSearch = document.getElementById("licitacao-search");
+      if (licitaSearch && document.getElementById("view-dashboard")?.classList.contains("active")) {
+        licitaSearch.value = val;
+        renderLicitacoes();
+      }
     });
   }
 }
@@ -205,8 +209,9 @@ function initRouter() {
         subtitleEl.textContent = viewInfo[viewId].sub;
       }
       if (viewId === 'dashboard') {
-        renderCashFlowChart();
-        renderDashboardNotifications();
+        renderLicitacoes();
+        renderSavedAlerts();
+        updateDashboardKPIs();
       } else if (viewId === 'financeiro') {
         renderForecastChart();
       }
@@ -259,50 +264,207 @@ const formatDateBR = (value) => {
 
 // 1. DASHBOARD CONTROLLER
 function initDashboard() {
-  renderCashFlowChart();
-  renderDashboardNotifications();
+  initLicitacoes();
+  renderLicitacoes();
+  renderSavedAlerts();
   updateDashboardKPIs();
 }
 
 function updateDashboardKPIs() {
-  // Update dashboard KPI numbers dynamically based on actual state
-  const totalReceitas = ERP_DATA.financeiro.fluxoCaixa.saldoAtual;
-  const activeOrdersCount = ERP_DATA.comercial.pedidos.filter(p => p.status !== "Entregue").length;
-  const vehiclesActiveCount = ERP_DATA.cadastro.veiculos.length;
-
-  // Calculate alerts dynamically
-  let alertCount = 0;
-  const today = new Date();
-  
-  // Expiry alerts for products
-  ERP_DATA.cadastro.produtos.forEach(p => {
-    if (p.validade) {
-      const expDate = new Date(p.validade);
-      const diffTime = expDate - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (diffDays <= 30) alertCount++;
-    }
-  });
-
-  // Expiry alerts for official documents
-  ERP_DATA.administrativo.documentos.forEach(d => {
-    if (d.vencimento) {
-      const expDate = new Date(d.vencimento);
-      const diffTime = expDate - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (diffDays <= 30) alertCount++;
-    }
-  });
-
   const kpiReceita = document.getElementById("kpi-receita");
   const kpiVendas = document.getElementById("kpi-vendas");
   const kpiFrota = document.getElementById("kpi-frota");
   const kpiAlertas = document.getElementById("kpi-alertas");
+  const saved = getSavedLicitacoes();
+  const alerts = getLicitaAlerts();
+  const closingSoon = LICITACOES_MOCK.filter(item => daysUntil(item.encerramento) <= 7).length;
 
-  if (kpiReceita) kpiReceita.textContent = formatBRL(totalReceitas);
-  if (kpiVendas) kpiVendas.textContent = `${activeOrdersCount} Pedidos`;
-  if (kpiFrota) kpiFrota.textContent = `${vehiclesActiveCount} Veículos`;
-  if (kpiAlertas) kpiAlertas.textContent = `${alertCount} Pendentes`;
+  if (kpiReceita) kpiReceita.textContent = LICITACOES_MOCK.length.toString();
+  if (kpiVendas) kpiVendas.textContent = saved.length.toString();
+  if (kpiFrota) kpiFrota.textContent = alerts.length.toString();
+  if (kpiAlertas) kpiAlertas.textContent = closingSoon.toString();
+}
+
+const LICITACOES_MOCK = [
+  { id: "PNCP-001", titulo: "Contratação de serviços de manutenção predial preventiva e corretiva", orgao: "Prefeitura Municipal de Campinas", estado: "SP", cidade: "Campinas", categoria: "Serviços", valor: 485000, encerramento: "2026-07-16", modalidade: "Pregão Eletrônico", status: "Aberta", palavras: "manutenção predial serviços engenharia" },
+  { id: "PNCP-002", titulo: "Aquisição de equipamentos de informática para unidades administrativas", orgao: "Secretaria de Administração", estado: "RJ", cidade: "Rio de Janeiro", categoria: "Tecnologia", valor: 730000, encerramento: "2026-07-22", modalidade: "Concorrência", status: "Aberta", palavras: "computadores notebooks tecnologia ti" },
+  { id: "PNCP-003", titulo: "Registro de preços para fornecimento de medicamentos e insumos hospitalares", orgao: "Consórcio Intermunicipal de Saúde", estado: "MG", cidade: "Belo Horizonte", categoria: "Saúde", valor: 1250000, encerramento: "2026-07-14", modalidade: "Pregão Eletrônico", status: "Urgente", palavras: "medicamentos saúde hospitalar insumos" },
+  { id: "PNCP-004", titulo: "Execução de obra de drenagem urbana e pavimentação asfáltica", orgao: "Departamento de Obras Públicas", estado: "PR", cidade: "Curitiba", categoria: "Obras", valor: 3420000, encerramento: "2026-08-02", modalidade: "Concorrência", status: "Aberta", palavras: "obra drenagem pavimentação engenharia" },
+  { id: "PNCP-005", titulo: "Serviços terceirizados de limpeza, conservação e apoio operacional", orgao: "Universidade Federal", estado: "SP", cidade: "São Paulo", categoria: "Serviços", valor: 890000, encerramento: "2026-07-18", modalidade: "Pregão Eletrônico", status: "Aberta", palavras: "limpeza conservação terceirização" }
+];
+
+const LICITA_SAVED_KEY = "doc_financa_licitacoes_salvas";
+const LICITA_ALERTS_KEY = "doc_financa_alertas";
+
+function daysUntil(dateValue) {
+  const today = new Date("2026-07-10T00:00:00");
+  const target = new Date(`${dateValue}T00:00:00`);
+  return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+}
+
+function getSavedLicitacoes() {
+  return JSON.parse(localStorage.getItem(LICITA_SAVED_KEY) || "[]");
+}
+
+function setSavedLicitacoes(ids) {
+  localStorage.setItem(LICITA_SAVED_KEY, JSON.stringify(ids));
+}
+
+function getLicitaAlerts() {
+  return JSON.parse(localStorage.getItem(LICITA_ALERTS_KEY) || "[]");
+}
+
+function setLicitaAlerts(alerts) {
+  localStorage.setItem(LICITA_ALERTS_KEY, JSON.stringify(alerts));
+}
+
+function initLicitacoes() {
+  ["licitacao-search", "licitacao-estado", "licitacao-categoria"].forEach(id => {
+    const field = document.getElementById(id);
+    if (field && field.dataset.bound !== "true") {
+      field.dataset.bound = "true";
+      field.addEventListener("input", renderLicitacoes);
+      field.addEventListener("change", renderLicitacoes);
+    }
+  });
+
+  const filterBtn = document.getElementById("btn-buscar-licitacoes");
+  if (filterBtn && filterBtn.dataset.bound !== "true") {
+    filterBtn.dataset.bound = "true";
+    filterBtn.addEventListener("click", renderLicitacoes);
+  }
+
+  document.querySelectorAll("[data-alert-channel]").forEach(btn => {
+    if (btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-alert-channel]").forEach(item => item.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  const alertBtn = document.getElementById("btn-criar-alerta");
+  if (alertBtn && alertBtn.dataset.bound !== "true") {
+    alertBtn.dataset.bound = "true";
+    alertBtn.addEventListener("click", createLicitaAlert);
+  }
+}
+
+function renderLicitacoes() {
+  const list = document.getElementById("licitacoes-list");
+  if (!list) return;
+  const text = (document.getElementById("licitacao-search")?.value || "").toLowerCase().trim();
+  const estado = document.getElementById("licitacao-estado")?.value || "";
+  const categoria = document.getElementById("licitacao-categoria")?.value || "";
+  const saved = getSavedLicitacoes();
+
+  const filtered = LICITACOES_MOCK.filter(item => {
+    const searchable = `${item.titulo} ${item.orgao} ${item.cidade} ${item.estado} ${item.categoria} ${item.palavras}`.toLowerCase();
+    return (!text || searchable.includes(text)) && (!estado || item.estado === estado) && (!categoria || item.categoria === categoria);
+  });
+
+  const count = document.getElementById("licitacao-count");
+  if (count) count.textContent = `${filtered.length} ${filtered.length === 1 ? "edital" : "editais"}`;
+
+  list.innerHTML = filtered.length ? filtered.map(item => {
+    const isSaved = saved.includes(item.id);
+    const prazo = daysUntil(item.encerramento);
+    return `
+      <article class="licitacao-card">
+        <div class="licitacao-main">
+          <div class="licitacao-topline">
+            <span class="badge ${item.status === "Urgente" ? "badge-danger" : "badge-success"}">${item.status}</span>
+            <span>${item.modalidade}</span>
+            <span>${item.cidade}/${item.estado}</span>
+          </div>
+          <h3>${item.titulo}</h3>
+          <p>${item.orgao}</p>
+          <div class="licitacao-meta">
+            <strong>${formatBRL(item.valor)}</strong>
+            <span>${item.categoria}</span>
+            <span>Encerra em ${prazo} dias</span>
+          </div>
+        </div>
+        <div class="licitacao-actions">
+          <button class="btn btn-secondary btn-icon-only" title="${isSaved ? "Remover dos salvos" : "Salvar edital"}" onclick="toggleLicitacaoSaved('${item.id}')"><i data-lucide="${isSaved ? "bookmark-check" : "bookmark"}"></i></button>
+          <button class="btn btn-secondary btn-icon-only" title="Enviar por email" onclick="shareLicitacao('${item.id}', 'email')"><i data-lucide="mail"></i></button>
+          <button class="btn btn-secondary btn-icon-only" title="Enviar por WhatsApp" onclick="shareLicitacao('${item.id}', 'whatsapp')"><i data-lucide="message-circle"></i></button>
+          <button class="btn btn-primary" onclick="openLicitacaoDetails('${item.id}')"><i data-lucide="external-link"></i> Ver edital</button>
+        </div>
+      </article>
+    `;
+  }).join("") : `<div class="empty-state"><i data-lucide="search-x"></i><strong>Nenhum edital encontrado</strong><span>Ajuste os filtros ou busque por outra palavra-chave.</span></div>`;
+  lucide.createIcons();
+  updateDashboardKPIs();
+}
+
+window.toggleLicitacaoSaved = function(id) {
+  const saved = getSavedLicitacoes();
+  const next = saved.includes(id) ? saved.filter(item => item !== id) : [...saved, id];
+  setSavedLicitacoes(next);
+  renderLicitacoes();
+};
+
+window.shareLicitacao = function(id, channel) {
+  const item = LICITACOES_MOCK.find(licitacao => licitacao.id === id);
+  if (!item) return;
+  const message = `${item.titulo} - ${item.orgao} (${item.cidade}/${item.estado}). Valor estimado: ${formatBRL(item.valor)}. Encerramento: ${formatDateBR(item.encerramento)}.`;
+  if (channel === "whatsapp") {
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+  } else {
+    window.location.href = `mailto:?subject=${encodeURIComponent("Edital de licitação - " + item.id)}&body=${encodeURIComponent(message)}`;
+  }
+};
+
+window.openLicitacaoDetails = function(id) {
+  const item = LICITACOES_MOCK.find(licitacao => licitacao.id === id);
+  if (!item) return;
+  openModal("Detalhes do edital", `
+    <div class="licitacao-detail">
+      <span class="badge ${item.status === "Urgente" ? "badge-danger" : "badge-success"}">${item.status}</span>
+      <h3>${item.titulo}</h3>
+      <p>${item.orgao}</p>
+      <div class="detail-grid">
+        <div><span>Modalidade</span><strong>${item.modalidade}</strong></div>
+        <div><span>Local</span><strong>${item.cidade}/${item.estado}</strong></div>
+        <div><span>Categoria</span><strong>${item.categoria}</strong></div>
+        <div><span>Valor estimado</span><strong>${formatBRL(item.valor)}</strong></div>
+        <div><span>Encerramento</span><strong>${formatDateBR(item.encerramento)}</strong></div>
+        <div><span>PNCP</span><strong>${item.id}</strong></div>
+      </div>
+      <button class="btn btn-primary" onclick="toggleLicitacaoSaved('${item.id}')"><i data-lucide="bookmark"></i> Salvar oportunidade</button>
+    </div>
+  `);
+  lucide.createIcons();
+};
+
+function createLicitaAlert() {
+  const input = document.getElementById("alert-keyword");
+  const keyword = input?.value.trim();
+  if (!keyword) {
+    alert("Informe uma palavra-chave para criar o alerta.");
+    return;
+  }
+  const channel = document.querySelector("[data-alert-channel].active")?.dataset.alertChannel || "Email";
+  const alerts = getLicitaAlerts();
+  alerts.unshift({ keyword, channel, createdAt: new Date().toISOString() });
+  setLicitaAlerts(alerts.slice(0, 6));
+  input.value = "";
+  renderSavedAlerts();
+  updateDashboardKPIs();
+}
+
+function renderSavedAlerts() {
+  const container = document.getElementById("saved-alerts");
+  if (!container) return;
+  const alerts = getLicitaAlerts();
+  container.innerHTML = alerts.length ? alerts.map(alertItem => `
+    <div class="saved-alert">
+      <i data-lucide="${alertItem.channel === "WhatsApp" ? "message-circle" : "mail"}"></i>
+      <div><strong>${alertItem.keyword}</strong><span>${alertItem.channel}</span></div>
+    </div>
+  `).join("") : `<div class="saved-alert muted">Nenhum alerta criado ainda.</div>`;
+  lucide.createIcons();
 }
 
 function renderDashboardNotifications() {

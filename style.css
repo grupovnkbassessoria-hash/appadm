@@ -1175,3 +1175,358 @@ tr:hover td {
 
 /* Faturamento table actions spacing */
 #table-faturamento-body td:last-child { white-space: nowrap; }
+
+/* ============================================================
+   DOC FINANCA / LICITA FACIL EXPERIENCE
+   ============================================================ */
+:root {
+  --bg-primary: #f8f6f4;
+  --bg-secondary: #ffffff;
+  --bg-sidebar: #ffffff;
+  --surface-primary: #ffffff;
+  --surface-secondary: #f1eeea;
+  --border-color: #e9e6e0;
+  --border-hover: #ff8e5d;
+  --text-primary: #1b1c1e;
+  --text-secondary: #5d5d5d;
+  --text-muted: #8e8780;
+  --color-primary: #ff6a00;
+  --color-primary-rgb: 255, 106, 0;
+  --color-secondary: #3950e6;
+  --gradient-primary: linear-gradient(135deg, #ff773c 0%, #ff570e 100%);
+  --gradient-accent: linear-gradient(135deg, #3950e6 0%, #3b51e5 100%);
+  --gradient-card: #ffffff;
+  --shadow-md: 0 10px 20px rgba(15, 14, 14, 0.05), 0 0 4px rgba(15, 14, 14, 0.05);
+  --shadow-lg: 0 20px 30px rgba(15, 14, 14, 0.1), 0 0 4px rgba(15, 14, 14, 0.08);
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 18px;
+}
+
+body {
+  background: var(--bg-primary);
+}
+
+.brand-logo {
+  background: var(--gradient-primary);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(255, 106, 0, 0.22);
+}
+
+.brand-name {
+  background: none;
+  -webkit-text-fill-color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.nav-item.active {
+  background: #fff5ef;
+  color: var(--color-primary);
+  border-color: #ffd0b8;
+  box-shadow: none;
+}
+
+header {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px);
+}
+
+.page-title {
+  letter-spacing: 0;
+}
+
+.panel,
+.card-kpi,
+.search-bar,
+.form-input,
+.form-select,
+.form-textarea,
+.tab-btn {
+  box-shadow: none;
+}
+
+.btn-primary {
+  background: #1b1c1e;
+  color: #fff;
+  box-shadow: none;
+}
+
+.btn-primary:hover {
+  background: #312d2a;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  border-color: var(--border-color);
+}
+
+.login-container {
+  background: linear-gradient(135deg, #f8f6f4 0%, #fff5ef 58%, #ffe8db 100%);
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(233, 230, 224, 0.9);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(49, 45, 42, 0.14);
+}
+
+.licita-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.78fr);
+  gap: 2rem;
+  align-items: stretch;
+  background: linear-gradient(135deg, #fff5ef 0%, #ffffff 58%, #f1f4ff 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 22px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.8rem;
+}
+
+.licita-hero h2 {
+  max-width: 780px;
+  font-size: clamp(2rem, 4vw, 3.7rem);
+  line-height: 1.02;
+  letter-spacing: 0;
+  margin-bottom: 1rem;
+}
+
+.licita-hero p {
+  max-width: 680px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.licita-search-panel {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.licita-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 54px;
+  padding: 0 1rem;
+  background: #f8f6f4;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.licita-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.licita-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.75rem;
+}
+
+.panel-hint {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.licitacoes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.licitacao-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.licitacao-topline,
+.licitacao-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.licitacao-card h3 {
+  font-size: 1.02rem;
+  line-height: 1.35;
+  margin: 0.55rem 0 0.35rem;
+}
+
+.licitacao-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.licitacao-meta strong {
+  color: var(--color-secondary);
+  font-size: 1rem;
+}
+
+.licitacao-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.alert-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alert-builder label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.channel-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.channel-row .active {
+  background: #fff5ef;
+  border-color: #ffaf85;
+  color: var(--color-primary);
+}
+
+.saved-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.saved-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem;
+  background: #f8f6f4;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.saved-alert strong,
+.saved-alert span {
+  display: block;
+}
+
+.saved-alert span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.saved-alert.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+  border-radius: 14px;
+}
+
+.empty-state svg {
+  width: 34px;
+  height: 34px;
+}
+
+.licitacao-detail h3 {
+  margin: 1rem 0 0.5rem;
+}
+
+.licitacao-detail p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.detail-grid div {
+  background: var(--surface-secondary);
+  border-radius: 10px;
+  padding: 0.8rem;
+}
+
+.detail-grid span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 1100px) {
+  .licita-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .licita-hero {
+    padding: 1.25rem;
+  }
+  .licita-filters,
+  .licitacao-card,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .licitacao-actions {
+    justify-content: stretch;
+  }
+  .licitacao-actions .btn {
+    flex: 1;
+  }
+}
