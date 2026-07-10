@@ -184,7 +184,7 @@ function initRouter() {
   const subtitleEl = document.getElementById("current-view-subtitle");
 
   const viewInfo = {
-    dashboard: { title: "Dashboard Geral", sub: "Painel administrativo de controle de operações integradas" },
+    dashboard: { title: "Licitações", sub: "Consulta avançada ao Portal Nacional de Contratações Públicas" },
     comercial: { title: "Gestão Comercial", sub: "Propostas comerciais, pedidos ativos e contratos ativos" },
     cadastro: { title: "Base de Cadastros", sub: "Controle central de clientes, fornecedores, pessoal, frotas e itens de portfólio" },
     fiscal: { title: "Faturamento & Fiscal", sub: "Emissão de notas fiscais oficiais de produtos/serviços e relatórios de contabilidade" },
@@ -286,15 +286,17 @@ function updateDashboardKPIs() {
 }
 
 const LICITACOES_MOCK = [
-  { id: "PNCP-001", titulo: "Contratação de serviços de manutenção predial preventiva e corretiva", orgao: "Prefeitura Municipal de Campinas", estado: "SP", cidade: "Campinas", categoria: "Serviços", valor: 485000, encerramento: "2026-07-16", modalidade: "Pregão Eletrônico", status: "Aberta", palavras: "manutenção predial serviços engenharia" },
-  { id: "PNCP-002", titulo: "Aquisição de equipamentos de informática para unidades administrativas", orgao: "Secretaria de Administração", estado: "RJ", cidade: "Rio de Janeiro", categoria: "Tecnologia", valor: 730000, encerramento: "2026-07-22", modalidade: "Concorrência", status: "Aberta", palavras: "computadores notebooks tecnologia ti" },
-  { id: "PNCP-003", titulo: "Registro de preços para fornecimento de medicamentos e insumos hospitalares", orgao: "Consórcio Intermunicipal de Saúde", estado: "MG", cidade: "Belo Horizonte", categoria: "Saúde", valor: 1250000, encerramento: "2026-07-14", modalidade: "Pregão Eletrônico", status: "Urgente", palavras: "medicamentos saúde hospitalar insumos" },
-  { id: "PNCP-004", titulo: "Execução de obra de drenagem urbana e pavimentação asfáltica", orgao: "Departamento de Obras Públicas", estado: "PR", cidade: "Curitiba", categoria: "Obras", valor: 3420000, encerramento: "2026-08-02", modalidade: "Concorrência", status: "Aberta", palavras: "obra drenagem pavimentação engenharia" },
-  { id: "PNCP-005", titulo: "Serviços terceirizados de limpeza, conservação e apoio operacional", orgao: "Universidade Federal", estado: "SP", cidade: "São Paulo", categoria: "Serviços", valor: 890000, encerramento: "2026-07-18", modalidade: "Pregão Eletrônico", status: "Aberta", palavras: "limpeza conservação terceirização" }
+  { id: "PNCP-001", titulo: "Contratação de serviços de manutenção predial preventiva e corretiva", orgao: "Prefeitura Municipal de Campinas", estado: "SP", cidade: "Campinas", categoria: "Serviços", valor: 485000, encerramento: "2026-07-16", modalidade: "Pregão Eletrônico", status: "Aberta", cnpj: "46.068.425/0001-33", unidade: "Secretaria Municipal de Administração", palavras: "manutenção predial serviços engenharia" },
+  { id: "PNCP-002", titulo: "Aquisição de equipamentos de informática para unidades administrativas", orgao: "Secretaria de Administração", estado: "RJ", cidade: "Rio de Janeiro", categoria: "Tecnologia", valor: 730000, encerramento: "2026-07-22", modalidade: "Concorrência", status: "Aberta", cnpj: "42.498.733/0001-48", unidade: "Coordenadoria de Tecnologia", palavras: "computadores notebooks tecnologia ti" },
+  { id: "PNCP-003", titulo: "Registro de preços para fornecimento de medicamentos e insumos hospitalares", orgao: "Consórcio Intermunicipal de Saúde", estado: "MG", cidade: "Belo Horizonte", categoria: "Saúde", valor: 1250000, encerramento: "2026-07-14", modalidade: "Pregão Eletrônico", status: "Urgente", cnpj: "18.715.383/0001-40", unidade: "Diretoria de Compras Hospitalares", palavras: "medicamentos saúde hospitalar insumos" },
+  { id: "PNCP-004", titulo: "Execução de obra de drenagem urbana e pavimentação asfáltica", orgao: "Departamento de Obras Públicas", estado: "PR", cidade: "Curitiba", categoria: "Obras", valor: 3420000, encerramento: "2026-08-02", modalidade: "Concorrência", status: "Aberta", cnpj: "76.417.005/0001-86", unidade: "Departamento de Infraestrutura", palavras: "obra drenagem pavimentação engenharia" },
+  { id: "PNCP-005", titulo: "Serviços terceirizados de limpeza, conservação e apoio operacional", orgao: "Universidade Federal", estado: "SP", cidade: "São Paulo", categoria: "Serviços", valor: 890000, encerramento: "2026-07-18", modalidade: "Pregão Eletrônico", status: "Aberta", cnpj: "63.025.530/0001-04", unidade: "Campus Capital", palavras: "limpeza conservação terceirização" },
+  { id: "PNCP-006", titulo: "Dispensa para contratação emergencial de manutenção de frota leve", orgao: "Defesa Civil Municipal", estado: "RJ", cidade: "Niterói", categoria: "Serviços", valor: 96000, encerramento: "2026-07-12", modalidade: "Dispensa", status: "Urgente", cnpj: "28.521.748/0001-59", unidade: "Setor de Transportes", palavras: "dispensa frota manutenção veículos" }
 ];
 
 const LICITA_SAVED_KEY = "doc_financa_licitacoes_salvas";
 const LICITA_ALERTS_KEY = "doc_financa_alertas";
+const LICITA_SEARCHES_KEY = "doc_financa_buscas_salvas";
 
 function daysUntil(dateValue) {
   const today = new Date("2026-07-10T00:00:00");
@@ -318,8 +320,16 @@ function setLicitaAlerts(alerts) {
   localStorage.setItem(LICITA_ALERTS_KEY, JSON.stringify(alerts));
 }
 
+function getSavedSearches() {
+  return JSON.parse(localStorage.getItem(LICITA_SEARCHES_KEY) || "[]");
+}
+
+function setSavedSearches(searches) {
+  localStorage.setItem(LICITA_SEARCHES_KEY, JSON.stringify(searches));
+}
+
 function initLicitacoes() {
-  ["licitacao-search", "licitacao-estado", "licitacao-categoria"].forEach(id => {
+  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min"].forEach(id => {
     const field = document.getElementById(id);
     if (field && field.dataset.bound !== "true") {
       field.dataset.bound = "true";
@@ -332,6 +342,18 @@ function initLicitacoes() {
   if (filterBtn && filterBtn.dataset.bound !== "true") {
     filterBtn.dataset.bound = "true";
     filterBtn.addEventListener("click", renderLicitacoes);
+  }
+
+  const saveSearchBtn = document.getElementById("btn-salvar-busca");
+  if (saveSearchBtn && saveSearchBtn.dataset.bound !== "true") {
+    saveSearchBtn.dataset.bound = "true";
+    saveSearchBtn.addEventListener("click", saveCurrentLicitacaoSearch);
+  }
+
+  const clearBtn = document.getElementById("btn-limpar-filtros");
+  if (clearBtn && clearBtn.dataset.bound !== "true") {
+    clearBtn.dataset.bound = "true";
+    clearBtn.addEventListener("click", clearLicitacaoFilters);
   }
 
   document.querySelectorAll("[data-alert-channel]").forEach(btn => {
@@ -356,11 +378,17 @@ function renderLicitacoes() {
   const text = (document.getElementById("licitacao-search")?.value || "").toLowerCase().trim();
   const estado = document.getElementById("licitacao-estado")?.value || "";
   const categoria = document.getElementById("licitacao-categoria")?.value || "";
+  const modalidade = document.getElementById("licitacao-modalidade")?.value || "";
+  const valorMin = Number(document.getElementById("licitacao-valor-min")?.value || 0);
   const saved = getSavedLicitacoes();
 
   const filtered = LICITACOES_MOCK.filter(item => {
-    const searchable = `${item.titulo} ${item.orgao} ${item.cidade} ${item.estado} ${item.categoria} ${item.palavras}`.toLowerCase();
-    return (!text || searchable.includes(text)) && (!estado || item.estado === estado) && (!categoria || item.categoria === categoria);
+    const searchable = `${item.titulo} ${item.orgao} ${item.cidade} ${item.estado} ${item.categoria} ${item.modalidade} ${item.cnpj} ${item.unidade} ${item.palavras}`.toLowerCase();
+    return (!text || searchable.includes(text)) &&
+      (!estado || item.estado === estado) &&
+      (!categoria || item.categoria === categoria) &&
+      (!modalidade || item.modalidade === modalidade) &&
+      (!valorMin || item.valor >= valorMin);
   });
 
   const count = document.getElementById("licitacao-count");
@@ -378,11 +406,12 @@ function renderLicitacoes() {
             <span>${item.cidade}/${item.estado}</span>
           </div>
           <h3>${item.titulo}</h3>
-          <p>${item.orgao}</p>
+          <p>${item.orgao} • ${item.unidade}</p>
           <div class="licitacao-meta">
             <strong>${formatBRL(item.valor)}</strong>
             <span>${item.categoria}</span>
             <span>Encerra em ${prazo} dias</span>
+            <span>CNPJ ${item.cnpj}</span>
           </div>
         </div>
         <div class="licitacao-actions">
@@ -404,6 +433,31 @@ window.toggleLicitacaoSaved = function(id) {
   setSavedLicitacoes(next);
   renderLicitacoes();
 };
+
+function saveCurrentLicitacaoSearch() {
+  const search = {
+    termo: document.getElementById("licitacao-search")?.value || "",
+    estado: document.getElementById("licitacao-estado")?.value || "",
+    categoria: document.getElementById("licitacao-categoria")?.value || "",
+    modalidade: document.getElementById("licitacao-modalidade")?.value || "",
+    valorMin: document.getElementById("licitacao-valor-min")?.value || "",
+    createdAt: new Date().toISOString()
+  };
+  const labelParts = [search.termo || "Busca PNCP", search.estado, search.categoria, search.modalidade].filter(Boolean);
+  const searches = getSavedSearches();
+  searches.unshift({ ...search, title: labelParts.join(" • ") });
+  setSavedSearches(searches.slice(0, 8));
+  alert("Busca salva com sucesso.");
+  renderSavedAlerts();
+}
+
+function clearLicitacaoFilters() {
+  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min"].forEach(id => {
+    const field = document.getElementById(id);
+    if (field) field.value = "";
+  });
+  renderLicitacoes();
+}
 
 window.shareLicitacao = function(id, channel) {
   const item = LICITACOES_MOCK.find(licitacao => licitacao.id === id);
@@ -431,6 +485,8 @@ window.openLicitacaoDetails = function(id) {
         <div><span>Valor estimado</span><strong>${formatBRL(item.valor)}</strong></div>
         <div><span>Encerramento</span><strong>${formatDateBR(item.encerramento)}</strong></div>
         <div><span>PNCP</span><strong>${item.id}</strong></div>
+        <div><span>CNPJ</span><strong>${item.cnpj}</strong></div>
+        <div><span>Unidade</span><strong>${item.unidade}</strong></div>
       </div>
       <button class="btn btn-primary" onclick="toggleLicitacaoSaved('${item.id}')"><i data-lucide="bookmark"></i> Salvar oportunidade</button>
     </div>
@@ -458,14 +514,38 @@ function renderSavedAlerts() {
   const container = document.getElementById("saved-alerts");
   if (!container) return;
   const alerts = getLicitaAlerts();
-  container.innerHTML = alerts.length ? alerts.map(alertItem => `
+  const searches = getSavedSearches();
+  const alertsHtml = alerts.length ? alerts.map(alertItem => `
     <div class="saved-alert">
       <i data-lucide="${alertItem.channel === "WhatsApp" ? "message-circle" : "mail"}"></i>
       <div><strong>${alertItem.keyword}</strong><span>${alertItem.channel}</span></div>
     </div>
   `).join("") : `<div class="saved-alert muted">Nenhum alerta criado ainda.</div>`;
+  const searchesHtml = searches.length ? searches.map(search => `
+    <button class="saved-alert saved-search" type="button" onclick="applySavedLicitacaoSearch('${encodeURIComponent(JSON.stringify(search))}')">
+      <i data-lucide="bookmark"></i>
+      <div><strong>${search.title}</strong><span>Busca salva</span></div>
+    </button>
+  `).join("") : "";
+  container.innerHTML = alertsHtml + searchesHtml;
   lucide.createIcons();
 }
+
+window.applySavedLicitacaoSearch = function(encodedSearch) {
+  const search = JSON.parse(decodeURIComponent(encodedSearch));
+  const fields = {
+    "licitacao-search": search.termo,
+    "licitacao-estado": search.estado,
+    "licitacao-categoria": search.categoria,
+    "licitacao-modalidade": search.modalidade,
+    "licitacao-valor-min": search.valorMin
+  };
+  Object.entries(fields).forEach(([id, value]) => {
+    const field = document.getElementById(id);
+    if (field) field.value = value || "";
+  });
+  renderLicitacoes();
+};
 
 function renderDashboardNotifications() {
   const container = document.getElementById("dashboard-notifications");

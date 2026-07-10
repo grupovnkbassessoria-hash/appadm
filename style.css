@@ -1186,15 +1186,15 @@ tr:hover td {
   --surface-primary: #ffffff;
   --surface-secondary: #f1eeea;
   --border-color: #e9e6e0;
-  --border-hover: #ff8e5d;
+  --border-hover: #2563eb;
   --text-primary: #1b1c1e;
   --text-secondary: #5d5d5d;
   --text-muted: #8e8780;
-  --color-primary: #ff6a00;
-  --color-primary-rgb: 255, 106, 0;
-  --color-secondary: #3950e6;
-  --gradient-primary: linear-gradient(135deg, #ff773c 0%, #ff570e 100%);
-  --gradient-accent: linear-gradient(135deg, #3950e6 0%, #3b51e5 100%);
+  --color-primary: #2563eb;
+  --color-primary-rgb: 37, 99, 235;
+  --color-secondary: #0891b2;
+  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --gradient-accent: linear-gradient(135deg, #0891b2 0%, #2563eb 100%);
   --gradient-card: #ffffff;
   --shadow-md: 0 10px 20px rgba(15, 14, 14, 0.05), 0 0 4px rgba(15, 14, 14, 0.05);
   --shadow-lg: 0 20px 30px rgba(15, 14, 14, 0.1), 0 0 4px rgba(15, 14, 14, 0.08);
@@ -1210,7 +1210,7 @@ body {
 .brand-logo {
   background: var(--gradient-primary);
   border-radius: 14px;
-  box-shadow: 0 8px 22px rgba(255, 106, 0, 0.22);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.22);
 }
 
 .brand-name {
@@ -1220,9 +1220,9 @@ body {
 }
 
 .nav-item.active {
-  background: #fff5ef;
+  background: #eff6ff;
   color: var(--color-primary);
-  border-color: #ffd0b8;
+  border-color: #bfdbfe;
   box-shadow: none;
 }
 
@@ -1261,7 +1261,7 @@ header {
 }
 
 .login-container {
-  background: linear-gradient(135deg, #f8f6f4 0%, #fff5ef 58%, #ffe8db 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 58%, #dbeafe 100%);
 }
 
 .login-card {
@@ -1276,7 +1276,7 @@ header {
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.78fr);
   gap: 2rem;
   align-items: stretch;
-  background: linear-gradient(135deg, #fff5ef 0%, #ffffff 58%, #f1f4ff 100%);
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 54%, #ecfeff 100%);
   border: 1px solid var(--border-color);
   border-radius: 22px;
   padding: 2rem;
@@ -1308,6 +1308,31 @@ header {
   color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.7;
+}
+
+.licita-feature-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+}
+
+.licita-feature-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #1e40af;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.licita-feature-strip svg {
+  width: 16px;
+  height: 16px;
 }
 
 .licita-search-panel {
@@ -1342,8 +1367,44 @@ header {
 
 .licita-filters {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr 0.85fr auto;
   gap: 0.75rem;
+}
+
+.licita-quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.licita-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.licita-stats-row div {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+}
+
+.licita-stats-row strong {
+  color: var(--color-primary);
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.licita-stats-row span {
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 .panel-hint {
@@ -1423,8 +1484,8 @@ header {
 }
 
 .channel-row .active {
-  background: #fff5ef;
-  border-color: #ffaf85;
+  background: #eff6ff;
+  border-color: #93c5fd;
   color: var(--color-primary);
 }
 
@@ -1443,6 +1504,17 @@ header {
   background: #f8f6f4;
   border: 1px solid var(--border-color);
   border-radius: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.saved-search {
+  cursor: pointer;
+}
+
+.saved-search:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
 }
 
 .saved-alert strong,
@@ -1519,6 +1591,8 @@ header {
     padding: 1.25rem;
   }
   .licita-filters,
+  .licita-quick-actions,
+  .licita-stats-row,
   .licitacao-card,
   .detail-grid {
     grid-template-columns: 1fr;

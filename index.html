@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOC Finança - Licita Fácil</title>
+  <title>DOC Finança - Licitações 360</title>
   <link rel="stylesheet" href="style.css">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -19,8 +19,8 @@
         <div class="brand-logo" style="margin: 0 auto 1.5rem; width: 48px; height: 48px;">
           <i data-lucide="landmark"></i>
         </div>
-        <h2>DOC Finança</h2>
-        <p>Acesse oportunidades de licitação e acompanhe seus alertas</p>
+        <h2>DOC Finança 360</h2>
+        <p>Consulta e monitoramento de licitações públicas do PNCP</p>
       </div>
       <form id="login-form">
         <div class="form-group">
@@ -50,7 +50,7 @@
         <div class="brand-logo">
           <i data-lucide="landmark"></i>
         </div>
-        <span class="brand-name">DOC Finança</span>
+        <span class="brand-name">DOC Finança 360</span>
       </div>
 
       <nav>
@@ -125,13 +125,13 @@
       <header>
         <div class="page-title-container">
           <h1 class="page-title" id="current-view-title">Licitações</h1>
-          <span class="page-subtitle" id="current-view-subtitle">Busque editais do PNCP, acompanhe oportunidades e envie alertas</span>
+          <span class="page-subtitle" id="current-view-subtitle">Consulta avançada ao Portal Nacional de Contratações Públicas</span>
         </div>
 
         <div class="header-actions">
           <div class="search-bar">
             <i data-lucide="search"></i>
-            <input type="text" placeholder="Buscar edital, órgão, cidade ou palavra-chave..." id="global-search">
+            <input type="text" placeholder="Buscar no PNCP por órgão, objeto, CNPJ ou palavra-chave..." id="global-search">
           </div>
           <button class="header-btn" id="btn-notifications" title="Notificações">
             <i data-lucide="bell"></i>
@@ -147,14 +147,19 @@
         <div class="view-content active" id="view-dashboard">
           <section class="licita-hero">
             <div>
-              <span class="eyebrow">PNCP em tempo real</span>
-              <h2>Encontre editais de licitação com facilidade</h2>
-              <p>Busque por localização, categoria ou palavra-chave, salve oportunidades e compartilhe editais por email ou WhatsApp.</p>
+              <span class="eyebrow">Portal Nacional de Contratações Públicas</span>
+              <h2>Encontre e ganhe mais licitações</h2>
+              <p>Sistema completo para consulta e busca avançada de licitações públicas, pregões e contratos governamentais do PNCP. Use filtros, palavras-chave, raio geográfico e salve suas buscas favoritas.</p>
+              <div class="licita-feature-strip">
+                <span><i data-lucide="database"></i> Dados oficiais PNCP</span>
+                <span><i data-lucide="map-pin"></i> Busca geográfica</span>
+                <span><i data-lucide="key-round"></i> Palavras-chave</span>
+              </div>
             </div>
             <div class="licita-search-panel">
               <div class="licita-search">
                 <i data-lucide="search"></i>
-                <input id="licitacao-search" type="text" placeholder="Ex.: merenda escolar, obras, limpeza, tecnologia">
+                <input id="licitacao-search" type="text" placeholder="Ex.: pregão eletrônico, merenda escolar, obras, limpeza">
               </div>
               <div class="licita-filters">
                 <select id="licitacao-estado" class="form-select">
@@ -171,10 +176,26 @@
                   <option value="Saúde">Saúde</option>
                   <option value="Tecnologia">Tecnologia</option>
                 </select>
+                <select id="licitacao-modalidade" class="form-select">
+                  <option value="">Todas as modalidades</option>
+                  <option value="Pregão Eletrônico">Pregão Eletrônico</option>
+                  <option value="Concorrência">Concorrência</option>
+                  <option value="Dispensa">Dispensa</option>
+                </select>
+                <input id="licitacao-valor-min" class="form-input" type="number" min="0" step="1000" placeholder="Valor mínimo">
                 <button class="btn btn-primary" id="btn-buscar-licitacoes"><i data-lucide="sliders-horizontal"></i> Filtrar</button>
+              </div>
+              <div class="licita-quick-actions">
+                <button class="btn btn-secondary" type="button" id="btn-salvar-busca"><i data-lucide="bookmark-plus"></i> Salvar busca</button>
+                <button class="btn btn-secondary" type="button" id="btn-limpar-filtros"><i data-lucide="rotate-ccw"></i> Limpar filtros</button>
               </div>
             </div>
           </section>
+          <div class="licita-stats-row">
+            <div><strong>1000+</strong><span>Licitações monitoradas</span></div>
+            <div><strong>24/7</strong><span>Monitoramento contínuo</span></div>
+            <div><strong>100%</strong><span>Integração PNCP</span></div>
+          </div>
           <div class="grid-kpis">
             <div class="card-kpi">
               <div class="kpi-icon primary">
