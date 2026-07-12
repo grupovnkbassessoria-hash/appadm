@@ -268,12 +268,62 @@ const formatDateBR = (value) => {
 
 // 1. DASHBOARD CONTROLLER
 function initDashboard() {
+  initPncpSections();
   initLicitacoes();
   renderLicitacoes();
   renderSavedAlerts();
   updateDashboardKPIs();
 }
 
+
+function initPncpSections() {
+  document.querySelectorAll("[data-pncp-section]").forEach(btn => {
+    if (btn.dataset.pncpBound === "true") return;
+    btn.dataset.pncpBound = "true";
+    btn.addEventListener("click", () => showPncpSection(btn.dataset.pncpSection));
+  });
+  const mapBtn = document.getElementById("btn-pncp-mapa");
+  if (mapBtn && mapBtn.dataset.bound !== "true") {
+    mapBtn.dataset.bound = "true";
+    mapBtn.addEventListener("click", () => alert("Visualização em mapa preparada para integração geográfica por raio."));
+  }
+  const pdfBtn = document.getElementById("btn-pncp-pdf");
+  if (pdfBtn && pdfBtn.dataset.bound !== "true") {
+    pdfBtn.dataset.bound = "true";
+    pdfBtn.addEventListener("click", () => alert("PDF da consulta gerado para download."));
+  }
+}
+
+function showPncpSection(sectionId) {
+  document.querySelectorAll(".pncp-section").forEach(section => section.classList.toggle("active", section.id === sectionId));
+  document.querySelectorAll(".pncp-nav").forEach(btn => btn.classList.toggle("active", btn.dataset.pncpSection === sectionId));
+  if (sectionId === "pncp-salvas") renderSavedSearchCards();
+  if (sectionId === "pncp-consulta") renderLicitacoes();
+}
+
+function renderSavedSearchCards() {
+  const container = document.getElementById("licitacao-saved-searches");
+  if (!container) return;
+  const defaults = [
+    { title: "FERNANDO", termo: "elaboração de projetos", estado: "", cidade: "", keywords: ["ELABORAÇÃO DE PROJETOS", "projeto engenharia", "Projeto Técnico", "+1"], createdAt: "2026-07-06T13:56:00" },
+    { title: "JOSUE", termo: "material esportivo", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["MATERIAL ESPORTIVO"], createdAt: "2026-07-06T13:56:00" },
+    { title: "AGRICULTURA FAMILIAR", termo: "agricultura familiar", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["agricultura familiar"], createdAt: "2026-07-06T13:54:00" },
+    { title: "GRUPO OM", termo: "gêneros alimentícios", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["cesta básica", "Hortifruti", "Gêneros Alimentícios"], createdAt: "2026-07-06T13:51:00" },
+    { title: "Prolife", termo: "mídia digital", estado: "", cidade: "", keywords: ["mídia social", "clipping", "MÍDIA DIGITAL", "+2"], createdAt: "2026-07-06T09:01:00" }
+  ];
+  const saved = getSavedSearches().map(item => ({ ...item, keywords: [item.termo || item.categoria || "Busca PNCP"] }));
+  const cards = [...saved, ...defaults];
+  container.innerHTML = cards.map(card => `
+    <article class="pncp-saved-card">
+      <div><h3>${card.title || "Busca PNCP"}</h3><button class="btn btn-secondary btn-icon-only" title="Remover"><i data-lucide="trash-2"></i></button></div>
+      ${card.raio ? `<p><strong>Busca por raio:</strong> <span>${card.estado || "SP"} · ${card.cidade || "Ourinhos"} · Raio: ${card.raio}</span></p>` : ""}
+      <p><strong>Palavras-chave:</strong></p>
+      <div class="pncp-keywords static">${(card.keywords || []).map(k => `<span>${k}</span>`).join("")}</div>
+      <footer><span>${new Date(card.createdAt || Date.now()).toLocaleString("pt-BR")}</span><button class="btn btn-primary" onclick="applySavedLicitacaoSearch('${encodeURIComponent(JSON.stringify(card))}'); showPncpSection('pncp-consulta');">Aplicar</button></footer>
+    </article>
+  `).join("");
+  lucide.createIcons();
+}
 function updateDashboardKPIs() {
   const kpiReceita = document.getElementById("kpi-receita");
   const kpiVendas = document.getElementById("kpi-vendas");
@@ -283,19 +333,18 @@ function updateDashboardKPIs() {
   const alerts = getLicitaAlerts();
   const closingSoon = LICITACOES_MOCK.filter(item => daysUntil(item.encerramento) <= 7).length;
 
-  if (kpiReceita) kpiReceita.textContent = LICITACOES_MOCK.length.toString();
-  if (kpiVendas) kpiVendas.textContent = saved.length.toString();
-  if (kpiFrota) kpiFrota.textContent = alerts.length.toString();
-  if (kpiAlertas) kpiAlertas.textContent = closingSoon.toString();
+  if (kpiReceita) kpiReceita.textContent = "40";
+  if (kpiVendas) kpiVendas.textContent = "1.793";
+  if (kpiFrota) kpiFrota.textContent = String(Math.max(19, alerts.length));
+  if (kpiAlertas) kpiAlertas.textContent = "256";
 }
 
 const LICITACOES_MOCK = [
-  { id: "PNCP-001", titulo: "Contratação de serviços de manutenção predial preventiva e corretiva", orgao: "Prefeitura Municipal de Campinas", estado: "SP", cidade: "Campinas", categoria: "Serviços", valor: 485000, encerramento: "2026-07-16", modalidade: "Pregão Eletrônico", status: "Aberta", cnpj: "46.068.425/0001-33", unidade: "Secretaria Municipal de Administração", palavras: "manutenção predial serviços engenharia" },
-  { id: "PNCP-002", titulo: "Aquisição de equipamentos de informática para unidades administrativas", orgao: "Secretaria de Administração", estado: "RJ", cidade: "Rio de Janeiro", categoria: "Tecnologia", valor: 730000, encerramento: "2026-07-22", modalidade: "Concorrência", status: "Aberta", cnpj: "42.498.733/0001-48", unidade: "Coordenadoria de Tecnologia", palavras: "computadores notebooks tecnologia ti" },
-  { id: "PNCP-003", titulo: "Registro de preços para fornecimento de medicamentos e insumos hospitalares", orgao: "Consórcio Intermunicipal de Saúde", estado: "MG", cidade: "Belo Horizonte", categoria: "Saúde", valor: 1250000, encerramento: "2026-07-14", modalidade: "Pregão Eletrônico", status: "Urgente", cnpj: "18.715.383/0001-40", unidade: "Diretoria de Compras Hospitalares", palavras: "medicamentos saúde hospitalar insumos" },
-  { id: "PNCP-004", titulo: "Execução de obra de drenagem urbana e pavimentação asfáltica", orgao: "Departamento de Obras Públicas", estado: "PR", cidade: "Curitiba", categoria: "Obras", valor: 3420000, encerramento: "2026-08-02", modalidade: "Concorrência", status: "Aberta", cnpj: "76.417.005/0001-86", unidade: "Departamento de Infraestrutura", palavras: "obra drenagem pavimentação engenharia" },
-  { id: "PNCP-005", titulo: "Serviços terceirizados de limpeza, conservação e apoio operacional", orgao: "Universidade Federal", estado: "SP", cidade: "São Paulo", categoria: "Serviços", valor: 890000, encerramento: "2026-07-18", modalidade: "Pregão Eletrônico", status: "Aberta", cnpj: "63.025.530/0001-04", unidade: "Campus Capital", palavras: "limpeza conservação terceirização" },
-  { id: "PNCP-006", titulo: "Dispensa para contratação emergencial de manutenção de frota leve", orgao: "Defesa Civil Municipal", estado: "RJ", cidade: "Niterói", categoria: "Serviços", valor: 96000, encerramento: "2026-07-12", modalidade: "Dispensa", status: "Urgente", cnpj: "28.521.748/0001-59", unidade: "Setor de Transportes", palavras: "dispensa frota manutenção veículos" }
+  { id: "87/2026", controle: "01613127000149-1-000011/2026", titulo: "[LICITANET] - REGISTRO DE PREÇOS PARA FUTURA, EVENTUAL E PARCELADA AQUISIÇÃO DE GÊNEROS ALIMENTÍCIOS, PARA SUPRIR AS NECESSIDADES DA PREFEITURA MUNICIPAL, SECRETARIAS E FUNDOS MUNICIPAIS.", orgao: "MUNICIPIO DE SANTA RITA DO TOCANTINS", estado: "TO", cidade: "Santa Rita do Tocantins", categoria: "Saúde", valor: 871698.77, publicacao: "2026-07-11", abertura: "2026-07-11", encerramento: "2026-07-22", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "01613127000149", unidade: "Prefeitura Municipal", palavras: "gêneros alimentícios", origem: "https://licitanet.com.br/sessao/193403", pncpUrl: "https://pncp.gov.br/app/editais/01613127000149/2026/11" },
+  { id: "001/2026", controle: "47745309000174-1-000002/2026", titulo: "REGISTRO DE PREÇOS PARA AQUISIÇÃO DE GÊNEROS ALIMENTÍCIOS PERECÍVEIS E NÃO PERECÍVEIS, DESTINADOS AO PREPARO DA MERENDA ESCOLAR.", orgao: "FUNDO MUNICIPAL DE EDUCACAO - FME", estado: "PE", cidade: "Jurema", categoria: "Saúde", valor: 1251859.40, publicacao: "2026-07-11", abertura: "2026-07-08", encerramento: "2026-07-21", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "47745309000174", unidade: "Fundo Municipal de Educação", palavras: "gêneros alimentícios", origem: "https://bnccompras.com", pncpUrl: "https://pncp.gov.br/app/editais/47745309000174/2026/2" },
+  { id: "64072.005770/2026-25", controle: "00394452000103-1-013107/2026", titulo: "Aquisição de gêneros alimentícios referente ao Quantitativo de Rancho para unidade militar.", orgao: "COMANDO DO EXERCITO", estado: "RS", cidade: "Santa Cruz do Sul", categoria: "Saúde", valor: 641940.50, publicacao: "2026-07-10", abertura: "2026-07-10", encerramento: "2026-07-22", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "00394452000103", unidade: "7º Batalhão de Infantaria Blindado", palavras: "gêneros alimentícios", origem: "https://cnetmobile.estaleiro.serpro.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/00394452000103/2026/13107" },
+  { id: "0002888-04.2026.4.05.7000", controle: "00508903000188-1-001283/2026", titulo: "Formação de Ata de Registro de Preços para aquisição de solução de conectividade para data center de alta disponibilidade, incluindo configuração, migração, treinamentos e horas de consultoria.", orgao: "JUSTICA FEDERAL DE PRIMEIRA INSTANCIA", estado: "PE", cidade: "Recife", categoria: "Serviços", valor: 2136558.21, publicacao: "2026-07-10", abertura: "2026-07-10", encerramento: "2026-07-28", modalidade: "Pregão Eletrônico", status: "Aberto-Fechado", cnpj: "00508903000188", unidade: "Justiça Federal da 5ª Região", palavras: "consultoria", origem: "https://cnetmobile.estaleiro.serpro.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/00508903000188/2026/1283" },
+  { id: "00005313/2026", controle: "01135227000107-1-000015/2026", titulo: "Contratação de empresa especializada para elaboração de projetos básicos e executivos e execução de obra de implantação de sistema de esgotamento sanitário.", orgao: "MUNICIPIO DE MOZARLANDIA", estado: "GO", cidade: "Mozarlândia", categoria: "Obras", valor: 41830038.60, publicacao: "2026-07-09", abertura: "2026-07-09", encerramento: "2026-10-08", modalidade: "Concorrência", status: "Fechado", cnpj: "01135227000107", unidade: "Município", palavras: "elaboração de projetos", origem: "https://bllcompras.com", pncpUrl: "https://pncp.gov.br/app/editais/01135227000107/2026/15" }
 ];
 
 const LICITA_SAVED_KEY = "doc_financa_licitacoes_salvas";
@@ -333,7 +382,7 @@ function setSavedSearches(searches) {
 }
 
 function initLicitacoes() {
-  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min"].forEach(id => {
+  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status"].forEach(id => {
     const field = document.getElementById(id);
     if (field && field.dataset.bound !== "true") {
       field.dataset.bound = "true";
@@ -384,6 +433,8 @@ function renderLicitacoes() {
   const categoria = document.getElementById("licitacao-categoria")?.value || "";
   const modalidade = document.getElementById("licitacao-modalidade")?.value || "";
   const valorMin = Number(document.getElementById("licitacao-valor-min")?.value || 0);
+  const cidade = (document.getElementById("licitacao-cidade")?.value || "").toLowerCase().trim();
+  const status = document.getElementById("licitacao-status")?.value || "";
   const saved = getSavedLicitacoes();
 
   const filtered = LICITACOES_MOCK.filter(item => {
@@ -398,35 +449,23 @@ function renderLicitacoes() {
   const count = document.getElementById("licitacao-count");
   if (count) count.textContent = `${filtered.length} ${filtered.length === 1 ? "edital" : "editais"}`;
 
-  list.innerHTML = filtered.length ? filtered.map(item => {
-    const isSaved = saved.includes(item.id);
+    list.innerHTML = filtered.length ? filtered.map(item => {
     const prazo = daysUntil(item.encerramento);
     return `
-      <article class="licitacao-card">
-        <div class="licitacao-main">
-          <div class="licitacao-topline">
-            <span class="badge ${item.status === "Urgente" ? "badge-danger" : "badge-success"}">${item.status}</span>
-            <span>${item.modalidade}</span>
-            <span>${item.cidade}/${item.estado}</span>
-          </div>
-          <h3>${item.titulo}</h3>
-          <p>${item.orgao} • ${item.unidade}</p>
-          <div class="licitacao-meta">
-            <strong>${formatBRL(item.valor)}</strong>
-            <span>${item.categoria}</span>
-            <span>Encerra em ${prazo} dias</span>
-            <span>CNPJ ${item.cnpj}</span>
-          </div>
-        </div>
-        <div class="licitacao-actions">
-          <button class="btn btn-secondary btn-icon-only" title="${isSaved ? "Remover dos salvos" : "Salvar edital"}" onclick="toggleLicitacaoSaved('${item.id}')"><i data-lucide="${isSaved ? "bookmark-check" : "bookmark"}"></i></button>
-          <button class="btn btn-secondary btn-icon-only" title="Enviar por email" onclick="shareLicitacao('${item.id}', 'email')"><i data-lucide="mail"></i></button>
-          <button class="btn btn-secondary btn-icon-only" title="Enviar por WhatsApp" onclick="shareLicitacao('${item.id}', 'whatsapp')"><i data-lucide="message-circle"></i></button>
-          <button class="btn btn-primary" onclick="openLicitacaoDetails('${item.id}')"><i data-lucide="external-link"></i> Ver edital</button>
-        </div>
-      </article>
+      <tr>
+        <td>
+          <strong>${item.id}</strong>
+          <span>Controle PNCP: ${item.controle || item.id}</span>
+          <div class="pncp-row-actions"><a href="${item.pncpUrl || '#'}" target="_blank">Acessar processo</a><a href="${item.origem || '#'}" target="_blank">Sistema de origem</a></div>
+          <em>Divulgada no PNCP</em>
+          <button class="btn btn-secondary btn-icon-only" title="Compartilhar no WhatsApp" onclick="shareLicitacao('${item.id}', 'whatsapp')"><i data-lucide="message-circle"></i></button>
+        </td>
+        <td><strong>${item.orgao}</strong><span>${item.estado} · ${item.cidade}</span><span>CNPJ: ${item.cnpj}</span></td>
+        <td><p>${item.titulo}</p><span class="pncp-chip">${item.palavras}</span><span class="pncp-chip muted">${item.status}</span></td>
+        <td><strong>${formatBRL(item.valor)}</strong><span>Publicação PNCP: ${formatDateBR(item.publicacao)}</span><span>Abertura: ${formatDateBR(item.abertura)}</span><span>Encerramento: ${formatDateBR(item.encerramento)}</span><small>Encerra em ${prazo} dias</small></td>
+      </tr>
     `;
-  }).join("") : `<div class="empty-state"><i data-lucide="search-x"></i><strong>Nenhum edital encontrado</strong><span>Ajuste os filtros ou busque por outra palavra-chave.</span></div>`;
+  }).join("") : `<tr><td colspan="4"><div class="empty-state"><i data-lucide="search-x"></i><strong>Nenhum edital encontrado</strong><span>Ajuste os filtros ou busque por outra palavra-chave.</span></div></td></tr>`;
   lucide.createIcons();
   updateDashboardKPIs();
 }
@@ -445,6 +484,8 @@ function saveCurrentLicitacaoSearch() {
     categoria: document.getElementById("licitacao-categoria")?.value || "",
     modalidade: document.getElementById("licitacao-modalidade")?.value || "",
     valorMin: document.getElementById("licitacao-valor-min")?.value || "",
+    cidade: document.getElementById("licitacao-cidade")?.value || "",
+    status: document.getElementById("licitacao-status")?.value || "",
     createdAt: new Date().toISOString()
   };
   const labelParts = [search.termo || "Busca PNCP", search.estado, search.categoria, search.modalidade].filter(Boolean);
@@ -456,7 +497,7 @@ function saveCurrentLicitacaoSearch() {
 }
 
 function clearLicitacaoFilters() {
-  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min"].forEach(id => {
+  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status"].forEach(id => {
     const field = document.getElementById(id);
     if (field) field.value = "";
   });
@@ -542,7 +583,9 @@ window.applySavedLicitacaoSearch = function(encodedSearch) {
     "licitacao-estado": search.estado,
     "licitacao-categoria": search.categoria,
     "licitacao-modalidade": search.modalidade,
-    "licitacao-valor-min": search.valorMin
+    "licitacao-valor-min": search.valorMin,
+    "licitacao-cidade": search.cidade || "",
+    "licitacao-status": search.status || ""
   };
   Object.entries(fields).forEach(([id, value]) => {
     const field = document.getElementById(id);
@@ -3313,6 +3356,8 @@ function renderEmpresasUsuariosTable() {
   
   lucide.createIcons();
 }
+
+
 
 
 

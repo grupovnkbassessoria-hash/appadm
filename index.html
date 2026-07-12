@@ -146,130 +146,68 @@
 
       <!-- Dynamic Views Container -->
       <div class="view-container">
-
         <!-- 1. DASHBOARD VIEW -->
         <div class="view-content active" id="view-dashboard">
-          <section class="licita-hero">
-            <div>
-              <span class="eyebrow">Portal Nacional de Contratações Públicas</span>
-              <h2>Encontre e ganhe mais licitações</h2>
-              <p>Sistema completo para consulta e busca avançada de licitações públicas, pregões e contratos governamentais do PNCP. Use filtros, palavras-chave, raio geográfico e salve suas buscas favoritas.</p>
-              <div class="licita-feature-strip">
-                <span><i data-lucide="database"></i> Dados oficiais PNCP</span>
-                <span><i data-lucide="map-pin"></i> Busca geográfica</span>
-                <span><i data-lucide="key-round"></i> Palavras-chave</span>
+          <section class="pncp-shell">
+            <aside class="pncp-sidebar">
+              <div class="pncp-brand-mini">
+                <i data-lucide="radar"></i>
+                <div><strong>Licitações 360</strong><span>licitacoes360.com.br</span></div>
               </div>
-            </div>
-            <div class="licita-search-panel">
-              <div class="licita-search">
-                <i data-lucide="search"></i>
-                <input id="licitacao-search" type="text" placeholder="Ex.: pregão eletrônico, merenda escolar, obras, limpeza">
-              </div>
-              <div class="licita-filters">
-                <select id="licitacao-estado" class="form-select">
-                  <option value="">Todos os estados</option>
-                  <option value="SP">SP</option>
-                  <option value="RJ">RJ</option>
-                  <option value="MG">MG</option>
-                  <option value="PR">PR</option>
-                </select>
-                <select id="licitacao-categoria" class="form-select">
-                  <option value="">Todas as categorias</option>
-                  <option value="Serviços">Serviços</option>
-                  <option value="Obras">Obras</option>
-                  <option value="Saúde">Saúde</option>
-                  <option value="Tecnologia">Tecnologia</option>
-                </select>
-                <select id="licitacao-modalidade" class="form-select">
-                  <option value="">Todas as modalidades</option>
-                  <option value="Pregão Eletrônico">Pregão Eletrônico</option>
-                  <option value="Concorrência">Concorrência</option>
-                  <option value="Dispensa">Dispensa</option>
-                </select>
-                <input id="licitacao-valor-min" class="form-input" type="number" min="0" step="1000" placeholder="Valor mínimo">
-                <button class="btn btn-primary" id="btn-buscar-licitacoes"><i data-lucide="sliders-horizontal"></i> Filtrar</button>
-              </div>
-              <div class="licita-quick-actions">
-                <button class="btn btn-secondary" type="button" id="btn-salvar-busca"><i data-lucide="bookmark-plus"></i> Salvar busca</button>
-                <button class="btn btn-secondary" type="button" id="btn-limpar-filtros"><i data-lucide="rotate-ccw"></i> Limpar filtros</button>
-              </div>
+              <button class="pncp-nav active" type="button" data-pncp-section="pncp-home"><i data-lucide="home"></i> Início</button>
+              <button class="pncp-nav" type="button" data-pncp-section="pncp-consulta"><i data-lucide="search"></i> Nova Consulta PNCP</button>
+              <button class="pncp-nav" type="button" data-pncp-section="pncp-salvas"><i data-lucide="bookmark"></i> Buscas Salvas</button>
+            </aside>
+
+            <div class="pncp-main">
+              <section class="pncp-section active" id="pncp-home">
+                <div class="pncp-page-head">
+                  <div>
+                    <h2>Bem-vindo ao Licitações 360</h2>
+                    <p>Visão geral das suas consultas de licitações</p>
+                  </div>
+                  <button class="btn btn-primary" type="button" data-pncp-section="pncp-consulta"><i data-lucide="plus"></i> Nova Consulta</button>
+                </div>
+                <div class="pncp-metrics">
+                  <div><span>Total de Consultas</span><strong id="kpi-receita">0</strong><em>Consultas realizadas</em></div>
+                  <div><span>Palavras-Chave</span><strong id="kpi-frota">0</strong><em>Palavras cadastradas</em></div>
+                  <div><span>Últimos 7 Dias</span><strong id="kpi-vendas">0</strong><em>Licitações encontradas</em></div>
+                  <div><span>Média Diária</span><strong id="kpi-alertas">0</strong><em>Licitações por dia</em></div>
+                </div>
+                <div class="pncp-quick-grid">
+                  <button type="button" data-pncp-section="pncp-consulta"><i data-lucide="search"></i><strong>Realizar Consulta</strong><span>Acesse a seção PNCP para consultar o portal</span></button>
+                  <button type="button" data-pncp-section="pncp-consulta"><i data-lucide="sliders-horizontal"></i><strong>Filtros Avançados</strong><span>Utilize filtros para refinar suas buscas</span></button>
+                  <button type="button" data-pncp-section="pncp-salvas"><i data-lucide="key-round"></i><strong>Palavras-Chave</strong><span>Gerencie palavras-chave e consultas favoritas</span></button>
+                </div>
+              </section>
+
+              <section class="pncp-section" id="pncp-consulta">
+                <div class="pncp-page-head">
+                  <div><h2>Consulta PNCP</h2><p>Portal Nacional de Contratações Públicas</p></div>
+                  <div class="pncp-head-actions"><button class="btn btn-secondary" id="btn-limpar-filtros"><i data-lucide="rotate-ccw"></i> Limpar</button><button class="btn btn-primary" id="btn-buscar-licitacoes"><i data-lucide="search"></i> Buscar</button></div>
+                </div>
+                <div class="pncp-layout">
+                  <div class="pncp-filter-panel">
+                    <details open><summary><i data-lucide="key-round"></i> Palavras-chave</summary><div class="pncp-filter-body"><div class="pncp-keyword-entry"><input class="form-input" id="alert-keyword" placeholder="Nova palavra-chave"><button class="btn btn-secondary btn-icon-only" id="btn-criar-alerta"><i data-lucide="plus"></i></button></div><div class="pncp-keywords" id="saved-alerts"></div><select class="form-select" id="licitacao-categoria"><option value="">Selecione as palavras-chave para a busca</option><option value="Serviços">CONSULTORIA / ASSESSORIA</option><option value="Obras">ELABORAÇÃO DE PROJETOS</option><option value="Saúde">Gêneros Alimentícios</option><option value="Tecnologia">MÍDIA DIGITAL</option></select></div></details>
+                    <details open><summary><i data-lucide="filter"></i> Filtros Básicos</summary><div class="pncp-filter-body"><label>Órgão</label><input id="licitacao-search" class="form-input" placeholder="Ex: Ministério da Educação"><label>Modalidade</label><select id="licitacao-modalidade" class="form-select"><option value="">Selecione</option><option value="Pregão Eletrônico">Pregão Eletrônico</option><option value="Concorrência">Concorrência</option><option value="Dispensa">Dispensa</option></select></div></details>
+                    <details><summary><i data-lucide="map-pin"></i> Filtros de Localização</summary><div class="pncp-filter-body"><label>Estado</label><select id="licitacao-estado" class="form-select"><option value="">Todos os estados</option><option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option><option value="PR">PR</option><option value="TO">TO</option><option value="PE">PE</option><option value="RS">RS</option><option value="GO">GO</option></select><label>Cidade / Município</label><input id="licitacao-cidade" class="form-input" placeholder="Ex: Ourinhos"><label>Raio</label><select id="licitacao-raio" class="form-select"><option>Sem raio</option><option>50 km</option><option>100 km</option><option>200 km</option></select></div></details>
+                    <details><summary><i data-lucide="sliders-horizontal"></i> Filtros Avançados</summary><div class="pncp-filter-body"><label>Valor mínimo</label><input id="licitacao-valor-min" class="form-input" type="number" min="0" step="1000" placeholder="Valor mínimo"><label>Situação</label><select id="licitacao-status" class="form-select"><option value="">Todas</option><option value="Aberto">Aberto</option><option value="Fechado">Fechado</option><option value="Aberto-Fechado">Aberto-Fechado</option></select></div></details>
+                    <button class="btn btn-secondary" type="button" id="btn-salvar-busca"><i data-lucide="bookmark-plus"></i> Salvar busca</button>
+                  </div>
+                  <div class="pncp-results-panel">
+                    <div class="pncp-view-tools"><div><button class="btn btn-primary active" type="button"><i data-lucide="table-2"></i> Tabela</button><button class="btn btn-secondary" type="button" id="btn-pncp-mapa"><i data-lucide="map"></i> Mapa</button></div><button class="btn btn-secondary" type="button" id="btn-pncp-pdf"><i data-lucide="file-down"></i> Baixar PDF</button></div>
+                    <div class="pncp-results-title"><h3>Resultados da Consulta</h3><span id="licitacao-count">0 resultados</span><span>Página 1 de 17</span></div>
+                    <div class="table-wrapper"><table class="pncp-table"><thead><tr><th>Processo & Status</th><th>Órgão & Unidade</th><th>Objeto & Palavras-chave</th><th>Valores & Datas</th></tr></thead><tbody id="licitacoes-list"></tbody></table></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="pncp-section" id="pncp-salvas">
+                <div class="pncp-page-head"><div><h2>Buscas Salvas</h2><p>Acesse rapidamente suas consultas favoritas</p></div><button class="btn btn-primary" data-pncp-section="pncp-consulta"><i data-lucide="plus"></i> Nova Consulta</button></div>
+                <div class="pncp-saved-grid" id="licitacao-saved-searches"></div>
+              </section>
             </div>
           </section>
-          <div class="licita-stats-row">
-            <div><strong>1000+</strong><span>Licitações monitoradas</span></div>
-            <div><strong>24/7</strong><span>Monitoramento contínuo</span></div>
-            <div><strong>100%</strong><span>Integração PNCP</span></div>
-          </div>
-          <div class="grid-kpis">
-            <div class="card-kpi">
-              <div class="kpi-icon primary">
-                <i data-lucide="dollar-sign"></i>
-              </div>
-              <div class="kpi-details">
-                <span class="kpi-title">Oportunidades abertas</span>
-                <span class="kpi-value" id="kpi-receita">128</span>
-                <span class="kpi-trend up"><i data-lucide="trending-up"></i> +18 novas hoje</span>
-              </div>
-            </div>
-            <div class="card-kpi">
-              <div class="kpi-icon success">
-                <i data-lucide="shopping-bag"></i>
-              </div>
-              <div class="kpi-details">
-                <span class="kpi-title">Editais salvos</span>
-                <span class="kpi-value" id="kpi-vendas">24</span>
-                <span class="kpi-trend up"><i data-lucide="bookmark"></i> Para análise</span>
-              </div>
-            </div>
-            <div class="card-kpi">
-              <div class="kpi-icon warning">
-                <i data-lucide="truck"></i>
-              </div>
-              <div class="kpi-details">
-                <span class="kpi-title">Alertas ativos</span>
-                <span class="kpi-value" id="kpi-frota">9</span>
-                <span class="kpi-trend up"><i data-lucide="bell"></i> WhatsApp e email</span>
-              </div>
-            </div>
-            <div class="card-kpi">
-              <div class="kpi-icon danger">
-                <i data-lucide="alert-triangle"></i>
-              </div>
-              <div class="kpi-details">
-                <span class="kpi-title">Encerram em 7 dias</span>
-                <span class="kpi-value" id="kpi-alertas">12</span>
-                <span class="kpi-trend down" style="color: var(--color-danger);">Prioridade alta</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="section-grid">
-            <div class="panel">
-              <div class="panel-header">
-                <h3 class="panel-title"><i data-lucide="list-filter"></i> Oportunidades encontradas</h3>
-                <span class="panel-hint" id="licitacao-count">0 editais</span>
-              </div>
-              <div class="licitacoes-list" id="licitacoes-list">
-              </div>
-            </div>
-
-            <div class="panel">
-              <div class="panel-header">
-                <h3 class="panel-title"><i data-lucide="bell-ring"></i> Alertas e categorias</h3>
-              </div>
-              <div class="alert-builder">
-                <label>Palavra-chave</label>
-                <input class="form-input" id="alert-keyword" placeholder="Ex.: manutenção predial">
-                <label>Receber por</label>
-                <div class="channel-row">
-                  <button class="btn btn-secondary active" type="button" data-alert-channel="Email"><i data-lucide="mail"></i> Email</button>
-                  <button class="btn btn-secondary" type="button" data-alert-channel="WhatsApp"><i data-lucide="message-circle"></i> WhatsApp</button>
-                </div>
-                <button class="btn btn-primary" id="btn-criar-alerta"><i data-lucide="plus"></i> Criar alerta</button>
-                <div class="saved-alerts" id="saved-alerts"></div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 2. COMERCIAL VIEW -->
@@ -1516,5 +1454,6 @@
 
 </body>
 </html>
+
 
 
