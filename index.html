@@ -98,6 +98,10 @@
             <i data-lucide="archive"></i>
             <span>Estoque</span>
           </a>
+          <a class="nav-item" data-view="relatorios">
+            <i data-lucide="bar-chart-3"></i>
+            <span>Relatórios</span>
+          </a>
 
           <a class="nav-item" data-view="administrativo">
             <i data-lucide="folder-open"></i>
@@ -270,14 +274,10 @@
 
         <!-- 2. COMERCIAL VIEW -->
         <div class="view-content" id="view-comercial">
-          <div class="tab-headers">
-            <button class="tab-btn active" data-tab="tab-orcamentos">Orçamentos</button>
-            <button class="tab-btn" data-tab="tab-pedidos">Pedidos</button>
-            <button class="tab-btn" data-tab="tab-contratos">Contratos</button>
-          </div>
+          <div class="tab-headers hidden"><button class="tab-btn active" data-tab="tab-contratos">Contratos</button></div>
 
           <!-- Orçamentos Sub-tab -->
-          <div class="tab-content active" id="tab-orcamentos">
+          <div class="tab-content hidden" id="tab-orcamentos">
             <div class="section-grid">
               <div class="panel">
                 <div class="panel-header">
@@ -338,7 +338,7 @@
           </div>
 
           <!-- Pedidos Sub-tab -->
-          <div class="tab-content" id="tab-pedidos">
+          <div class="tab-content hidden" id="tab-pedidos">
             <div class="panel">
               <div class="panel-header">
                 <h3 class="panel-title">Pedidos em Tempo Real</h3>
@@ -364,7 +364,7 @@
           </div>
 
           <!-- Contratos Sub-tab -->
-          <div class="tab-content" id="tab-contratos">
+          <div class="tab-content active" id="tab-contratos">
             
             <!-- Novo Contrato Form Panel -->
             <div class="panel hidden" id="panel-form-contrato-comercial" style="margin-bottom: 2rem;">
@@ -547,10 +547,13 @@
           <div class="tab-content" id="tab-produtos">
             <div class="panel">
               <div class="panel-header">
-                <h3 class="panel-title">Catálogo de Produtos e Serviços</h3>
+                <h3 class="panel-title">Listagem de Produtos e Serviços</h3>
               </div>
-              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;" id="catalog-produtos-grid">
-                <!-- Javascript dynamic cards -->
+                            <div class="table-wrapper">
+                <table>
+                  <thead><tr><th>Código</th><th>Produto / Serviço</th><th>Categoria</th><th>Preço Venda</th><th>Custo Médio</th><th>Estoque</th><th>Validade</th><th>Ações</th></tr></thead>
+                  <tbody id="catalog-produtos-grid"></tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -996,8 +999,11 @@
                     <button type="button" class="btn btn-secondary" id="btn-cancelar-fluxo"><i data-lucide="x"></i> Cancelar</button>
                   </div>
                 </form>
-                <div class="chart-container">
-                  <canvas id="finance-forecast-chart"></canvas>
+                                <div class="table-wrapper forecast-table-wrapper">
+                  <table>
+                    <thead><tr><th>Mês</th><th>Receitas Projetadas</th><th>Despesas Fixas</th><th>Resultado</th><th>Saldo Acumulado</th><th>Cenário</th></tr></thead>
+                    <tbody id="finance-forecast-table-body"></tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1200,7 +1206,7 @@
           <div class="tab-content active" id="tab-frota-doc">
             <div class="panel">
               <div class="panel-header">
-                <h3 class="panel-title">Status Legal dos Veículos</h3>
+                <h3 class="panel-title">Status Legal dos Veículos</h3><button class="btn btn-primary" data-frota-new="documentacao"><i data-lucide="plus"></i> Novo Lançamento</button>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -1224,7 +1230,7 @@
           <div class="tab-content" id="tab-frota-manutencao">
             <div class="panel">
               <div class="panel-header">
-                <h3 class="panel-title">Agendamento de Serviços e Revisões</h3>
+                <h3 class="panel-title">Agendamento de Serviços e Revisões</h3><button class="btn btn-primary" data-frota-new="manutencao"><i data-lucide="plus"></i> Novo Lançamento</button>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -1250,7 +1256,7 @@
             <div class="section-grid">
               <div class="panel">
                 <div class="panel-header">
-                  <h3 class="panel-title">Lançar Consumo</h3>
+                  <h3 class="panel-title">Lançar Consumo</h3><button class="btn btn-primary" data-frota-new="abastecimento"><i data-lucide="plus"></i> Novo Lançamento</button>
                 </div>
                 <form id="form-frota-abastecimento" class="form-row" style="grid-template-columns: 1fr; gap: 1rem;">
                   <div class="form-group">
@@ -1305,7 +1311,7 @@
           <div class="tab-content" id="tab-frota-multas">
             <div class="panel">
               <div class="panel-header">
-                <h3 class="panel-title">Infrações e Multas</h3>
+                <h3 class="panel-title">Infrações e Multas</h3><button class="btn btn-primary" data-frota-new="multa"><i data-lucide="plus"></i> Novo Lançamento</button>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -1421,7 +1427,26 @@
           </div>
         </div>
 
-        <!-- 9. ADMINISTRATIVO VIEW -->
+        <!-- 9. RELATÓRIOS VIEW -->
+        <div class="view-content" id="view-relatorios">
+          <div class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title"><i data-lucide="bar-chart-3"></i> Relatórios Gerais do App</h3>
+              <button class="btn btn-secondary" id="btn-atualizar-relatorios"><i data-lucide="refresh-cw"></i> Atualizar</button>
+            </div>
+            <div class="report-kpi-grid" id="relatorios-kpis"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">Informações Consolidadas</h3></div>
+            <div class="table-wrapper"><table><thead><tr><th>Módulo</th><th>Informação</th><th>Quantidade</th><th>Valor / Status</th></tr></thead><tbody id="relatorios-table-body"></tbody></table></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">Detalhamento por Área</h3></div>
+            <div class="reports-sections" id="relatorios-detalhes"></div>
+          </div>
+        </div>
+
+        <!-- 10. ADMINISTRATIVO VIEW -->
         <div class="view-content" id="view-administrativo">
           <div class="tab-headers">
             <button class="tab-btn active" data-tab="tab-adm-docs">Documentos Oficiais & Licenças</button>
@@ -1491,3 +1516,5 @@
 
 </body>
 </html>
+
+

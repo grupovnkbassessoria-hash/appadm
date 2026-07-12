@@ -67,6 +67,7 @@ function bootApp() {
   initFrota();
   initEstoque();
   initAdministrativo();
+  initRelatorios();
   initModal();
   lucide.createIcons();
 
@@ -192,7 +193,8 @@ function initRouter() {
     rh: { title: "Recursos Humanos (RH)", sub: "Quadros funcionais, contratos corporativos e emissão de holerites" },
     frota: { title: "Gestão de Frotas", sub: "Controle de despesas, manutenção, documentações obrigatórias e consumo" },
     estoque: { title: "Estoque & Logística", sub: "Balanço físico, custos e prazos de validade de insumos" },
-    administrativo: { title: "Área Administrativa", sub: "Arquivos corporativos, alvarás reguladores e relatórios consolidados" }
+    administrativo: { title: "Área Administrativa", sub: "Arquivos corporativos, alvarás reguladores e relatórios consolidados" },
+    relatorios: { title: "Relatórios", sub: "Visão consolidada de todas as informações do app" }
   };
 
   navItems.forEach(item => {
@@ -213,7 +215,9 @@ function initRouter() {
         renderSavedAlerts();
         updateDashboardKPIs();
       } else if (viewId === 'financeiro') {
-        renderForecastChart();
+        renderForecastTable();
+      } else if (viewId === 'relatorios') {
+        renderRelatorios();
       }
     });
   });
@@ -1685,7 +1689,8 @@ function setupProductManagement() {
       '<button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Salvar Cadastro</button>' +
       '<button type="button" class="btn btn-secondary" id="btn-cancelar-produto"><i data-lucide="x"></i> Cancelar</button>' +
       '</div>';
-    grid.parentNode.insertBefore(form, grid);
+    const tableWrapper = grid.closest(".table-wrapper");
+    (tableWrapper?.parentNode || grid.parentNode).insertBefore(form, tableWrapper || grid);
   }
 
   tab.addEventListener("click", function(event) {
@@ -1847,15 +1852,18 @@ function renderCadastroTables() {
   // Produtos e Serviços
   const prodGrid = document.getElementById("catalog-produtos-grid");
   if (prodGrid) {
-    prodGrid.innerHTML = ERP_DATA.cadastro.produtos.map(p =>
-      '<div class="product-list-row">' +
-        '<div><strong>' + p.nome + '</strong><span>' + (p.tipo || 'Produto') + ' • ' + p.categoria + '</span></div>' +
-        '<div><span>Preço</span><strong>' + formatBRL(p.precoVenda) + '</strong></div>' +
-        '<div><span>Estoque</span><strong>' + ((p.tipo === 'Serviço') ? 'Não se aplica' : (p.estoqueAtual + ' unid')) + '</strong></div>' +
-          '<div><span>Validade</span><strong>' + ((p.tipo === 'Serviço') ? 'Não se aplica' : (p.validade ? formatDateBR(p.validade) : 'Sem validade')) + '</strong></div>' +
-        '<button type="button" class="btn btn-secondary btn-icon-only" data-product-action="edit" data-id="' + p.id + '" title="Editar cadastro"><i data-lucide="pencil"></i></button>' +
-      '</div>'
-    ).join('');
+    prodGrid.innerHTML = ERP_DATA.cadastro.produtos.map(p => `
+      <tr>
+        <td><strong>${p.id}</strong></td>
+        <td>${p.nome}</td>
+        <td>${p.categoria}</td>
+        <td>${formatBRL(p.precoVenda)}</td>
+        <td>${p.tipo === "Serviço" ? "Não se aplica" : formatBRL(p.custoMedio)}</td>
+        <td>${p.tipo === "Serviço" ? "Não se aplica" : `${p.estoqueAtual} unid`}</td>
+        <td>${p.tipo === "Serviço" ? "Não se aplica" : (p.validade ? formatDateBR(p.validade) : "Sem validade")}</td>
+        <td><button type="button" class="btn btn-secondary btn-icon-only" data-product-action="edit" data-id="${p.id}" title="Editar cadastro"><i data-lucide="pencil"></i></button></td>
+      </tr>
+    `).join('');
     lucide.createIcons();
   }
 }
@@ -2190,7 +2198,7 @@ function setupFinancialLaunchers() {
     },
     afterSave: (item) => {
       ERP_DATA.financeiro.fluxoCaixa.saldoAtual += (item.receita || 0) - (item.despesa || 0);
-      renderForecastChart();
+      renderForecastTable();
       renderCashFlowChart();
       updateDashboardKPIs();
     }
@@ -2588,64 +2596,37 @@ function crc16Pix(payload) {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
-function renderForecastChart() {
-  const ctx = document.getElementById("finance-forecast-chart");
-  if (!ctx) return;
+function renderForecastChart() { renderForecastTable(); }
 
-  if (forecastChartInstance) {
-    forecastChartInstance.destroy();
-  }
-
-  const cenario = document.getElementById("select-cenario").value;
+function getForecastRows() {
+  const cenario = document.getElementById("select-cenario")?.value || "realista";
   let multiplier = 1.0;
-  if (cenario === 'conservador') multiplier = 0.85;
-  if (cenario === 'otimista') multiplier = 1.2;
-
+  if (cenario === "conservador") multiplier = 0.85;
+  if (cenario === "otimista") multiplier = 1.2;
   const labels = ["Jul/26", "Ago/26", "Set/26", "Out/26", "Nov/26", "Dez/26"];
   const baselineReceitas = [150000, 162000, 158000, 175000, 182000, 210000];
   const despesas = [110000, 115000, 112000, 118000, 120000, 135000];
-
-  const projectedReceitas = baselineReceitas.map(v => v * multiplier);
-
-  const isLight = document.body.classList.contains("light-theme");
-  const textColor = isLight ? '#475569' : '#94a3b8';
-
-  forecastChartInstance = new Chart(ctx.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: `Previsão Receitas (${cenario})`,
-          data: projectedReceitas,
-          borderColor: '#6366f1',
-          backgroundColor: 'rgba(99, 102, 241, 0.1)',
-          fill: true,
-          tension: 0.4
-        },
-        {
-          label: 'Previsão Despesas Fixas',
-          data: despesas,
-          borderColor: '#ef4444',
-          borderDash: [5, 5],
-          tension: 0.1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: textColor } }
-      },
-      scales: {
-        x: { ticks: { color: textColor }, grid: { display: false } },
-        y: { ticks: { color: textColor }, grid: { color: 'rgba(255,255,255,0.05)' } }
-      }
-    }
+  let saldo = ERP_DATA.financeiro.fluxoCaixa.saldoAtual || 0;
+  return labels.map((mes, index) => {
+    const receitas = baselineReceitas[index] * multiplier;
+    const despesasFixas = despesas[index];
+    const resultado = receitas - despesasFixas;
+    saldo += resultado;
+    return { mes, receitas, despesas: despesasFixas, resultado, saldo, cenario };
   });
+}
 
-  document.getElementById("select-cenario").addEventListener("change", renderForecastChart);
+function renderForecastTable() {
+  const body = document.getElementById("finance-forecast-table-body");
+  if (!body) return;
+  body.innerHTML = getForecastRows().map(row => `
+    <tr><td><strong>${row.mes}</strong></td><td>${formatBRL(row.receitas)}</td><td>${formatBRL(row.despesas)}</td><td><span class="badge ${row.resultado >= 0 ? "badge-success" : "badge-danger"}">${formatBRL(row.resultado)}</span></td><td><strong>${formatBRL(row.saldo)}</strong></td><td><span class="badge badge-primary">${row.cenario}</span></td></tr>
+  `).join("");
+  const select = document.getElementById("select-cenario");
+  if (select && select.dataset.forecastBound !== "true") {
+    select.dataset.forecastBound = "true";
+    select.addEventListener("change", renderForecastTable);
+  }
 }
 
 // 6. RECURSOS HUMANOS (RH) CONTROLLER
@@ -2847,6 +2828,7 @@ function renderRHTables() {
 
 // 7. FROTA VEICULAR CONTROLLER
 function initFrota() {
+  bindFrotaLaunchers();
   const selectVeiculo = document.getElementById("aba-veiculo");
   if (selectVeiculo) {
     selectVeiculo.innerHTML = ERP_DATA.cadastro.veiculos.map(v => `<option value="${v.placa}">${v.marca} ${v.modelo} (${v.placa})</option>`).join('');
@@ -2881,6 +2863,41 @@ function initFrota() {
   renderFrotaTables();
 }
 
+
+function bindFrotaLaunchers() {
+  document.querySelectorAll("[data-frota-new]").forEach(btn => {
+    if (btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", () => createFrotaLancamento(btn.dataset.frotaNew));
+  });
+}
+function promptRequired(label, fallback) {
+  const value = prompt(label, fallback || "");
+  return value === null ? "" : value.trim();
+}
+function createFrotaLancamento(kind) {
+  if (kind === "documentacao") {
+    const placa = promptRequired("Placa do veículo:", ERP_DATA.cadastro.veiculos[0]?.placa || "");
+    if (!placa) return;
+    const veiculo = ERP_DATA.cadastro.veiculos.find(v => v.placa === placa) || ERP_DATA.cadastro.veiculos[0];
+    const vencimento = promptRequired("Novo vencimento do licenciamento (AAAA-MM-DD):", new Date().toISOString().split("T")[0]);
+    const status = promptRequired("Situação geral:", "Operacional") || "Operacional";
+    if (veiculo) { veiculo.vencimentoLicenciamento = vencimento || veiculo.vencimentoLicenciamento; veiculo.status = status; saveState(); renderFrotaTables(); alert("Lançamento de documentação registrado!"); }
+    return;
+  }
+  if (kind === "manutencao") {
+    const veiculo = promptRequired("Placa do veículo:", ERP_DATA.cadastro.veiculos[0]?.placa || "");
+    if (!veiculo) return;
+    ERP_DATA.frota.manutencoes.unshift({ id: `MAN-${String(ERP_DATA.frota.manutencoes.length + 1).padStart(3, "0")}`, veiculo, servico: promptRequired("Serviço realizado/agendado:", "Revisão preventiva") || "Revisão preventiva", oficina: promptRequired("Oficina:", "Oficina credenciada") || "Oficina credenciada", data: promptRequired("Data do serviço (AAAA-MM-DD):", new Date().toISOString().split("T")[0]) || new Date().toISOString().split("T")[0], custo: parseFloat(promptRequired("Custo (R$):", "0")) || 0, status: promptRequired("Status:", "Agendado") || "Agendado" });
+  }
+  if (kind === "abastecimento") { const form = document.getElementById("form-frota-abastecimento"); if (form) { form.scrollIntoView({ behavior: "smooth", block: "center" }); return; } }
+  if (kind === "multa") {
+    const veiculo = promptRequired("Placa do veículo:", ERP_DATA.cadastro.veiculos[0]?.placa || "");
+    if (!veiculo) return;
+    ERP_DATA.frota.multas.unshift({ id: `MUL-${String(ERP_DATA.frota.multas.length + 1).padStart(3, "0")}`, veiculo, infracao: promptRequired("Infração:", "Infração de trânsito") || "Infração de trânsito", local: promptRequired("Localidade:", "Não informada") || "Não informada", data: promptRequired("Data (AAAA-MM-DD):", new Date().toISOString().split("T")[0]) || new Date().toISOString().split("T")[0], valor: parseFloat(promptRequired("Valor (R$):", "0")) || 0, status: promptRequired("Status de pagamento:", "Aguardando Pagamento") || "Aguardando Pagamento" });
+  }
+  saveState(); renderFrotaTables(); alert("Novo lançamento registrado!");
+}
 function renderFrotaTables() {
   const docBody = document.getElementById("table-frota-doc-body");
   if (docBody) {
@@ -3146,6 +3163,31 @@ function renderAdministrativoDocs() {
   }
 }
 
+
+// 10. RELATÓRIOS CONTROLLER
+function initRelatorios() {
+  const btn = document.getElementById("btn-atualizar-relatorios");
+  if (btn && btn.dataset.bound !== "true") { btn.dataset.bound = "true"; btn.addEventListener("click", renderRelatorios); }
+  renderRelatorios();
+}
+function sumBy(list, key) { return (list || []).reduce((sum, item) => sum + (Number(item[key]) || 0), 0); }
+function renderRelatorios() {
+  const kpis = document.getElementById("relatorios-kpis");
+  const table = document.getElementById("relatorios-table-body");
+  const details = document.getElementById("relatorios-detalhes");
+  if (!kpis || !table || !details || !ERP_DATA) return;
+  const receitaComercial = sumBy(ERP_DATA.comercial.orcamentos, "total") + sumBy(ERP_DATA.comercial.pedidos, "total");
+  const receber = sumBy(ERP_DATA.financeiro.contasReceber, "valor");
+  const pagar = sumBy(ERP_DATA.financeiro.contasPagar, "valor");
+  const estoque = ERP_DATA.cadastro.produtos.reduce((sum, p) => sum + ((p.estoqueAtual || 0) * (p.custoMedio || 0)), 0);
+  const frotaCusto = sumBy(ERP_DATA.frota.manutencoes, "custo") + sumBy(ERP_DATA.frota.abastecimentos, "valorTotal") + sumBy(ERP_DATA.frota.multas, "valor");
+  kpis.innerHTML = [["Comercial", ERP_DATA.comercial.contratos.length + " contratos", formatBRL(receitaComercial)], ["Financeiro", ERP_DATA.financeiro.contasReceber.length + " a receber", formatBRL(receber - pagar)], ["Cadastros", ERP_DATA.cadastro.clientes.length + " clientes", ERP_DATA.cadastro.produtos.length + " itens"], ["Frota", ERP_DATA.cadastro.veiculos.length + " veículos", formatBRL(frotaCusto)], ["Documentos", ERP_DATA.administrativo.documentos.length + " arquivos", ERP_DATA.fiscal.notasEmitidas.length + " notas"], ["Estoque", ERP_DATA.cadastro.produtos.length + " produtos/serviços", formatBRL(estoque)]].map(item => `<div class="report-kpi"><span>${item[0]}</span><strong>${item[1]}</strong><em>${item[2]}</em></div>`).join("");
+  const rows = [["Comercial", "Orçamentos", ERP_DATA.comercial.orcamentos.length, formatBRL(sumBy(ERP_DATA.comercial.orcamentos, "total"))], ["Comercial", "Pedidos", ERP_DATA.comercial.pedidos.length, formatBRL(sumBy(ERP_DATA.comercial.pedidos, "total"))], ["Comercial", "Contratos", ERP_DATA.comercial.contratos.length, formatBRL(sumBy(ERP_DATA.comercial.contratos, "valorMensal")) + " / mês"], ["Base de Cadastro", "Clientes", ERP_DATA.cadastro.clientes.length, formatBRL(sumBy(ERP_DATA.cadastro.clientes, "totalComprado"))], ["Base de Cadastro", "Fornecedores", ERP_DATA.cadastro.fornecedores.length, "Credenciados"], ["Base de Cadastro", "Colaboradores", ERP_DATA.cadastro.colaboradores.length, formatBRL(sumBy(ERP_DATA.cadastro.colaboradores, "salario")) + " folha base"], ["Fiscal", "Notas emitidas", ERP_DATA.fiscal.notasEmitidas.length, formatBRL(sumBy(ERP_DATA.fiscal.notasEmitidas, "valor"))], ["Financeiro", "Contas a receber", ERP_DATA.financeiro.contasReceber.length, formatBRL(receber)], ["Financeiro", "Contas a pagar", ERP_DATA.financeiro.contasPagar.length, formatBRL(pagar)], ["Frota", "Veículos", ERP_DATA.cadastro.veiculos.length, ERP_DATA.cadastro.veiculos.filter(v => v.status === "Operacional").length + " operacionais"], ["Estoque", "Valor em estoque", ERP_DATA.cadastro.produtos.length, formatBRL(estoque)], ["Administrativo", "Documentos", ERP_DATA.administrativo.documentos.length, ERP_DATA.administrativo.documentos.filter(d => d.status === "Válido").length + " válidos"]];
+  table.innerHTML = rows.map(row => `<tr><td><strong>${row[0]}</strong></td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td></tr>`).join("");
+  const detailGroups = [["Contratos", ERP_DATA.comercial.contratos.map(c => `${c.id} - ${c.titulo} - ${c.parceiro} - ${formatBRL(c.valorMensal)}`)], ["Produtos e Serviços", ERP_DATA.cadastro.produtos.map(p => `${p.id} - ${p.nome} - ${p.categoria} - ${formatBRL(p.precoVenda)}`)], ["Financeiro", [...ERP_DATA.financeiro.contasReceber.map(r => `${r.id} - Receber - ${r.cliente} - ${formatBRL(r.valor)}`), ...ERP_DATA.financeiro.contasPagar.map(p => `${p.id} - Pagar - ${p.fornecedor} - ${formatBRL(p.valor)}`)]], ["Frota", [...ERP_DATA.frota.manutencoes.map(m => `${m.id} - ${m.veiculo} - ${m.servico}`), ...ERP_DATA.frota.multas.map(m => `${m.id} - ${m.veiculo} - ${m.infracao}`)]], ["Documentos e Fiscal", [...ERP_DATA.administrativo.documentos.map(d => `${d.id} - ${d.nome} - ${d.status}`), ...ERP_DATA.fiscal.notasEmitidas.map(n => `${n.id} - ${n.destinatario} - ${formatBRL(n.valor)}`)]]];
+  details.innerHTML = detailGroups.map(group => `<section class="report-section"><h4>${group[0]}</h4>${group[1].length ? `<ul>${group[1].map(item => `<li>${item}</li>`).join("")}</ul>` : `<p>Nenhuma informação cadastrada.</p>`}</section>`).join("");
+  lucide.createIcons();
+}
 // ============================================================
 // MODAL MODULE
 // ============================================================
@@ -3271,3 +3313,9 @@ function renderEmpresasUsuariosTable() {
   
   lucide.createIcons();
 }
+
+
+
+
+
+
