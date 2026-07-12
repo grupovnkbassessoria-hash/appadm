@@ -976,6 +976,13 @@ tr:hover td {
 #tab-pedidos .panel-header .btn {
   margin-left: auto;
 }
+.muted-block {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
 
 /* ============================================================
    LOGIN STYLES

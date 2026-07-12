@@ -700,6 +700,7 @@ const COMMERCIAL_SERVICES_UPGRADE = [
 
 let commercialDraftUpgrade = { orcamento: [], pedido: [] };
 let commercialEditingUpgrade = { orcamento: null, pedido: null };
+let pendingFiscalEmissionId = null;
 
 function initComercial() {
   buildCommercialUpgradeForms();
@@ -1080,9 +1081,9 @@ window.faturarContrato = function(id) {
 };
 
 function commercialActionsHtml(kind, id) {
-  const primaryAction = kind === "orcamento" ? "generate-order" : "generate-invoice";
-  const primaryTitle = kind === "orcamento" ? "Gerar pedido" : "Gerar nota fiscal";
-  const primaryIcon = kind === "orcamento" ? "shopping-bag" : "receipt-text";
+  const primaryAction = kind === "orcamento" ? "generate-order" : "approve-order";
+  const primaryTitle = kind === "orcamento" ? "Transformar em pedido" : "Aprovar e enviar ao Fiscal";
+  const primaryIcon = kind === "orcamento" ? "shopping-bag" : "send";
   return "<div class='commercial-actions'>" +
     "<button type='button' class='btn btn-secondary btn-icon-only' data-commercial-action='" + primaryAction + "' data-kind='" + kind + "' data-id='" + id + "' title='" + primaryTitle + "'><i data-lucide='" + primaryIcon + "'></i></button>" +
     "<button type='button' class='btn btn-secondary btn-icon-only' data-commercial-action='pdf' data-kind='" + kind + "' data-id='" + id + "' title='Gerar PDF'><i data-lucide='file-down'></i></button>" +
@@ -1120,7 +1121,7 @@ function handleCommercialAction(action, kind, id) {
   if (action === "cancel") cancelCommercialRecord(kind, id);
   if (action === "delete") deleteCommercialRecord(kind, id);
   if (action === "generate-order") generateOrderFromBudget(id);
-  if (action === "generate-invoice") generateInvoiceFromOrder(id);
+  if (action === "approve-order") approveOrderForFiscal(id);
 }
 
 function switchCommercialTab(tabId) {
@@ -1189,6 +1190,12 @@ function deleteCommercialRecord(kind, id) {
 function generateOrderFromBudget(id) {
   const orc = getCommercialRecord("orcamento", id);
   if (!orc) return;
+  const existing = ERP_DATA.comercial.pedidos.find(function(ped) { return ped.origem === orc.id; });
+  if (existing) {
+    switchCommercialTab("tab-pedidos");
+    alert("Este orçamento já gerou o pedido " + existing.id + ". Ele está no histórico de pedidos.");
+    return;
+  }
   const newPed = {
     id: nextCommercialUpgradeId("PED", ERP_DATA.comercial.pedidos),
     cliente: orc.cliente,
@@ -1204,28 +1211,34 @@ function generateOrderFromBudget(id) {
   saveState();
   renderComercialTables();
   updateDashboardKPIs();
+  switchCommercialTab("tab-pedidos");
   alert("Pedido " + newPed.id + " gerado a partir do orçamento " + orc.id + ".");
 }
 
-function generateInvoiceFromOrder(id) {
+function approveOrderForFiscal(id) {
   const ped = getCommercialRecord("pedido", id);
   if (!ped) return;
-  const nf = {
+  const existing = ERP_DATA.fiscal.notasEmitidas.find(function(nf) { return nf.origem === ped.id; });
+  if (existing) {
+    alert("Este pedido já está na área fiscal como " + existing.id + ".");
+    return;
+  }
+  const fiscalRecord = {
     id: "NF-" + String(1026 + ERP_DATA.fiscal.notasEmitidas.length).padStart(4, "0"),
     destinatario: ped.cliente,
-    tipo: "NFe",
+    tipo: "NFS-e / NF-e",
     valor: ped.total,
     emissao: new Date().toISOString(),
-    status: "Autorizada (SEFAZ)",
+    status: "Aguardando envio/emissão",
     xmlFile: "NFe" + Date.now() + ".xml",
     origem: ped.id
   };
-  ERP_DATA.fiscal.notasEmitidas.unshift(nf);
-  ped.status = "Preparando";
+  ERP_DATA.fiscal.notasEmitidas.unshift(fiscalRecord);
+  ped.status = "Aprovado - aguardando Fiscal";
   saveState();
   renderComercialTables();
   renderFiscalData();
-  alert("Nota fiscal " + nf.id + " gerada para o pedido " + ped.id + ".");
+  alert("Pedido " + ped.id + " aprovado e enviado para a área Fiscal. Ele ficou aguardando envio/emissão de nota fiscal de serviço ou venda.");
 }
 
 function futureDateIso(days) {
@@ -1936,17 +1949,23 @@ function initFiscal() {
       lucide.createIcons();
 
       setTimeout(() => {
+        const pendingRecord = pendingFiscalEmissionId
+          ? ERP_DATA.fiscal.notasEmitidas.find(nf => nf.id === pendingFiscalEmissionId)
+          : ERP_DATA.fiscal.notasEmitidas.find(nf => nf.destinatario === dest && Number(nf.valor) === val && String(nf.status || "").toLowerCase().includes("aguardando"));
         const newNF = {
-          id: `NF-${1026 + ERP_DATA.fiscal.notasEmitidas.length}`,
+          id: pendingRecord?.id || `NF-${1026 + ERP_DATA.fiscal.notasEmitidas.length}`,
           destinatario: dest,
           tipo: tipo,
           valor: val,
           emissao: new Date().toISOString(),
           status: "Simulada (integração pendente)",
-          xmlFile: `NF352606${Math.floor(1000000000 + Math.random() * 9000000000)}.xml`
+          xmlFile: `NF352606${Math.floor(1000000000 + Math.random() * 9000000000)}.xml`,
+          origem: pendingRecord?.origem
         };
 
-        ERP_DATA.fiscal.notasEmitidas.unshift(newNF);
+        if (pendingRecord) Object.assign(pendingRecord, newNF);
+        else ERP_DATA.fiscal.notasEmitidas.unshift(newNF);
+        pendingFiscalEmissionId = null;
         saveState();
         renderFiscalData();
         form.reset();
@@ -1994,22 +2013,41 @@ function initFiscal() {
 function renderFiscalData() {
   const body = document.getElementById("table-fiscal-body");
   if (body) {
-    body.innerHTML = ERP_DATA.fiscal.notasEmitidas.map(nf => `
-      <tr>
-        <td><strong>${nf.id}</strong></td>
-        <td>${nf.destinatario}</td>
-        <td>${nf.tipo}</td>
-        <td>${formatBRL(nf.valor)}</td>
-        <td><span class="badge badge-success"><i data-lucide="shield-check"></i> ${nf.status}</span></td>
-        <td style="text-align: right; white-space: nowrap;">
-          <button class="btn btn-secondary btn-icon-only" onclick="baixarXML('${nf.id}', '${nf.xmlFile}')" title="Baixar XML"><i data-lucide="code"></i></button>
-          <button class="btn btn-secondary btn-icon-only" onclick="baixarPDFNota('${nf.id}', '${nf.destinatario}', ${nf.valor}, '${nf.tipo}')" title="Visualizar/Imprimir Danfe"><i data-lucide="file-text"></i></button>
-        </td>
-      </tr>
-    `).join('');
+    body.innerHTML = ERP_DATA.fiscal.notasEmitidas.map(nf => {
+      const isPending = String(nf.status || "").toLowerCase().includes("aguardando");
+      const badgeClass = isPending ? "badge-warning" : "badge-success";
+      const badgeIcon = isPending ? "clock" : "shield-check";
+      const actions = isPending
+        ? `<button class="btn btn-primary" onclick="prepararEmissaoFiscal('${nf.id}')" title="Preparar emissão"><i data-lucide="send"></i> Emitir</button>`
+        : `<button class="btn btn-secondary btn-icon-only" onclick="baixarXML('${nf.id}', '${nf.xmlFile}')" title="Baixar XML"><i data-lucide="code"></i></button>
+          <button class="btn btn-secondary btn-icon-only" onclick="baixarPDFNota('${nf.id}', '${nf.destinatario}', ${nf.valor}, '${nf.tipo}')" title="Visualizar/Imprimir Danfe"><i data-lucide="file-text"></i></button>`;
+      return `
+        <tr>
+          <td><strong>${nf.id}</strong>${nf.origem ? `<span class="muted-block">Pedido ${nf.origem}</span>` : ""}</td>
+          <td>${nf.destinatario}</td>
+          <td>${nf.tipo}</td>
+          <td>${formatBRL(nf.valor)}</td>
+          <td><span class="badge ${badgeClass}"><i data-lucide="${badgeIcon}"></i> ${nf.status}</span></td>
+          <td style="text-align: right; white-space: nowrap;">${actions}</td>
+        </tr>
+      `;
+    }).join('');
     lucide.createIcons();
   }
 }
+
+window.prepararEmissaoFiscal = function(id) {
+  const nf = ERP_DATA.fiscal.notasEmitidas.find(item => item.id === id);
+  if (!nf) return;
+  pendingFiscalEmissionId = id;
+  const tipoSelect = document.getElementById("fiscal-tipo");
+  const destinatarioSelect = document.getElementById("fiscal-destinatario");
+  const valorInput = document.getElementById("fiscal-valor");
+  if (tipoSelect) tipoSelect.value = "NFs";
+  if (destinatarioSelect) destinatarioSelect.value = nf.destinatario;
+  if (valorInput) valorInput.value = nf.valor;
+  alert("Dados carregados no formulário fiscal para emissão da nota de " + nf.destinatario + ".");
+};
 
 window.baixarXML = function(id, xmlFilename) {
   const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
