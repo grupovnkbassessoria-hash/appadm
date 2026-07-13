@@ -57,6 +57,7 @@ function bootApp() {
   initRouter();
   initTheme();
   initTabs();
+  initSidebarCollapse();
   initSidebarSession();
   initDashboard();
   initComercial();
@@ -175,6 +176,26 @@ function initSidebarSession() {
   logoutBtn.addEventListener('click', doLogout);
   sidebarFooter.appendChild(logoutBtn);
   lucide.createIcons();
+}
+
+function initSidebarCollapse() {
+  const appLayout = document.getElementById("app-layout");
+  const collapseBtn = document.getElementById("sidebar-collapse");
+  if (!appLayout || !collapseBtn || collapseBtn.dataset.bound === "true") return;
+
+  const setCollapsed = (collapsed) => {
+    appLayout.classList.toggle("sidebar-collapsed", collapsed);
+    collapseBtn.setAttribute("aria-expanded", String(!collapsed));
+    collapseBtn.setAttribute("aria-label", collapsed ? "Expandir menu" : "Recolher menu");
+    collapseBtn.setAttribute("title", collapsed ? "Expandir menu" : "Recolher menu");
+    collapseBtn.innerHTML = `<i data-lucide="${collapsed ? "panel-left-open" : "panel-left-close"}"></i>`;
+    localStorage.setItem("doc_financa_sidebar_collapsed", collapsed ? "true" : "false");
+    lucide.createIcons();
+  };
+
+  collapseBtn.dataset.bound = "true";
+  setCollapsed(localStorage.getItem("doc_financa_sidebar_collapsed") === "true");
+  collapseBtn.addEventListener("click", () => setCollapsed(!appLayout.classList.contains("sidebar-collapsed")));
 }
 
 // Router logic (SPA View switcher)

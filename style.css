@@ -97,14 +97,16 @@ body {
 /* App Layout */
 #app-layout {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 280px 1fr;
   width: 100vw;
   height: 100vh;
   position: relative;
+  transition: grid-template-columns var(--transition-normal);
 }
 
 /* Sidebar Styling */
 aside {
+  position: relative;
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -112,11 +114,7 @@ aside {
   height: 100vh;
   padding: 1.5rem 1rem;
   z-index: 10;
-  transition: background-color var(--transition-normal), border-color var(--transition-normal);
-}
-
-#app-layout > aside {
-  display: none;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), padding var(--transition-normal);
 }
 
 .brand {
@@ -125,6 +123,27 @@ aside {
   gap: 0.75rem;
   padding: 0.5rem 1rem;
   margin-bottom: 2rem;
+}
+
+.sidebar-collapse-btn {
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-collapse-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--color-primary);
 }
 
 .brand-logo {
@@ -205,6 +224,58 @@ nav {
   width: 20px;
   height: 20px;
   stroke-width: 2;
+  flex-shrink: 0;
+}
+
+#app-layout.sidebar-collapsed {
+  grid-template-columns: 84px 1fr;
+}
+
+#app-layout.sidebar-collapsed > aside {
+  padding: 1.5rem 0.75rem;
+}
+
+#app-layout.sidebar-collapsed .brand {
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+#app-layout.sidebar-collapsed .brand-name,
+#app-layout.sidebar-collapsed .nav-section-title,
+#app-layout.sidebar-collapsed .nav-item span,
+#app-layout.sidebar-collapsed .user-info,
+#app-layout.sidebar-collapsed .logout-btn {
+  display: none;
+}
+
+#app-layout.sidebar-collapsed .sidebar-collapse-btn {
+  position: absolute;
+  top: 1.6rem;
+  right: -17px;
+  background: var(--bg-sidebar);
+  box-shadow: var(--shadow-sm);
+}
+
+#app-layout.sidebar-collapsed nav {
+  padding-right: 0;
+  align-items: center;
+}
+
+#app-layout.sidebar-collapsed .nav-section {
+  align-items: center;
+}
+
+#app-layout.sidebar-collapsed .nav-item {
+  width: 46px;
+  height: 46px;
+  justify-content: center;
+  padding: 0;
+}
+
+#app-layout.sidebar-collapsed .sidebar-footer {
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.7rem;
 }
 
 /* User Profile footer in sidebar */
