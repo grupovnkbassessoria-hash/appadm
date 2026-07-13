@@ -350,6 +350,37 @@ const LICITACOES_MOCK = [
 const LICITA_SAVED_KEY = "doc_financa_licitacoes_salvas";
 const LICITA_ALERTS_KEY = "doc_financa_alertas";
 const LICITA_SEARCHES_KEY = "doc_financa_buscas_salvas";
+const LICITA_CITY_COORDS = {
+  "ourinhos|sp": [-22.9797, -49.8697],
+  "santa rita do tocantins|to": [-10.8617, -48.9161],
+  "jurema|pe": [-8.7181, -36.1347],
+  "santa cruz do sul|rs": [-29.7220, -52.4343],
+  "recife|pe": [-8.0476, -34.8770],
+  "mozarlandia|go": [-14.7447, -50.5706]
+};
+
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function cityKey(cidade, estado) {
+  return `${normalizeText(cidade)}|${normalizeText(estado)}`;
+}
+
+function kmBetween(origin, target) {
+  const toRad = value => value * Math.PI / 180;
+  const earthKm = 6371;
+  const dLat = toRad(target[0] - origin[0]);
+  const dLon = toRad(target[1] - origin[1]);
+  const lat1 = toRad(origin[0]);
+  const lat2 = toRad(target[0]);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 function daysUntil(dateValue) {
   const today = new Date("2026-07-10T00:00:00");
@@ -382,7 +413,7 @@ function setSavedSearches(searches) {
 }
 
 function initLicitacoes() {
-  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status"].forEach(id => {
+  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status", "licitacao-raio"].forEach(id => {
     const field = document.getElementById(id);
     if (field && field.dataset.bound !== "true") {
       field.dataset.bound = "true";
@@ -428,22 +459,37 @@ function initLicitacoes() {
 function renderLicitacoes() {
   const list = document.getElementById("licitacoes-list");
   if (!list) return;
-  const text = (document.getElementById("licitacao-search")?.value || "").toLowerCase().trim();
+  const text = normalizeText(document.getElementById("licitacao-search")?.value || "");
   const estado = document.getElementById("licitacao-estado")?.value || "";
   const categoria = document.getElementById("licitacao-categoria")?.value || "";
   const modalidade = document.getElementById("licitacao-modalidade")?.value || "";
   const valorMin = Number(document.getElementById("licitacao-valor-min")?.value || 0);
-  const cidade = (document.getElementById("licitacao-cidade")?.value || "").toLowerCase().trim();
+  const cidade = normalizeText(document.getElementById("licitacao-cidade")?.value || "");
   const status = document.getElementById("licitacao-status")?.value || "";
-  const saved = getSavedLicitacoes();
+  const raioValue = document.getElementById("licitacao-raio")?.value || "";
+  const raioKm = Number((raioValue.match(/\d+/) || [0])[0]);
 
   const filtered = LICITACOES_MOCK.filter(item => {
-    const searchable = `${item.titulo} ${item.orgao} ${item.cidade} ${item.estado} ${item.categoria} ${item.modalidade} ${item.cnpj} ${item.unidade} ${item.palavras}`.toLowerCase();
+    const searchable = normalizeText(`${item.titulo} ${item.orgao} ${item.cidade} ${item.estado} ${item.categoria} ${item.modalidade} ${item.cnpj} ${item.unidade} ${item.palavras}`);
+    const itemCidade = normalizeText(item.cidade);
+    const itemCategoria = normalizeText(`${item.categoria} ${item.palavras} ${item.titulo}`);
+    const cityMatches = (() => {
+      if (!cidade) return true;
+      if (!raioKm) return itemCidade.includes(cidade);
+      if (!estado) return itemCidade.includes(cidade);
+      const origin = LICITA_CITY_COORDS[cityKey(cidade, estado)];
+      const target = LICITA_CITY_COORDS[cityKey(item.cidade, item.estado)];
+      if (!origin || !target) return itemCidade.includes(cidade);
+      return kmBetween(origin, target) <= raioKm;
+    })();
+
     return (!text || searchable.includes(text)) &&
       (!estado || item.estado === estado) &&
-      (!categoria || item.categoria === categoria) &&
+      (!categoria || itemCategoria.includes(normalizeText(categoria))) &&
       (!modalidade || item.modalidade === modalidade) &&
-      (!valorMin || item.valor >= valorMin);
+      (!valorMin || item.valor >= valorMin) &&
+      cityMatches &&
+      (!status || item.status === status);
   });
 
   const count = document.getElementById("licitacao-count");
@@ -486,6 +532,7 @@ function saveCurrentLicitacaoSearch() {
     valorMin: document.getElementById("licitacao-valor-min")?.value || "",
     cidade: document.getElementById("licitacao-cidade")?.value || "",
     status: document.getElementById("licitacao-status")?.value || "",
+    raio: document.getElementById("licitacao-raio")?.value || "",
     createdAt: new Date().toISOString()
   };
   const labelParts = [search.termo || "Busca PNCP", search.estado, search.categoria, search.modalidade].filter(Boolean);
@@ -497,7 +544,7 @@ function saveCurrentLicitacaoSearch() {
 }
 
 function clearLicitacaoFilters() {
-  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status"].forEach(id => {
+  ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status", "licitacao-raio"].forEach(id => {
     const field = document.getElementById(id);
     if (field) field.value = "";
   });
@@ -585,7 +632,8 @@ window.applySavedLicitacaoSearch = function(encodedSearch) {
     "licitacao-modalidade": search.modalidade,
     "licitacao-valor-min": search.valorMin,
     "licitacao-cidade": search.cidade || "",
-    "licitacao-status": search.status || ""
+    "licitacao-status": search.status || "",
+    "licitacao-raio": search.raio || ""
   };
   Object.entries(fields).forEach(([id, value]) => {
     const field = document.getElementById(id);

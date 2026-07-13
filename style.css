@@ -97,7 +97,7 @@ body {
 /* App Layout */
 #app-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
   width: 100vw;
   height: 100vh;
   position: relative;
@@ -113,6 +113,10 @@ aside {
   padding: 1.5rem 1rem;
   z-index: 10;
   transition: background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+#app-layout > aside {
+  display: none;
 }
 
 .brand {
