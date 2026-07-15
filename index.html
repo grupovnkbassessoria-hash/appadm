@@ -346,6 +346,34 @@
                   <label>Valor Mensal (R$)</label>
                   <input type="number" class="form-input" id="contrato-c-valor" min="0" step="0.01" placeholder="Ex: 5000.00" required>
                 </div>
+                <div class="form-group">
+                  <label>CNPJ/CPF do Contratante</label>
+                  <input type="text" class="form-input" id="contrato-c-documento" placeholder="00.000.000/0001-00">
+                </div>
+                <div class="form-group">
+                  <label>Representante Legal</label>
+                  <input type="text" class="form-input" id="contrato-c-representante" placeholder="Nome e cargo">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label>Endereço do Contratante</label>
+                  <input type="text" class="form-input" id="contrato-c-endereco" placeholder="Rua, número, bairro, cidade/UF e CEP">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label>Objeto / Escopo do Contrato</label>
+                  <textarea class="form-input" id="contrato-c-objeto" rows="4" placeholder="Descreva os serviços, um item por linha."></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Condição de Pagamento</label>
+                  <input type="text" class="form-input" id="contrato-c-pagamento" value="até o 5º dia útil de cada mês subsequente ao da prestação dos serviços">
+                </div>
+                <div class="form-group">
+                  <label>Foro</label>
+                  <input type="text" class="form-input" id="contrato-c-foro" value="Comarca de Ourinhos, Estado de São Paulo">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label>Técnico Responsável</label>
+                  <input type="text" class="form-input" id="contrato-c-tecnico" value="Danilo Jorge Rodrigues da Silva, CPF nº 469.714.768-59">
+                </div>
                 <div class="form-group" style="grid-column: span 2; display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
                   <button type="button" class="btn btn-secondary" id="btn-cancelar-contrato-c"><i data-lucide="x"></i> Cancelar</button>
                   <button type="submit" class="btn btn-primary"><i data-lucide="check"></i> Criar Contrato</button>

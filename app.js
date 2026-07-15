@@ -311,7 +311,7 @@ function initPncpSections() {
   const pdfBtn = document.getElementById("btn-pncp-pdf");
   if (pdfBtn && pdfBtn.dataset.bound !== "true") {
     pdfBtn.dataset.bound = "true";
-    pdfBtn.addEventListener("click", () => alert("PDF da consulta gerado para download."));
+    pdfBtn.addEventListener("click", generateLicitacoesPdf);
   }
 }
 
@@ -326,21 +326,22 @@ function renderSavedSearchCards() {
   const container = document.getElementById("licitacao-saved-searches");
   if (!container) return;
   const defaults = [
-    { title: "FERNANDO", termo: "elaboração de projetos", estado: "", cidade: "", keywords: ["ELABORAÇÃO DE PROJETOS", "projeto engenharia", "Projeto Técnico", "+1"], createdAt: "2026-07-06T13:56:00" },
-    { title: "JOSUE", termo: "material esportivo", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["MATERIAL ESPORTIVO"], createdAt: "2026-07-06T13:56:00" },
-    { title: "AGRICULTURA FAMILIAR", termo: "agricultura familiar", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["agricultura familiar"], createdAt: "2026-07-06T13:54:00" },
-    { title: "GRUPO OM", termo: "gêneros alimentícios", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["cesta básica", "Hortifruti", "Gêneros Alimentícios"], createdAt: "2026-07-06T13:51:00" },
-    { title: "Prolife", termo: "mídia digital", estado: "", cidade: "", keywords: ["mídia social", "clipping", "MÍDIA DIGITAL", "+2"], createdAt: "2026-07-06T09:01:00" }
+    { title: "FERNANDO", termo: "elaboração de projetos", estado: "", cidade: "", categoria: "Obras", keywords: ["ELABORAÇÃO DE PROJETOS", "projeto engenharia", "Projeto Técnico", "+1"], createdAt: "2026-07-06T13:56:00", isDefault: true },
+    { title: "JOSUE", termo: "material esportivo", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["MATERIAL ESPORTIVO"], createdAt: "2026-07-06T13:56:00", isDefault: true },
+    { title: "AGRICULTURA FAMILIAR", termo: "agricultura familiar", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["agricultura familiar"], createdAt: "2026-07-06T13:54:00", isDefault: true },
+    { title: "GRUPO OM", termo: "gêneros alimentícios", estado: "SP", cidade: "Ourinhos", raio: "200 km", keywords: ["cesta básica", "Hortifruti", "Gêneros Alimentícios"], createdAt: "2026-07-06T13:51:00", isDefault: true },
+    { title: "Prolife", termo: "mídia digital", estado: "", cidade: "", keywords: ["mídia social", "clipping", "MÍDIA DIGITAL", "+2"], createdAt: "2026-07-06T09:01:00", isDefault: true }
   ];
   const saved = getSavedSearches().map(item => ({ ...item, keywords: [item.termo || item.categoria || "Busca PNCP"] }));
-  const cards = [...saved, ...defaults];
+  const hiddenDefaults = getHiddenDefaultSearches();
+  const cards = [...saved, ...defaults.filter(item => !hiddenDefaults.includes(item.title))];
   container.innerHTML = cards.map(card => `
     <article class="pncp-saved-card">
-      <div><h3>${card.title || "Busca PNCP"}</h3><button class="btn btn-secondary btn-icon-only" title="Remover"><i data-lucide="trash-2"></i></button></div>
-      ${card.raio ? `<p><strong>Busca por raio:</strong> <span>${card.estado || "SP"} · ${card.cidade || "Ourinhos"} · Raio: ${card.raio}</span></p>` : ""}
+      <div><h3>${escapeHtml(card.title || "Busca PNCP")}</h3><button class="btn btn-secondary btn-icon-only" title="Remover" onclick="removeSavedLicitacaoSearch('${encodeURIComponent(JSON.stringify(card))}')"><i data-lucide="trash-2"></i></button></div>
+      ${card.raio ? `<p><strong>Busca por raio:</strong> <span>${escapeHtml(card.estado || "SP")} · ${escapeHtml(card.cidade || "Ourinhos")} · Raio: ${escapeHtml(card.raio)}</span></p>` : ""}
       <p><strong>Palavras-chave:</strong></p>
-      <div class="pncp-keywords static">${(card.keywords || []).map(k => `<span>${k}</span>`).join("")}</div>
-      <footer><span>${new Date(card.createdAt || Date.now()).toLocaleString("pt-BR")}</span><button class="btn btn-primary" onclick="applySavedLicitacaoSearch('${encodeURIComponent(JSON.stringify(card))}'); showPncpSection('pncp-consulta');">Aplicar</button></footer>
+      <div class="pncp-keywords static">${(card.keywords || []).map(k => `<span>${escapeHtml(k)}</span>`).join("")}</div>
+      <footer><span>${new Date(card.createdAt || Date.now()).toLocaleString("pt-BR")}</span><button class="btn btn-primary" onclick="applySavedLicitacaoSearch('${encodeURIComponent(JSON.stringify(card))}')">Aplicar</button></footer>
     </article>
   `).join("");
   lucide.createIcons();
@@ -365,14 +366,22 @@ const LICITACOES_MOCK = [
   { id: "001/2026", controle: "47745309000174-1-000002/2026", titulo: "REGISTRO DE PREÇOS PARA AQUISIÇÃO DE GÊNEROS ALIMENTÍCIOS PERECÍVEIS E NÃO PERECÍVEIS, DESTINADOS AO PREPARO DA MERENDA ESCOLAR.", orgao: "FUNDO MUNICIPAL DE EDUCACAO - FME", estado: "PE", cidade: "Jurema", categoria: "Saúde", valor: 1251859.40, publicacao: "2026-07-11", abertura: "2026-07-08", encerramento: "2026-07-21", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "47745309000174", unidade: "Fundo Municipal de Educação", palavras: "gêneros alimentícios", origem: "https://bnccompras.com", pncpUrl: "https://pncp.gov.br/app/editais/47745309000174/2026/2" },
   { id: "64072.005770/2026-25", controle: "00394452000103-1-013107/2026", titulo: "Aquisição de gêneros alimentícios referente ao Quantitativo de Rancho para unidade militar.", orgao: "COMANDO DO EXERCITO", estado: "RS", cidade: "Santa Cruz do Sul", categoria: "Saúde", valor: 641940.50, publicacao: "2026-07-10", abertura: "2026-07-10", encerramento: "2026-07-22", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "00394452000103", unidade: "7º Batalhão de Infantaria Blindado", palavras: "gêneros alimentícios", origem: "https://cnetmobile.estaleiro.serpro.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/00394452000103/2026/13107" },
   { id: "0002888-04.2026.4.05.7000", controle: "00508903000188-1-001283/2026", titulo: "Formação de Ata de Registro de Preços para aquisição de solução de conectividade para data center de alta disponibilidade, incluindo configuração, migração, treinamentos e horas de consultoria.", orgao: "JUSTICA FEDERAL DE PRIMEIRA INSTANCIA", estado: "PE", cidade: "Recife", categoria: "Serviços", valor: 2136558.21, publicacao: "2026-07-10", abertura: "2026-07-10", encerramento: "2026-07-28", modalidade: "Pregão Eletrônico", status: "Aberto-Fechado", cnpj: "00508903000188", unidade: "Justiça Federal da 5ª Região", palavras: "consultoria", origem: "https://cnetmobile.estaleiro.serpro.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/00508903000188/2026/1283" },
-  { id: "00005313/2026", controle: "01135227000107-1-000015/2026", titulo: "Contratação de empresa especializada para elaboração de projetos básicos e executivos e execução de obra de implantação de sistema de esgotamento sanitário.", orgao: "MUNICIPIO DE MOZARLANDIA", estado: "GO", cidade: "Mozarlândia", categoria: "Obras", valor: 41830038.60, publicacao: "2026-07-09", abertura: "2026-07-09", encerramento: "2026-10-08", modalidade: "Concorrência", status: "Fechado", cnpj: "01135227000107", unidade: "Município", palavras: "elaboração de projetos", origem: "https://bllcompras.com", pncpUrl: "https://pncp.gov.br/app/editais/01135227000107/2026/15" }
+  { id: "00005313/2026", controle: "01135227000107-1-000015/2026", titulo: "Contratação de empresa especializada para elaboração de projetos básicos e executivos e execução de obra de implantação de sistema de esgotamento sanitário.", orgao: "MUNICIPIO DE MOZARLANDIA", estado: "GO", cidade: "Mozarlândia", categoria: "Obras", valor: 41830038.60, publicacao: "2026-07-09", abertura: "2026-07-09", encerramento: "2026-10-08", modalidade: "Concorrência", status: "Fechado", cnpj: "01135227000107", unidade: "Município", palavras: "elaboração de projetos", origem: "https://bllcompras.com", pncpUrl: "https://pncp.gov.br/app/editais/01135227000107/2026/15" },
+  { id: "245/2026", controle: "44555666000188-1-000245/2026", titulo: "Aquisição de materiais esportivos, uniformes, bolas, redes e equipamentos para programas municipais de esporte e lazer.", orgao: "MUNICIPIO DE OURINHOS", estado: "SP", cidade: "Ourinhos", categoria: "Serviços", valor: 384520.00, publicacao: "2026-07-12", abertura: "2026-07-15", encerramento: "2026-08-02", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "44555666000188", unidade: "Secretaria Municipal de Esportes", palavras: "material esportivo", origem: "https://compras.ourinhos.sp.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/44555666000188/2026/245" },
+  { id: "118/2026", controle: "11222333000144-1-000118/2026", titulo: "Chamada pública para aquisição de gêneros alimentícios da agricultura familiar destinados à alimentação escolar.", orgao: "MUNICIPIO DE ASSIS", estado: "SP", cidade: "Assis", categoria: "Saúde", valor: 598400.00, publicacao: "2026-07-12", abertura: "2026-07-18", encerramento: "2026-08-05", modalidade: "Dispensa", status: "Aberto", cnpj: "11222333000144", unidade: "Secretaria Municipal de Educação", palavras: "agricultura familiar gêneros alimentícios", origem: "https://compras.assis.sp.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/11222333000144/2026/118" },
+  { id: "319/2026", controle: "66777888000122-1-000319/2026", titulo: "Registro de preços para fornecimento de cesta básica, hortifruti e demais gêneros alimentícios para atendimento social.", orgao: "MUNICIPIO DE MARILIA", estado: "SP", cidade: "Marília", categoria: "Saúde", valor: 972300.00, publicacao: "2026-07-13", abertura: "2026-07-17", encerramento: "2026-08-01", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "66777888000122", unidade: "Fundo Social Municipal", palavras: "cesta básica hortifruti gêneros alimentícios", origem: "https://compras.marilia.sp.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/66777888000122/2026/319" },
+  { id: "422/2026", controle: "99888777000155-1-000422/2026", titulo: "Contratação de agência para gestão de mídia digital, clipping, redes sociais e monitoramento de comunicação institucional.", orgao: "CONSORCIO INTERMUNICIPAL DO VALE", estado: "SP", cidade: "Bauru", categoria: "Tecnologia", valor: 724900.00, publicacao: "2026-07-13", abertura: "2026-07-20", encerramento: "2026-08-07", modalidade: "Pregão Eletrônico", status: "Aberto", cnpj: "99888777000155", unidade: "Comunicação Institucional", palavras: "mídia digital clipping redes sociais", origem: "https://compras.bauru.sp.gov.br", pncpUrl: "https://pncp.gov.br/app/editais/99888777000155/2026/422" }
 ];
 
 const LICITA_SAVED_KEY = "doc_financa_licitacoes_salvas";
 const LICITA_ALERTS_KEY = "doc_financa_alertas";
 const LICITA_SEARCHES_KEY = "doc_financa_buscas_salvas";
+const LICITA_HIDDEN_DEFAULT_SEARCHES_KEY = "doc_financa_buscas_padrao_ocultas";
 const LICITA_CITY_COORDS = {
   "ourinhos|sp": [-22.9797, -49.8697],
+  "assis|sp": [-22.6617, -50.4120],
+  "marilia|sp": [-22.2171, -49.9501],
+  "bauru|sp": [-22.3246, -49.0871],
   "santa rita do tocantins|to": [-10.8617, -48.9161],
   "jurema|pe": [-8.7181, -36.1347],
   "santa cruz do sul|rs": [-29.7220, -52.4343],
@@ -433,6 +442,60 @@ function setSavedSearches(searches) {
   localStorage.setItem(LICITA_SEARCHES_KEY, JSON.stringify(searches));
 }
 
+function getHiddenDefaultSearches() {
+  return JSON.parse(localStorage.getItem(LICITA_HIDDEN_DEFAULT_SEARCHES_KEY) || "[]");
+}
+
+function setHiddenDefaultSearches(searches) {
+  localStorage.setItem(LICITA_HIDDEN_DEFAULT_SEARCHES_KEY, JSON.stringify(searches));
+}
+
+function getLicitacaoFilters() {
+  const raioValue = document.getElementById("licitacao-raio")?.value || "";
+  return {
+    text: normalizeText(document.getElementById("licitacao-search")?.value || ""),
+    estado: document.getElementById("licitacao-estado")?.value || "",
+    categoria: document.getElementById("licitacao-categoria")?.value || "",
+    modalidade: document.getElementById("licitacao-modalidade")?.value || "",
+    valorMin: Number(document.getElementById("licitacao-valor-min")?.value || 0),
+    cidade: normalizeText(document.getElementById("licitacao-cidade")?.value || ""),
+    status: document.getElementById("licitacao-status")?.value || "",
+    raio: raioValue,
+    raioKm: Number((raioValue.match(/\d+/) || [0])[0])
+  };
+}
+
+function licitacaoMatchesFilters(item, filters) {
+  const searchable = normalizeText(`${item.titulo} ${item.orgao} ${item.cidade} ${item.estado} ${item.categoria} ${item.modalidade} ${item.cnpj} ${item.unidade} ${item.palavras}`);
+  const itemCidade = normalizeText(item.cidade);
+  const itemCategoria = normalizeText(`${item.categoria} ${item.palavras} ${item.titulo}`);
+  const cityMatches = (() => {
+    if (!filters.cidade) return true;
+    if (!filters.raioKm) return itemCidade.includes(filters.cidade);
+    if (!filters.estado) return itemCidade.includes(filters.cidade);
+    const origin = LICITA_CITY_COORDS[cityKey(filters.cidade, filters.estado)];
+    const target = LICITA_CITY_COORDS[cityKey(item.cidade, item.estado)];
+    if (!origin || !target) return itemCidade.includes(filters.cidade);
+    return kmBetween(origin, target) <= filters.raioKm;
+  })();
+
+  return (!filters.text || searchable.includes(filters.text)) &&
+    (!filters.estado || item.estado === filters.estado) &&
+    (!filters.categoria || itemCategoria.includes(normalizeText(filters.categoria))) &&
+    (!filters.modalidade || item.modalidade === filters.modalidade) &&
+    (!filters.valorMin || item.valor >= filters.valorMin) &&
+    cityMatches &&
+    (!filters.status || item.status === filters.status);
+}
+
+function getFilteredLicitacoes() {
+  const filters = getLicitacaoFilters();
+  return {
+    filters,
+    items: LICITACOES_MOCK.filter(item => licitacaoMatchesFilters(item, filters))
+  };
+}
+
 function initLicitacoes() {
   ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status", "licitacao-raio"].forEach(id => {
     const field = document.getElementById(id);
@@ -480,38 +543,7 @@ function initLicitacoes() {
 function renderLicitacoes() {
   const list = document.getElementById("licitacoes-list");
   if (!list) return;
-  const text = normalizeText(document.getElementById("licitacao-search")?.value || "");
-  const estado = document.getElementById("licitacao-estado")?.value || "";
-  const categoria = document.getElementById("licitacao-categoria")?.value || "";
-  const modalidade = document.getElementById("licitacao-modalidade")?.value || "";
-  const valorMin = Number(document.getElementById("licitacao-valor-min")?.value || 0);
-  const cidade = normalizeText(document.getElementById("licitacao-cidade")?.value || "");
-  const status = document.getElementById("licitacao-status")?.value || "";
-  const raioValue = document.getElementById("licitacao-raio")?.value || "";
-  const raioKm = Number((raioValue.match(/\d+/) || [0])[0]);
-
-  const filtered = LICITACOES_MOCK.filter(item => {
-    const searchable = normalizeText(`${item.titulo} ${item.orgao} ${item.cidade} ${item.estado} ${item.categoria} ${item.modalidade} ${item.cnpj} ${item.unidade} ${item.palavras}`);
-    const itemCidade = normalizeText(item.cidade);
-    const itemCategoria = normalizeText(`${item.categoria} ${item.palavras} ${item.titulo}`);
-    const cityMatches = (() => {
-      if (!cidade) return true;
-      if (!raioKm) return itemCidade.includes(cidade);
-      if (!estado) return itemCidade.includes(cidade);
-      const origin = LICITA_CITY_COORDS[cityKey(cidade, estado)];
-      const target = LICITA_CITY_COORDS[cityKey(item.cidade, item.estado)];
-      if (!origin || !target) return itemCidade.includes(cidade);
-      return kmBetween(origin, target) <= raioKm;
-    })();
-
-    return (!text || searchable.includes(text)) &&
-      (!estado || item.estado === estado) &&
-      (!categoria || itemCategoria.includes(normalizeText(categoria))) &&
-      (!modalidade || item.modalidade === modalidade) &&
-      (!valorMin || item.valor >= valorMin) &&
-      cityMatches &&
-      (!status || item.status === status);
-  });
+  const { items: filtered } = getFilteredLicitacoes();
 
   const count = document.getElementById("licitacao-count");
   if (count) count.textContent = `${filtered.length} ${filtered.length === 1 ? "edital" : "editais"}`;
@@ -570,6 +602,12 @@ function clearLicitacaoFilters() {
     if (field) field.value = "";
   });
   renderLicitacoes();
+}
+
+function openLicitacaoFilterGroups() {
+  document.querySelectorAll(".pncp-filter-panel details").forEach(details => {
+    details.open = true;
+  });
 }
 
 window.shareLicitacao = function(id, channel) {
@@ -646,8 +684,9 @@ function renderSavedAlerts() {
 
 window.applySavedLicitacaoSearch = function(encodedSearch) {
   const search = JSON.parse(decodeURIComponent(encodedSearch));
+  showPncpSection("pncp-consulta");
   const fields = {
-    "licitacao-search": search.termo,
+    "licitacao-search": search.termo || (search.keywords || []).filter(keyword => !String(keyword).startsWith("+")).join(" "),
     "licitacao-estado": search.estado,
     "licitacao-categoria": search.categoria,
     "licitacao-modalidade": search.modalidade,
@@ -660,8 +699,71 @@ window.applySavedLicitacaoSearch = function(encodedSearch) {
     const field = document.getElementById(id);
     if (field) field.value = value || "";
   });
+  openLicitacaoFilterGroups();
   renderLicitacoes();
 };
+
+window.removeSavedLicitacaoSearch = function(encodedSearch) {
+  const search = JSON.parse(decodeURIComponent(encodedSearch));
+  if (search.isDefault) {
+    const hidden = getHiddenDefaultSearches();
+    if (!hidden.includes(search.title)) {
+      setHiddenDefaultSearches([...hidden, search.title]);
+    }
+    renderSavedSearchCards();
+    return;
+  }
+  const searches = getSavedSearches();
+  const next = searches.filter(item => item.createdAt !== search.createdAt || item.title !== search.title);
+  if (next.length !== searches.length) {
+    setSavedSearches(next);
+  }
+  renderSavedSearchCards();
+};
+
+function generateLicitacoesPdf() {
+  const { filters, items } = getFilteredLicitacoes();
+  const activeFilters = [
+    filters.text && `Busca: ${filters.text}`,
+    filters.estado && `Estado: ${filters.estado}`,
+    filters.categoria && `Palavra-chave: ${filters.categoria}`,
+    filters.modalidade && `Modalidade: ${filters.modalidade}`,
+    filters.cidade && `Cidade: ${filters.cidade}`,
+    filters.raio && `Raio: ${filters.raio}`,
+    filters.status && `Situação: ${filters.status}`,
+    filters.valorMin && `Valor mínimo: ${formatBRL(filters.valorMin)}`
+  ].filter(Boolean);
+  const rows = items.map(item => `
+    <tr>
+      <td><strong>${escapeHtml(item.id)}</strong><br><span>${escapeHtml(item.controle)}</span></td>
+      <td>${escapeHtml(item.orgao)}<br><span>${escapeHtml(item.cidade)}/${escapeHtml(item.estado)}</span></td>
+      <td>${escapeHtml(item.titulo)}<br><span>${escapeHtml(item.palavras)} · ${escapeHtml(item.status)}</span></td>
+      <td>${formatBRL(item.valor)}<br><span>Enc.: ${formatDateBR(item.encerramento)}</span></td>
+    </tr>
+  `).join("");
+  const contentHtml = `
+    <header>
+      <div>
+        <h1>Relatório de Licitações PNCP</h1>
+        <div class="muted">Consulta gerada em ${new Date().toLocaleString("pt-BR")}</div>
+      </div>
+      <strong>${items.length} ${items.length === 1 ? "edital" : "editais"}</strong>
+    </header>
+    <section class="box">
+      <strong>Filtros aplicados</strong>
+      <p>${activeFilters.length ? activeFilters.map(escapeHtml).join(" · ") : "Nenhum filtro aplicado."}</p>
+    </section>
+    <section class="box">
+      <table>
+        <thead><tr><th>Processo</th><th>Órgão</th><th>Objeto</th><th>Valor e prazo</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="4">Nenhum edital encontrado para os filtros atuais.</td></tr>`}</tbody>
+      </table>
+    </section>
+  `;
+  const branded = wrapPdfWithBranding(contentHtml, "body{font-family:Arial,sans-serif;color:#111827;margin:32px}header{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #2563eb;padding-bottom:16px;margin-bottom:18px}h1{font-size:24px;margin:0}.muted,span{color:#64748b;font-size:12px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:16px}p{line-height:1.5}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;text-align:left;text-transform:uppercase;font-size:10px}th,td{border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}@page{size:A4 landscape;margin:12mm}@media print{body{margin:0}}");
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Licitações PNCP</title><style>${branded.styles}</style></head><body class="${branded.bodyClass}">${branded.body}</body></html>`;
+  printHtmlDocument(html, "licitacoes-pdf-frame", "Relatório de Licitações PNCP");
+}
 
 function renderDashboardNotifications() {
   const container = document.getElementById("dashboard-notifications");
@@ -1092,6 +1194,44 @@ function getCommercialList(kind) {
   return kind === "orcamento" ? ERP_DATA.comercial.orcamentos : ERP_DATA.comercial.pedidos;
 }
 
+function buildPartnerAddress(record) {
+  if (!record) return "";
+  const parts = [record.endereco, record.numero, record.bairro, record.cidade, record.uf, record.cep]
+    .filter(Boolean)
+    .map(function(value) { return String(value).trim(); })
+    .filter(Boolean);
+  return parts.length ? parts.join(", ") : (record.endereco || "");
+}
+
+function getCommercialPartnerDetails(name) {
+  const cliente = ERP_DATA.cadastro.clientes.find(function(item) { return item.nome === name; });
+  const fornecedor = ERP_DATA.cadastro.fornecedores.find(function(item) { return item.nome === name; });
+  const record = cliente || fornecedor || null;
+  return {
+    nome: name || "",
+    documento: record?.cnpj || "",
+    email: record?.email || "",
+    telefone: record?.telefone || "",
+    endereco: buildPartnerAddress(record),
+    representante: record?.contato || ""
+  };
+}
+
+function getCommercialContractDetails(contract) {
+  const partner = getCommercialPartnerDetails(contract.parceiro);
+  return {
+    documento: contract.documentoContratante || partner.documento || "",
+    endereco: contract.enderecoContratante || partner.endereco || "",
+    email: contract.emailContratante || partner.email || "",
+    telefone: contract.telefoneContratante || partner.telefone || "",
+    representante: contract.representanteContratante || partner.representante || "",
+    objeto: contract.objeto || "Prestação de serviços de assessoria administrativa, financeira e apoio em processos de compras, conforme demanda da CONTRATANTE.",
+    pagamento: contract.condicaoPagamento || "até o 5º dia útil de cada mês subsequente ao da prestação dos serviços",
+    foro: contract.foro || "Comarca de Ourinhos, Estado de São Paulo",
+    tecnico: contract.tecnicoResponsavel || "Danilo Jorge Rodrigues da Silva, CPF nº 469.714.768-59"
+  };
+}
+
 function renderComercialTables() {
   const orcBody = document.getElementById("table-orcamentos-body");
   if (orcBody) {
@@ -1113,7 +1253,7 @@ function renderComercialTables() {
   if (conBody) {
     conBody.innerHTML = ERP_DATA.comercial.contratos.map(function(con) {
       const badge = con.status === "Ativo" ? "badge-success" : "badge-warning";
-      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + formatDateBR(con.vigenciaInicio) + "</td><td>" + formatDateBR(con.vigenciaFim) + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></td></tr>";
+      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + formatDateBR(con.vigenciaInicio) + "</td><td>" + formatDateBR(con.vigenciaFim) + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><div class='commercial-actions'><button class='btn btn-secondary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"generateContractPdf('" + con.id + "')\" title='Imprimir contrato em PDF'><i data-lucide='file-down'></i> Imprimir PDF</button><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></div></td></tr>";
     }).join("");
   }
   lucide.createIcons();
@@ -1376,6 +1516,30 @@ function wrapPdfWithBranding(contentHtml, extraStyles) {
   };
 }
 
+function printHtmlDocument(html, frameId, title) {
+  const oldFrame = document.getElementById(frameId);
+  if (oldFrame) oldFrame.remove();
+  const frame = document.createElement("iframe");
+  frame.id = frameId;
+  frame.title = title;
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  document.body.appendChild(frame);
+  frame.contentDocument.open();
+  frame.contentDocument.write(html);
+  frame.contentDocument.close();
+  const printFrame = () => {
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+  };
+  frame.onload = printFrame;
+  setTimeout(printFrame, 250);
+}
+
 function generateCommercialPdf(kind, id) {
   const record = getCommercialRecord(kind, id);
   if (!record) return;
@@ -1392,32 +1556,102 @@ function generateCommercialPdf(kind, id) {
   const contentHtml = "<header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div>" + extraHtml + "</section><section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section>";
   const branded = wrapPdfWithBranding(contentHtml, "body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}");
   const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>" + title + " " + record.id + "</title><style>" + branded.styles + "</style></head><body class='" + branded.bodyClass + "'>" + branded.body + "</body></html>";
-  const oldFrame = document.getElementById("commercial-pdf-frame");
-  if (oldFrame) oldFrame.remove();
-  const frame = document.createElement("iframe");
-  frame.id = "commercial-pdf-frame";
-  frame.title = title + " " + record.id;
-  frame.style.position = "fixed";
-  frame.style.right = "0";
-  frame.style.bottom = "0";
-  frame.style.width = "0";
-  frame.style.height = "0";
-  frame.style.border = "0";
-  document.body.appendChild(frame);
-  frame.contentDocument.open();
-  frame.contentDocument.write(html);
-  frame.contentDocument.close();
-  frame.onload = function() {
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
-  };
-  setTimeout(function() {
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
-  }, 250);
+  printHtmlDocument(html, "commercial-pdf-frame", title + " " + record.id);
 }
 
 window.generateCommercialPdf = generateCommercialPdf;
+
+function generateContractPdf(id) {
+  const contract = ERP_DATA.comercial.contratos.find(function(item) { return item.id === id; });
+  if (!contract) return;
+  const details = getCommercialContractDetails(contract);
+  const comp = getActiveCompany();
+  const contratadaNome = comp?.razaoSocial || "D.O.C. Assessoria e Consultoria";
+  const contratadaCnpj = comp?.cnpj || "67.873.641/0001-21";
+  const objetoItens = String(details.objeto || "")
+    .split(/\r?\n/)
+    .map(function(line) { return line.trim(); })
+    .filter(Boolean);
+  const objetoHtml = (objetoItens.length ? objetoItens : ["Prestação de serviços conforme condições acordadas entre as partes."])
+    .map(function(item) { return "<li>" + escapeHtml(item) + "</li>"; })
+    .join("");
+  const partnerRows = [
+    ["Nome/Razão Social", contract.parceiro],
+    ["CNPJ/CPF", details.documento],
+    ["Endereço", details.endereco],
+    ["E-mail", details.email],
+    ["Telefone", details.telefone],
+    ["Representada por", details.representante]
+  ].filter(function(row) { return String(row[1] || "").trim(); })
+    .map(function(row) { return "<li><strong>" + escapeHtml(row[0]) + ":</strong> " + escapeHtml(row[1]) + "</li>"; })
+    .join("");
+
+  const contentHtml = `
+    <header class="contract-cover">
+      <div>
+        <h1>${escapeHtml(contract.titulo || "Contrato de Prestação de Serviços")}</h1>
+        <p>Contrato nº ${escapeHtml(contract.id)} · Emissão: ${new Date().toLocaleDateString("pt-BR")}</p>
+      </div>
+    </header>
+    <p>Este Contrato de Prestação de Serviços é celebrado entre as partes abaixo identificadas, que têm entre si justo e contratado o seguinte:</p>
+    <section class="parties">
+      <div class="party-box">
+        <h2>Contratada</h2>
+        <ul>
+          <li><strong>Razão Social:</strong> ${escapeHtml(contratadaNome)}</li>
+          <li><strong>CNPJ:</strong> ${escapeHtml(contratadaCnpj)}</li>
+          <li><strong>Técnico responsável:</strong> ${escapeHtml(details.tecnico)}</li>
+        </ul>
+      </div>
+      <div class="party-box">
+        <h2>Contratante</h2>
+        <ul>${partnerRows || `<li><strong>Nome/Razão Social:</strong> ${escapeHtml(contract.parceiro)}</li>`}</ul>
+      </div>
+    </section>
+    <h2>Cláusula Primeira - Do Objeto</h2>
+    <p>O presente contrato tem como objeto a prestação de serviços especializados pela CONTRATADA à CONTRATANTE, compreendendo:</p>
+    <ul>${objetoHtml}</ul>
+    <h2>Cláusula Segunda - Das Obrigações da Contratada</h2>
+    <p>A CONTRATADA compromete-se a prestar os serviços com diligência, qualidade técnica e profissionalismo, mantendo sigilo sobre informações, documentos e dados da CONTRATANTE aos quais tiver acesso.</p>
+    <h2>Cláusula Terceira - Das Obrigações da Contratante</h2>
+    <p>A CONTRATANTE compromete-se a fornecer informações, documentos e acessos necessários à correta execução dos serviços, bem como efetuar os pagamentos nas condições acordadas.</p>
+    <h2>Cláusula Quarta - Da Vigência</h2>
+    <p>O contrato terá início em ${escapeHtml(formatDateBR(contract.vigenciaInicio))} e término em ${escapeHtml(formatDateBR(contract.vigenciaFim))}, podendo ser prorrogado mediante acordo formal entre as partes.</p>
+    <h2>Cláusula Quinta - Do Valor e Pagamento</h2>
+    <p>A CONTRATANTE pagará à CONTRATADA o valor mensal de <strong>${formatBRL(contract.valorMensal)}</strong>, mediante emissão de nota fiscal e/ou boleto bancário.</p>
+    <p>O pagamento deverá ocorrer ${escapeHtml(details.pagamento)}. Em caso de atraso, poderá incidir multa de 2% e juros de mora de 1% ao mês.</p>
+    <h2>Cláusula Sexta - Da Rescisão</h2>
+    <p>Qualquer das partes poderá rescindir o contrato mediante aviso prévio por escrito de 30 (trinta) dias, sem prejuízo das obrigações vencidas até a data da rescisão.</p>
+    <h2>Cláusula Sétima - Da Confidencialidade</h2>
+    <p>As partes comprometem-se a manter sigilo absoluto sobre informações comerciais, financeiras, técnicas e estratégicas obtidas durante a execução deste contrato.</p>
+    <h2>Cláusula Oitava - Da Independência das Partes</h2>
+    <p>Este contrato não gera vínculo empregatício, societário, associativo ou de subordinação entre as partes.</p>
+    <h2>Cláusula Nona - Do Foro</h2>
+    <p>As partes elegem o Foro da ${escapeHtml(details.foro)} para dirimir dúvidas ou litígios decorrentes deste contrato.</p>
+    <p class="date-line">Ourinhos, ${new Date().toLocaleDateString("pt-BR")}.</p>
+    <section class="signatures">
+      <div><span></span><strong>CONTRATADA</strong><br>${escapeHtml(contratadaNome)}<br>${escapeHtml(contratadaCnpj)}</div>
+      <div><span></span><strong>CONTRATANTE</strong><br>${escapeHtml(contract.parceiro)}<br>${escapeHtml(details.documento)}</div>
+    </section>
+    <section class="witnesses">
+      <div><span></span><strong>TESTEMUNHA 1</strong><br>Nome:<br>CPF:</div>
+      <div><span></span><strong>TESTEMUNHA 2</strong><br>Nome:<br>CPF:</div>
+    </section>
+  `;
+  const branded = wrapPdfWithBranding(contentHtml, `
+    body{font-family:Arial,sans-serif;color:#1f2933;margin:28px;font-size:12px;line-height:1.48}
+    .contract-cover{border-bottom:2px solid #1b5c72;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;gap:20px}
+    h1{font-size:20px;margin:0;color:#123b4a;text-transform:uppercase}
+    h2{font-size:12px;color:#123b4a;text-transform:uppercase;border-bottom:1px solid #d8e4e8;padding-bottom:4px;margin:16px 0 7px}
+    p{margin:0 0 8px;text-align:justify}.contract-cover p{color:#64748b;text-align:left;margin-top:5px}
+    ul{margin:6px 0 10px 18px;padding:0}li{margin-bottom:4px}.parties{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0 16px}.party-box{border:1px solid #d8e4e8;border-radius:6px;padding:10px 12px;background:#fbfdfe;break-inside:avoid}.party-box h2{border:0;margin-top:0}.date-line{margin-top:22px;text-align:left}.signatures,.witnesses{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:42px;break-inside:avoid}.signatures span,.witnesses span{display:block;border-top:1px solid #1f2933;margin-bottom:7px}.signatures div,.witnesses div{text-align:center;min-height:64px}
+    @page{size:A4;margin:14mm}@media print{body{margin:0}.party-box,h2,.signatures,.witnesses{break-inside:avoid}}
+  `);
+  const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>Contrato " + escapeHtml(contract.id) + "</title><style>" + branded.styles + "</style></head><body class='" + branded.bodyClass + "'>" + branded.body + "</body></html>";
+  printHtmlDocument(html, "contract-pdf-frame", "Contrato " + contract.id);
+}
+
+window.generateContractPdf = generateContractPdf;
 
 // ============================================================
 // CONTRACTS COMMERCIAL MODULE (Novo Contrato Comercial)
@@ -1436,6 +1670,17 @@ function initContratosComerciais() {
       ...ERP_DATA.cadastro.fornecedores.map(f => ({ nome: f.nome, tipo: 'Fornecedor' }))
     ];
     parceiroSelect.innerHTML = allParceiros.map(p => `<option value="${p.nome}">${p.nome} (${p.tipo})</option>`).join('');
+    const fillPartnerFields = () => {
+      const partner = getCommercialPartnerDetails(parceiroSelect.value);
+      const documento = document.getElementById('contrato-c-documento');
+      const endereco = document.getElementById('contrato-c-endereco');
+      const representante = document.getElementById('contrato-c-representante');
+      if (documento && !documento.value) documento.value = partner.documento || '';
+      if (endereco && !endereco.value) endereco.value = partner.endereco || '';
+      if (representante && !representante.value) representante.value = partner.representante || '';
+    };
+    parceiroSelect.addEventListener('change', fillPartnerFields);
+    fillPartnerFields();
   }
 
   if (btnNovo && panel) {
@@ -1462,6 +1707,13 @@ function initContratosComerciais() {
         vigenciaInicio: document.getElementById('contrato-c-inicio').value,
         vigenciaFim: document.getElementById('contrato-c-fim').value,
         valorMensal: parseFloat(document.getElementById('contrato-c-valor').value) || 0,
+        documentoContratante: document.getElementById('contrato-c-documento')?.value.trim() || '',
+        representanteContratante: document.getElementById('contrato-c-representante')?.value.trim() || '',
+        enderecoContratante: document.getElementById('contrato-c-endereco')?.value.trim() || '',
+        objeto: document.getElementById('contrato-c-objeto')?.value.trim() || 'Prestação de serviços de assessoria administrativa, financeira e apoio em processos de compras, conforme demanda da CONTRATANTE.',
+        condicaoPagamento: document.getElementById('contrato-c-pagamento')?.value.trim() || 'até o 5º dia útil de cada mês subsequente ao da prestação dos serviços',
+        foro: document.getElementById('contrato-c-foro')?.value.trim() || 'Comarca de Ourinhos, Estado de São Paulo',
+        tecnicoResponsavel: document.getElementById('contrato-c-tecnico')?.value.trim() || 'Danilo Jorge Rodrigues da Silva, CPF nº 469.714.768-59',
         status: 'Ativo'
       };
       ERP_DATA.comercial.contratos.unshift(newContract);
@@ -3222,14 +3474,50 @@ function initAdministrativo() {
   }
 
   const pdfBtn = document.getElementById("btn-export-pdf");
-  if (pdfBtn) {
-    pdfBtn.addEventListener("click", () => {
-      alert("Relatório Consolidado Geral gerado como PDF com sucesso! (Salvo na fila de downloads corporativos)");
-    });
+  if (pdfBtn && pdfBtn.dataset.bound !== "true") {
+    pdfBtn.dataset.bound = "true";
+    pdfBtn.addEventListener("click", generateConsolidadoPdf);
   }
 
   renderAdministrativoDocs();
   renderConsolidadoGeral();
+}
+
+function generateConsolidadoPdf() {
+  const faturamentoTotal = ERP_DATA.fiscal.notasEmitidas.reduce((sum, nf) => sum + (nf.valor || 0), 0);
+  const despesaTotal = ERP_DATA.financeiro.contasPagar.reduce((sum, cp) => sum + (cp.valor || 0), 0);
+  const totalVeiculos = ERP_DATA.cadastro.veiculos.length;
+  const veiculosOperacionais = ERP_DATA.cadastro.veiculos.filter(v => v.status === 'Operacional').length;
+  const frotaPercent = totalVeiculos > 0 ? Math.round((veiculosOperacionais / totalVeiculos) * 100) : 0;
+  const estoqueImobilizado = ERP_DATA.cadastro.produtos.reduce((sum, p) => sum + ((p.estoqueAtual || 0) * (p.custoMedio || 0)), 0);
+  const documentosVencidos = ERP_DATA.administrativo.documentos.filter(d => new Date(d.vencimento) < new Date()).length;
+  const proximosVencimentos = ERP_DATA.administrativo.documentos.filter(d => {
+    const diff = Math.ceil((new Date(d.vencimento) - new Date()) / (1000 * 60 * 60 * 24));
+    return diff >= 0 && diff <= 60;
+  }).length;
+  const rows = [
+    ["Desempenho Comercial", formatBRL(faturamentoTotal), "Notas fiscais emitidas"],
+    ["Despesa Corrente Operacional", formatBRL(despesaTotal), "Contas a pagar registradas"],
+    ["Frota Status", `${frotaPercent}% operacionais`, `${veiculosOperacionais}/${totalVeiculos} veículos operacionais`],
+    ["Estoque Global", formatBRL(estoqueImobilizado), "Valor imobilizado em insumos"],
+    ["Documentos vencidos", String(documentosVencidos), "Pendências administrativas"],
+    ["Próximos vencimentos", String(proximosVencimentos), "Documentos vencendo em até 60 dias"]
+  ].map(row => `<tr><td>${escapeHtml(row[0])}</td><td><strong>${escapeHtml(row[1])}</strong></td><td>${escapeHtml(row[2])}</td></tr>`).join("");
+  const contentHtml = `
+    <header>
+      <div><h1>Relatório Consolidado Geral</h1><div class="muted">Emitido em ${new Date().toLocaleString("pt-BR")}</div></div>
+      <strong>APP ADM</strong>
+    </header>
+    <section class="box">
+      <table>
+        <thead><tr><th>Indicador</th><th>Resultado</th><th>Observação</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </section>
+  `;
+  const branded = wrapPdfWithBranding(contentHtml, "body{font-family:Arial,sans-serif;color:#111827;margin:32px}header{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #2563eb;padding-bottom:16px;margin-bottom:18px}h1{font-size:24px;margin:0}.muted{color:#64748b;font-size:12px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f3f4f6;text-align:left;text-transform:uppercase;font-size:11px}th,td{border-bottom:1px solid #e5e7eb;padding:10px;vertical-align:top}@page{size:A4;margin:14mm}@media print{body{margin:0}}");
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Consolidado Geral</title><style>${branded.styles}</style></head><body class="${branded.bodyClass}">${branded.body}</body></html>`;
+  printHtmlDocument(html, "consolidado-pdf-frame", "Relatório Consolidado Geral");
 }
 
 function renderConsolidadoGeral() {
