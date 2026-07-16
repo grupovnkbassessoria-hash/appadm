@@ -2793,11 +2793,11 @@ function getFinancialDateValue(item, field) {
   return parseFinancialDate(item?.[field]);
 }
 
-function sortByFinancialDateDesc(items, field) {
+function sortByFinancialDateAsc(items, field) {
   return [...items].sort((a, b) => {
     const dateA = getFinancialDateValue(a, field);
     const dateB = getFinancialDateValue(b, field);
-    return (dateB ? dateB.getTime() : 0) - (dateA ? dateA.getTime() : 0);
+    return (dateA ? dateA.getTime() : Number.MAX_SAFE_INTEGER) - (dateB ? dateB.getTime() : Number.MAX_SAFE_INTEGER);
   });
 }
 
@@ -2846,7 +2846,7 @@ function matchesFinanceStatus(item, filters) {
 
 function filterFinanceItems(items, kind, dateField) {
   const filters = getFinanceFilters(kind);
-  return sortByFinancialDateDesc(items, dateField)
+  return sortByFinancialDateAsc(items, dateField)
     .filter(item => matchesFinancePeriod(item, dateField, filters))
     .filter(item => matchesFinanceStatus(item, filters));
 }
@@ -3240,7 +3240,7 @@ function getForecastRows() {
 
 function filterForecastRows(rows) {
   const filters = getFinanceFilters("fluxo");
-  return sortByFinancialDateDesc(rows, "data")
+  return sortByFinancialDateAsc(rows, "data")
     .filter(row => matchesFinancePeriod(row, "data", filters))
     .filter(row => {
       if (filters.status === "all") return true;
