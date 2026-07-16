@@ -199,8 +199,13 @@
                   </div>
                   <div class="pncp-results-panel">
                     <div class="pncp-view-tools"><div><button class="btn btn-primary active" type="button"><i data-lucide="table-2"></i> Tabela</button><button class="btn btn-secondary" type="button" id="btn-pncp-mapa"><i data-lucide="map"></i> Mapa</button></div><button class="btn btn-secondary" type="button" id="btn-pncp-pdf"><i data-lucide="file-down"></i> Baixar PDF</button></div>
-                    <div class="pncp-results-title"><h3>Resultados da Consulta</h3><span id="licitacao-count">0 resultados</span><span>Página 1 de 17</span></div>
+                    <div class="pncp-results-title"><h3>Resultados da Consulta</h3><span id="licitacao-count">0 resultados</span><span id="licitacao-page-info">Página 1 de 1</span></div>
                     <div class="table-wrapper"><table class="pncp-table"><thead><tr><th>Processo & Status</th><th>Órgão & Unidade</th><th>Objeto & Palavras-chave</th><th>Valores & Datas</th></tr></thead><tbody id="licitacoes-list"></tbody></table></div>
+                    <div class="pncp-pagination">
+                      <button class="btn btn-secondary" type="button" id="btn-licitacao-prev"><i data-lucide="chevron-left"></i> Anterior</button>
+                      <span id="licitacao-page-range">0-0 de 0</span>
+                      <button class="btn btn-secondary" type="button" id="btn-licitacao-next">Próxima <i data-lucide="chevron-right"></i></button>
+                    </div>
                   </div>
                 </div>
               </section>

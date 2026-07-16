@@ -377,6 +377,8 @@ const LICITA_SAVED_KEY = "doc_financa_licitacoes_salvas";
 const LICITA_ALERTS_KEY = "doc_financa_alertas";
 const LICITA_SEARCHES_KEY = "doc_financa_buscas_salvas";
 const LICITA_HIDDEN_DEFAULT_SEARCHES_KEY = "doc_financa_buscas_padrao_ocultas";
+const LICITACOES_PAGE_SIZE = 4;
+let licitacoesCurrentPage = 1;
 const LICITA_CITY_COORDS = {
   "ourinhos|sp": [-22.9797, -49.8697],
   "assis|sp": [-22.6617, -50.4120],
@@ -496,20 +498,24 @@ function getFilteredLicitacoes() {
   };
 }
 
+function resetLicitacoesPage() {
+  licitacoesCurrentPage = 1;
+}
+
 function initLicitacoes() {
   ["licitacao-search", "licitacao-estado", "licitacao-categoria", "licitacao-modalidade", "licitacao-valor-min", "licitacao-cidade", "licitacao-status", "licitacao-raio"].forEach(id => {
     const field = document.getElementById(id);
     if (field && field.dataset.bound !== "true") {
       field.dataset.bound = "true";
-      field.addEventListener("input", renderLicitacoes);
-      field.addEventListener("change", renderLicitacoes);
+      field.addEventListener("input", () => { resetLicitacoesPage(); renderLicitacoes(); });
+      field.addEventListener("change", () => { resetLicitacoesPage(); renderLicitacoes(); });
     }
   });
 
   const filterBtn = document.getElementById("btn-buscar-licitacoes");
   if (filterBtn && filterBtn.dataset.bound !== "true") {
     filterBtn.dataset.bound = "true";
-    filterBtn.addEventListener("click", renderLicitacoes);
+    filterBtn.addEventListener("click", () => { resetLicitacoesPage(); renderLicitacoes(); });
   }
 
   const saveSearchBtn = document.getElementById("btn-salvar-busca");
@@ -538,17 +544,52 @@ function initLicitacoes() {
     alertBtn.dataset.bound = "true";
     alertBtn.addEventListener("click", createLicitaAlert);
   }
+
+  const prevBtn = document.getElementById("btn-licitacao-prev");
+  if (prevBtn && prevBtn.dataset.bound !== "true") {
+    prevBtn.dataset.bound = "true";
+    prevBtn.addEventListener("click", () => {
+      licitacoesCurrentPage = Math.max(1, licitacoesCurrentPage - 1);
+      renderLicitacoes();
+    });
+  }
+
+  const nextBtn = document.getElementById("btn-licitacao-next");
+  if (nextBtn && nextBtn.dataset.bound !== "true") {
+    nextBtn.dataset.bound = "true";
+    nextBtn.addEventListener("click", () => {
+      const totalPages = Math.max(1, Math.ceil(getFilteredLicitacoes().items.length / LICITACOES_PAGE_SIZE));
+      licitacoesCurrentPage = Math.min(totalPages, licitacoesCurrentPage + 1);
+      renderLicitacoes();
+    });
+  }
 }
 
 function renderLicitacoes() {
   const list = document.getElementById("licitacoes-list");
   if (!list) return;
   const { items: filtered } = getFilteredLicitacoes();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / LICITACOES_PAGE_SIZE));
+  licitacoesCurrentPage = Math.min(Math.max(1, licitacoesCurrentPage), totalPages);
+  const startIndex = (licitacoesCurrentPage - 1) * LICITACOES_PAGE_SIZE;
+  const pagedItems = filtered.slice(startIndex, startIndex + LICITACOES_PAGE_SIZE);
 
   const count = document.getElementById("licitacao-count");
   if (count) count.textContent = `${filtered.length} ${filtered.length === 1 ? "edital" : "editais"}`;
+  const pageInfo = document.getElementById("licitacao-page-info");
+  if (pageInfo) pageInfo.textContent = `Página ${licitacoesCurrentPage} de ${totalPages}`;
+  const pageRange = document.getElementById("licitacao-page-range");
+  if (pageRange) {
+    const first = filtered.length ? startIndex + 1 : 0;
+    const last = Math.min(startIndex + pagedItems.length, filtered.length);
+    pageRange.textContent = `${first}-${last} de ${filtered.length}`;
+  }
+  const prevBtn = document.getElementById("btn-licitacao-prev");
+  if (prevBtn) prevBtn.disabled = licitacoesCurrentPage <= 1;
+  const nextBtn = document.getElementById("btn-licitacao-next");
+  if (nextBtn) nextBtn.disabled = licitacoesCurrentPage >= totalPages;
 
-    list.innerHTML = filtered.length ? filtered.map(item => {
+    list.innerHTML = pagedItems.length ? pagedItems.map(item => {
     const prazo = daysUntil(item.encerramento);
     return `
       <tr>
