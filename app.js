@@ -3412,22 +3412,22 @@ function renderRHTables() {
 // 7. FROTA VEICULAR CONTROLLER
 function initFrota() {
   bindFrotaLaunchers();
-  const selectVeiculo = document.getElementById("aba-veiculo");
-  if (selectVeiculo) {
-    selectVeiculo.innerHTML = ERP_DATA.cadastro.veiculos.map(v => `<option value="${v.placa}">${v.marca} ${v.modelo} (${v.placa})</option>`).join('');
-  }
+  refreshFrotaVehicleSelect();
 
   const form = document.getElementById("form-frota-abastecimento");
-  if (form) {
+  if (form && form.dataset.bound !== "true") {
+    form.dataset.bound = "true";
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      const veiculo = selectVeiculo.value;
+      const selectVeiculo = document.getElementById("aba-veiculo");
+      const veiculo = selectVeiculo?.value || ensureFrotaVehicle();
+      if (!veiculo) return;
       const comb = document.getElementById("aba-combustivel").value;
       const litros = parseFloat(document.getElementById("aba-litros").value);
       const custo = parseFloat(document.getElementById("aba-custo").value);
 
       const newRefuel = {
-        id: `ABA-00${ERP_DATA.frota.abastecimentos.length + 1}`,
+        id: nextFrotaId("ABA", ERP_DATA.frota.abastecimentos),
         veiculo: veiculo,
         data: new Date().toISOString().split('T')[0],
         combustivel: comb,
@@ -3446,6 +3446,52 @@ function initFrota() {
   renderFrotaTables();
 }
 
+function nextFrotaId(prefix, list) {
+  const used = new Set(list.map(item => item.id));
+  let counter = list.length + 1;
+  let id = `${prefix}-${String(counter).padStart(3, "0")}`;
+  while (used.has(id)) {
+    counter += 1;
+    id = `${prefix}-${String(counter).padStart(3, "0")}`;
+  }
+  return id;
+}
+
+function normalizePlate(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function refreshFrotaVehicleSelect(selectedPlate) {
+  const selectVeiculo = document.getElementById("aba-veiculo");
+  if (!selectVeiculo) return;
+  selectVeiculo.innerHTML = ERP_DATA.cadastro.veiculos.length
+    ? ERP_DATA.cadastro.veiculos.map(v => `<option value="${v.placa}">${v.marca} ${v.modelo} (${v.placa})</option>`).join('')
+    : '<option value="">Cadastre um veículo primeiro</option>';
+  if (selectedPlate) selectVeiculo.value = selectedPlate;
+}
+
+function ensureFrotaVehicle(defaultPlate) {
+  const placa = normalizePlate(promptRequired("Placa do veículo:", defaultPlate || ERP_DATA.cadastro.veiculos[0]?.placa || ""));
+  if (!placa) return "";
+  let veiculo = ERP_DATA.cadastro.veiculos.find(v => normalizePlate(v.placa) === placa);
+  if (!veiculo) {
+    const marca = promptRequired("Marca:", "Marca") || "Marca";
+    const modelo = promptRequired("Modelo:", "Modelo") || "Modelo";
+    const ano = parseInt(promptRequired("Ano:", String(new Date().getFullYear())), 10) || new Date().getFullYear();
+    veiculo = {
+      id: nextFrotaId("VEI", ERP_DATA.cadastro.veiculos),
+      placa,
+      marca,
+      modelo,
+      ano,
+      status: "Operacional",
+      vencimentoLicenciamento: new Date().toISOString().split("T")[0]
+    };
+    ERP_DATA.cadastro.veiculos.unshift(veiculo);
+  }
+  refreshFrotaVehicleSelect(placa);
+  return placa;
+}
 
 function bindFrotaLaunchers() {
   document.querySelectorAll("[data-frota-new]").forEach(btn => {
@@ -3460,26 +3506,38 @@ function promptRequired(label, fallback) {
 }
 function createFrotaLancamento(kind) {
   if (kind === "documentacao") {
-    const placa = promptRequired("Placa do veículo:", ERP_DATA.cadastro.veiculos[0]?.placa || "");
+    const placa = ensureFrotaVehicle();
     if (!placa) return;
-    const veiculo = ERP_DATA.cadastro.veiculos.find(v => v.placa === placa) || ERP_DATA.cadastro.veiculos[0];
+    const veiculo = ERP_DATA.cadastro.veiculos.find(v => normalizePlate(v.placa) === placa);
     const vencimento = promptRequired("Novo vencimento do licenciamento (AAAA-MM-DD):", new Date().toISOString().split("T")[0]);
     const status = promptRequired("Situação geral:", "Operacional") || "Operacional";
-    if (veiculo) { veiculo.vencimentoLicenciamento = vencimento || veiculo.vencimentoLicenciamento; veiculo.status = status; saveState(); renderFrotaTables(); alert("Lançamento de documentação registrado!"); }
+    if (veiculo) {
+      veiculo.vencimentoLicenciamento = vencimento || veiculo.vencimentoLicenciamento;
+      veiculo.status = status;
+      saveState();
+      refreshFrotaVehicleSelect(placa);
+      renderCadastroTables();
+      renderFrotaTables();
+      alert("Lançamento de documentação registrado!");
+    }
     return;
   }
   if (kind === "manutencao") {
-    const veiculo = promptRequired("Placa do veículo:", ERP_DATA.cadastro.veiculos[0]?.placa || "");
+    const veiculo = ensureFrotaVehicle();
     if (!veiculo) return;
-    ERP_DATA.frota.manutencoes.unshift({ id: `MAN-${String(ERP_DATA.frota.manutencoes.length + 1).padStart(3, "0")}`, veiculo, servico: promptRequired("Serviço realizado/agendado:", "Revisão preventiva") || "Revisão preventiva", oficina: promptRequired("Oficina:", "Oficina credenciada") || "Oficina credenciada", data: promptRequired("Data do serviço (AAAA-MM-DD):", new Date().toISOString().split("T")[0]) || new Date().toISOString().split("T")[0], custo: parseFloat(promptRequired("Custo (R$):", "0")) || 0, status: promptRequired("Status:", "Agendado") || "Agendado" });
+    ERP_DATA.frota.manutencoes.unshift({ id: nextFrotaId("MAN", ERP_DATA.frota.manutencoes), veiculo, servico: promptRequired("Serviço realizado/agendado:", "Revisão preventiva") || "Revisão preventiva", oficina: promptRequired("Oficina:", "Oficina credenciada") || "Oficina credenciada", data: promptRequired("Data do serviço (AAAA-MM-DD):", new Date().toISOString().split("T")[0]) || new Date().toISOString().split("T")[0], custo: parseFloat(promptRequired("Custo (R$):", "0")) || 0, status: promptRequired("Status:", "Agendado") || "Agendado" });
   }
   if (kind === "abastecimento") { const form = document.getElementById("form-frota-abastecimento"); if (form) { form.scrollIntoView({ behavior: "smooth", block: "center" }); return; } }
   if (kind === "multa") {
-    const veiculo = promptRequired("Placa do veículo:", ERP_DATA.cadastro.veiculos[0]?.placa || "");
+    const veiculo = ensureFrotaVehicle();
     if (!veiculo) return;
-    ERP_DATA.frota.multas.unshift({ id: `MUL-${String(ERP_DATA.frota.multas.length + 1).padStart(3, "0")}`, veiculo, infracao: promptRequired("Infração:", "Infração de trânsito") || "Infração de trânsito", local: promptRequired("Localidade:", "Não informada") || "Não informada", data: promptRequired("Data (AAAA-MM-DD):", new Date().toISOString().split("T")[0]) || new Date().toISOString().split("T")[0], valor: parseFloat(promptRequired("Valor (R$):", "0")) || 0, status: promptRequired("Status de pagamento:", "Aguardando Pagamento") || "Aguardando Pagamento" });
+    ERP_DATA.frota.multas.unshift({ id: nextFrotaId("MUL", ERP_DATA.frota.multas), veiculo, infracao: promptRequired("Infração:", "Infração de trânsito") || "Infração de trânsito", local: promptRequired("Localidade:", "Não informada") || "Não informada", data: promptRequired("Data (AAAA-MM-DD):", new Date().toISOString().split("T")[0]) || new Date().toISOString().split("T")[0], valor: parseFloat(promptRequired("Valor (R$):", "0")) || 0, status: promptRequired("Status de pagamento:", "Aguardando Pagamento") || "Aguardando Pagamento" });
   }
-  saveState(); renderFrotaTables(); alert("Novo lançamento registrado!");
+  saveState();
+  refreshFrotaVehicleSelect();
+  renderCadastroTables();
+  renderFrotaTables();
+  alert("Novo lançamento registrado!");
 }
 function renderFrotaTables() {
   const docBody = document.getElementById("table-frota-doc-body");
