@@ -948,10 +948,14 @@ function commercialUpgradeFormHtml(kind) {
   const clientFields = kind === "orcamento"
     ? "<div class='form-group'><label>Cliente</label><select class='form-select' id='orc-cliente' required><option value=''>Selecione o Cliente</option></select></div>"
     : "<div class='form-row'><div class='form-group'><label>Cliente</label><select class='form-select' id='ped-cliente' required><option value=''>Selecione o Cliente</option></select></div><div class='form-group'><label>Previsão de Entrega</label><input type='date' class='form-input' id='ped-entrega' required></div></div>";
+  const descriptiveField = kind === "orcamento"
+    ? "<div class='form-group' style='grid-column:1/-1;'><label>Descritivo completo</label><textarea class='form-textarea' id='orc-descritivo-completo' rows='7' placeholder='Ex: Manutenção de prontuários, assessoria em compras, serviço contábil mensal, atendimento semanal e demais condições do orçamento.'></textarea></div>"
+    : "";
   const totalLabel = kind === "orcamento" ? "VALOR FINAL" : "TOTAL DO PEDIDO";
   const buttonLabel = kind === "orcamento" ? "Salvar Orçamento" : "Salvar Pedido";
   const icon = kind === "orcamento" ? "check-circle" : "shopping-bag";
   return clientFields +
+    descriptiveField +
     "<div class='line-item-box'><div class='line-item-title'>Produtos e serviços</div><div class='line-item-entry'>" +
     "<div class='form-group'><label>Tipo</label><select class='form-select' id='" + prefix + "-item-tipo'><option value='Produto'>Produto</option><option value='Serviço'>Serviço</option></select></div>" +
     "<div class='form-group line-item-grow'><label>Produto/Serviço</label><select class='form-select' id='" + prefix + "-item-produto'></select></div>" +
@@ -1080,6 +1084,7 @@ function setupCommercialUpgradeSubmits() {
         id: editingId || nextCommercialUpgradeId("ORC", ERP_DATA.comercial.orcamentos),
         cliente: document.getElementById("orc-cliente").value,
         data: record?.data || new Date().toISOString().split("T")[0],
+        descritivoCompleto: document.getElementById("orc-descritivo-completo")?.value.trim() || "",
         itens: cloneCommercialItems(commercialDraftUpgrade.orcamento),
         subtotal: totals.subtotal,
         impostos: 0,
@@ -1352,6 +1357,8 @@ function editCommercialRecord(kind, id) {
   if (kind === "orcamento") {
     const margemInput = document.getElementById("orc-margem");
     if (margemInput) margemInput.value = record.margem || 0;
+    const descritivoInput = document.getElementById("orc-descritivo-completo");
+    if (descritivoInput) descritivoInput.value = record.descritivoCompleto || "";
   } else {
     const entregaInput = document.getElementById("ped-entrega");
     if (entregaInput) entregaInput.value = record.entregaEstimada || "";
@@ -1410,6 +1417,7 @@ function generateOrderFromBudget(id) {
     cliente: orc.cliente,
     data: new Date().toISOString().split("T")[0],
     itens: cloneCommercialItems(normalizeCommercialUpgradeItems(orc, "Orçamento")),
+    descritivoCompleto: orc.descritivoCompleto || "",
     total: orc.total,
     status: "Aguardando Aprovação",
     entregaEstimada: futureDateIso(7),
@@ -1552,9 +1560,12 @@ function generateCommercialPdf(kind, id) {
   const extraHtml = kind === "pedido" 
     ? "<div><span class='muted'>Previsão de entrega</span><br><strong>" + formatDateBR(record.entregaEstimada) + "</strong></div>"
     : "";
+  const descritivoHtml = record.descritivoCompleto
+    ? "<section class='box'><strong>Descritivo</strong><div class='description-block'>" + escapeHtml(record.descritivoCompleto) + "</div></section>"
+    : "";
   const taxLine = "";
-  const contentHtml = "<header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div>" + extraHtml + "</section><section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section>";
-  const branded = wrapPdfWithBranding(contentHtml, "body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}");
+  const contentHtml = "<header><div><h1>" + title + "</h1><div class='muted'>APP ADM - Sistema Integrado de Gestão ERP</div></div><div><strong>" + record.id + "</strong><br><span class='muted'>Emissão: " + new Date().toLocaleDateString("pt-BR") + "</span></div></header><section class='box grid'><div><span class='muted'>Cliente</span><br><strong>" + record.cliente + "</strong></div><div><span class='muted'>Data do registro</span><br><strong>" + record.data + "</strong></div><div><span class='muted'>Status</span><br><strong>" + record.status + "</strong></div>" + extraHtml + "</section>" + descritivoHtml + "<section class='box'><strong>Produtos e serviços</strong><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>" + rows + "</tbody></table></section><section class='totals'><div class='total-line'><span>Subtotal</span><strong>" + formatBRL(subtotal) + "</strong></div>" + taxLine + "<div class='total-line grand'><span>Total</span><strong>" + formatBRL(record.total) + "</strong></div></section>";
+  const branded = wrapPdfWithBranding(contentHtml, "body{font-family:Arial,sans-serif;color:#111827;margin:40px}header{border-bottom:2px solid #4f46e5;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;gap:24px}h1{margin:0;font-size:26px}.muted{color:#6b7280;font-size:13px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.description-block{white-space:pre-wrap;line-height:1.55;margin-top:10px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#f3f4f6;text-align:left;font-size:12px;text-transform:uppercase}th,td{border-bottom:1px solid #e5e7eb;padding:10px}.totals{margin-left:auto;width:320px}.total-line{display:flex;justify-content:space-between;padding:8px 0}.grand{font-size:20px;font-weight:800;border-top:2px solid #111827;margin-top:8px;padding-top:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}");
   const html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><title>" + title + " " + record.id + "</title><style>" + branded.styles + "</style></head><body class='" + branded.bodyClass + "'>" + branded.body + "</body></html>";
   printHtmlDocument(html, "commercial-pdf-frame", title + " " + record.id);
 }
