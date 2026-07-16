@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOC Finança - Licitações 360</title>
+  <title>DOC Finança 360</title>
   <link rel="stylesheet" href="style.css">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -20,7 +20,7 @@
           <i data-lucide="landmark"></i>
         </div>
         <h2>DOC Finança 360</h2>
-        <p>Consulta e monitoramento de licitações públicas do PNCP</p>
+        <p>Gestão administrativa, financeira e operacional</p>
       </div>
       <form id="login-form">
         <div class="form-group">
@@ -61,7 +61,7 @@
           <span class="nav-section-title">Principal</span>
           <a class="nav-item active" data-view="dashboard">
             <i data-lucide="layout-dashboard"></i>
-            <span>Licitações</span>
+            <span>Dashboard</span>
           </a>
         </div>
 
@@ -131,14 +131,14 @@
       <!-- Header -->
       <header>
         <div class="page-title-container">
-          <h1 class="page-title" id="current-view-title">Licitações</h1>
-          <span class="page-subtitle" id="current-view-subtitle">Consulta avançada ao Portal Nacional de Contratações Públicas</span>
+          <h1 class="page-title" id="current-view-title">Dashboard</h1>
+          <span class="page-subtitle" id="current-view-subtitle">Visão geral da empresa e pendências operacionais</span>
         </div>
 
         <div class="header-actions">
           <div class="search-bar">
             <i data-lucide="search"></i>
-            <input type="text" placeholder="Buscar no PNCP por órgão, objeto, CNPJ ou palavra-chave..." id="global-search">
+            <input type="text" placeholder="Buscar no sistema..." id="global-search">
           </div>
           <button class="header-btn" id="btn-notifications" title="Notificações">
             <i data-lucide="bell"></i>
@@ -151,71 +151,20 @@
       <div class="view-container">
         <!-- 1. DASHBOARD VIEW -->
         <div class="view-content active" id="view-dashboard">
-          <section class="pncp-shell">
-            <aside class="pncp-sidebar">
-              <div class="pncp-brand-mini">
-                <i data-lucide="radar"></i>
-                <div><strong>Licitações 360</strong><span>licitacoes360.com.br</span></div>
+          <div class="section-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title"><i data-lucide="activity"></i> Resumo Operacional</h3>
               </div>
-              <button class="pncp-nav active" type="button" data-pncp-section="pncp-home"><i data-lucide="home"></i> Início</button>
-              <button class="pncp-nav" type="button" data-pncp-section="pncp-consulta"><i data-lucide="search"></i> Nova Consulta PNCP</button>
-              <button class="pncp-nav" type="button" data-pncp-section="pncp-salvas"><i data-lucide="bookmark"></i> Buscas Salvas</button>
-            </aside>
-
-            <div class="pncp-main">
-              <section class="pncp-section active" id="pncp-home">
-                <div class="pncp-page-head">
-                  <div>
-                    <h2>Bem-vindo ao Licitações 360</h2>
-                    <p>Visão geral das suas consultas de licitações</p>
-                  </div>
-                  <button class="btn btn-primary" type="button" data-pncp-section="pncp-consulta"><i data-lucide="plus"></i> Nova Consulta</button>
-                </div>
-                <div class="pncp-metrics">
-                  <div><span>Total de Consultas</span><strong id="kpi-receita">0</strong><em>Consultas realizadas</em></div>
-                  <div><span>Palavras-Chave</span><strong id="kpi-frota">0</strong><em>Palavras cadastradas</em></div>
-                  <div><span>Últimos 7 Dias</span><strong id="kpi-vendas">0</strong><em>Licitações encontradas</em></div>
-                  <div><span>Média Diária</span><strong id="kpi-alertas">0</strong><em>Licitações por dia</em></div>
-                </div>
-                <div class="pncp-quick-grid">
-                  <button type="button" data-pncp-section="pncp-consulta"><i data-lucide="search"></i><strong>Realizar Consulta</strong><span>Acesse a seção PNCP para consultar o portal</span></button>
-                  <button type="button" data-pncp-section="pncp-consulta"><i data-lucide="sliders-horizontal"></i><strong>Filtros Avançados</strong><span>Utilize filtros para refinar suas buscas</span></button>
-                  <button type="button" data-pncp-section="pncp-salvas"><i data-lucide="key-round"></i><strong>Palavras-Chave</strong><span>Gerencie palavras-chave e consultas favoritas</span></button>
-                </div>
-              </section>
-
-              <section class="pncp-section" id="pncp-consulta">
-                <div class="pncp-page-head">
-                  <div><h2>Consulta PNCP</h2><p>Portal Nacional de Contratações Públicas</p></div>
-                  <div class="pncp-head-actions"><button class="btn btn-secondary" id="btn-limpar-filtros"><i data-lucide="rotate-ccw"></i> Limpar</button><button class="btn btn-primary" id="btn-buscar-licitacoes"><i data-lucide="search"></i> Buscar</button></div>
-                </div>
-                <div class="pncp-layout">
-                  <div class="pncp-filter-panel">
-                    <details open><summary><i data-lucide="key-round"></i> Palavras-chave</summary><div class="pncp-filter-body"><div class="pncp-keyword-entry"><input class="form-input" id="alert-keyword" placeholder="Nova palavra-chave"><button class="btn btn-secondary btn-icon-only" id="btn-criar-alerta"><i data-lucide="plus"></i></button></div><div class="pncp-keywords" id="saved-alerts"></div><select class="form-select" id="licitacao-categoria"><option value="">Selecione as palavras-chave para a busca</option><option value="Serviços">CONSULTORIA / ASSESSORIA</option><option value="Obras">ELABORAÇÃO DE PROJETOS</option><option value="Saúde">Gêneros Alimentícios</option><option value="Tecnologia">MÍDIA DIGITAL</option></select></div></details>
-                    <details open><summary><i data-lucide="filter"></i> Filtros Básicos</summary><div class="pncp-filter-body"><label>Órgão</label><input id="licitacao-search" class="form-input" placeholder="Ex: Ministério da Educação"><label>Modalidade</label><select id="licitacao-modalidade" class="form-select"><option value="">Selecione</option><option value="Pregão Eletrônico">Pregão Eletrônico</option><option value="Concorrência">Concorrência</option><option value="Dispensa">Dispensa</option></select></div></details>
-                    <details><summary><i data-lucide="map-pin"></i> Filtros de Localização</summary><div class="pncp-filter-body"><label>Estado</label><select id="licitacao-estado" class="form-select"><option value="">Todos os estados</option><option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option><option value="PR">PR</option><option value="TO">TO</option><option value="PE">PE</option><option value="RS">RS</option><option value="GO">GO</option></select><label>Cidade / Município</label><input id="licitacao-cidade" class="form-input" placeholder="Ex: Ourinhos"><label>Raio</label><select id="licitacao-raio" class="form-select"><option value="">Sem raio</option><option value="50 km">50 km</option><option value="100 km">100 km</option><option value="200 km">200 km</option></select></div></details>
-                    <details><summary><i data-lucide="sliders-horizontal"></i> Filtros Avançados</summary><div class="pncp-filter-body"><label>Valor mínimo</label><input id="licitacao-valor-min" class="form-input" type="number" min="0" step="1000" placeholder="Valor mínimo"><label>Situação</label><select id="licitacao-status" class="form-select"><option value="">Todas</option><option value="Aberto">Aberto</option><option value="Fechado">Fechado</option><option value="Aberto-Fechado">Aberto-Fechado</option></select></div></details>
-                    <button class="btn btn-secondary" type="button" id="btn-salvar-busca"><i data-lucide="bookmark-plus"></i> Salvar busca</button>
-                  </div>
-                  <div class="pncp-results-panel">
-                    <div class="pncp-view-tools"><div><button class="btn btn-primary active" type="button"><i data-lucide="table-2"></i> Tabela</button><button class="btn btn-secondary" type="button" id="btn-pncp-mapa"><i data-lucide="map"></i> Mapa</button></div><button class="btn btn-secondary" type="button" id="btn-pncp-pdf"><i data-lucide="file-down"></i> Baixar PDF</button></div>
-                    <div class="pncp-results-title"><h3>Resultados da Consulta</h3><span id="licitacao-count">0 resultados</span><span id="licitacao-page-info">Página 1 de 1</span></div>
-                    <div class="table-wrapper"><table class="pncp-table"><thead><tr><th>Processo & Status</th><th>Órgão & Unidade</th><th>Objeto & Palavras-chave</th><th>Valores & Datas</th></tr></thead><tbody id="licitacoes-list"></tbody></table></div>
-                    <div class="pncp-pagination">
-                      <button class="btn btn-secondary" type="button" id="btn-licitacao-prev"><i data-lucide="chevron-left"></i> Anterior</button>
-                      <span id="licitacao-page-range">0-0 de 0</span>
-                      <button class="btn btn-secondary" type="button" id="btn-licitacao-next">Próxima <i data-lucide="chevron-right"></i></button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section class="pncp-section" id="pncp-salvas">
-                <div class="pncp-page-head"><div><h2>Buscas Salvas</h2><p>Acesse rapidamente suas consultas favoritas</p></div><button class="btn btn-primary" data-pncp-section="pncp-consulta"><i data-lucide="plus"></i> Nova Consulta</button></div>
-                <div class="pncp-saved-grid" id="licitacao-saved-searches"></div>
-              </section>
+              <div class="report-kpi-grid" id="dashboard-kpis"></div>
             </div>
-          </section>
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title"><i data-lucide="bell"></i> Pendências e Alertas</h3>
+              </div>
+              <div class="notifications-list" id="dashboard-notifications"></div>
+            </div>
+          </div>
         </div>
 
         <!-- 2. COMERCIAL VIEW -->
