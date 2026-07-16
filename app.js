@@ -3134,21 +3134,55 @@ function crc16Pix(payload) {
 
 function renderForecastChart() { renderForecastTable(); }
 
+function getMonthStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function getMonthEnd(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function getMonthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthLabel(date) {
+  const labels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  return `${labels[date.getMonth()]}/${String(date.getFullYear()).slice(-2)}`;
+}
+
+function isFinancialSettled(item) {
+  const status = normalizeText(item?.status || "");
+  return status === "pago" || status === "recebido";
+}
+
+function getProjectedAmountForMonth(items, monthStart, monthEnd, valueField, currentMonthStart) {
+  return items.reduce((sum, item) => {
+    if (isFinancialSettled(item)) return sum;
+    const date = getFinancialDateValue(item, "vencimento");
+    if (!date) return sum;
+    const belongsToMonth = date >= monthStart && date <= monthEnd;
+    const overdueCarriedToCurrentMonth = getMonthKey(monthStart) === getMonthKey(currentMonthStart) && date < currentMonthStart;
+    return belongsToMonth || overdueCarriedToCurrentMonth ? sum + (Number(item[valueField]) || 0) : sum;
+  }, 0);
+}
+
 function getForecastRows() {
   const cenario = document.getElementById("select-cenario")?.value || "realista";
   let multiplier = 1.0;
   if (cenario === "conservador") multiplier = 0.85;
   if (cenario === "otimista") multiplier = 1.2;
-  const labels = ["Jul/26", "Ago/26", "Set/26", "Out/26", "Nov/26", "Dez/26"];
-  const baselineReceitas = [150000, 162000, 158000, 175000, 182000, 210000];
-  const despesas = [110000, 115000, 112000, 118000, 120000, 135000];
+  const today = new Date();
+  const currentMonthStart = getMonthStart(today);
   let saldo = ERP_DATA.financeiro.fluxoCaixa.saldoAtual || 0;
-  return labels.map((mes, index) => {
-    const receitas = baselineReceitas[index] * multiplier;
-    const despesasFixas = despesas[index];
+  return Array.from({ length: 6 }, (_, index) => {
+    const monthStart = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() + index, 1);
+    const monthEnd = getMonthEnd(monthStart);
+    const receitas = getProjectedAmountForMonth(ERP_DATA.financeiro.contasReceber, monthStart, monthEnd, "valor", currentMonthStart) * multiplier;
+    const despesasFixas = getProjectedAmountForMonth(ERP_DATA.financeiro.contasPagar, monthStart, monthEnd, "valor", currentMonthStart);
     const resultado = receitas - despesasFixas;
     saldo += resultado;
-    return { mes, data: mes, receitas, despesas: despesasFixas, resultado, saldo, cenario };
+    return { mes: getMonthLabel(monthStart), data: monthStart.toISOString().split("T")[0], receitas, despesas: despesasFixas, resultado, saldo, cenario };
   });
 }
 
