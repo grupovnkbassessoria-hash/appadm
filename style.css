@@ -1042,6 +1042,15 @@ tr:hover td {
 .commercial-form-panel.hidden {
   display: none;
 }
+.commercial-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.commercial-form-actions .btn-primary {
+  min-width: 240px;
+}
 #tab-orcamentos .panel-header,
 #tab-pedidos .panel-header {
   gap: 1rem;

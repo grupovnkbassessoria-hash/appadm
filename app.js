@@ -924,6 +924,8 @@ function initComercial() {
   setDefaultCommercialDeliveryDate();
   renderCommercialUpgradeDraft("orcamento");
   renderCommercialUpgradeDraft("pedido");
+  hideCommercialForm("orcamento");
+  hideCommercialForm("pedido");
   renderComercialTables();
   initContratosComerciais();
 }
@@ -995,6 +997,7 @@ function commercialUpgradeFormHtml(kind) {
   const totalLabel = kind === "orcamento" ? "VALOR FINAL" : "TOTAL DO PEDIDO";
   const buttonLabel = kind === "orcamento" ? "Salvar Orçamento" : "Salvar Pedido";
   const icon = kind === "orcamento" ? "check-circle" : "shopping-bag";
+  const cancelButton = "<button type='button' class='btn btn-secondary' data-commercial-action='close-form' data-kind='" + kind + "'><i data-lucide='x'></i> Cancelar</button>";
   return clientFields +
     descriptiveField +
     "<div class='line-item-box'><div class='line-item-title'>Produtos e serviços</div><div class='line-item-entry'>" +
@@ -1004,7 +1007,7 @@ function commercialUpgradeFormHtml(kind) {
     "<div class='form-group'><label>Valor Unitário</label><input type='number' class='form-input' id='" + prefix + "-item-valor' min='0' step='0.01' value='0'></div>" +
     "<button type='button' class='btn btn-secondary line-item-add' id='btn-add-" + prefix + "-item' title='Adicionar item'><i data-lucide='plus'></i></button></div>" +
     "<div class='table-wrapper line-items-table'><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th><th></th></tr></thead><tbody id='" + prefix + "-itens-body'></tbody></table></div></div>" +
-    "<div class='commercial-summary'><div class='commercial-total'><span>" + totalLabel + "</span><strong id='" + prefix + "-resultado-val'>R$ 0,00</strong></div><button type='submit' class='btn btn-primary'><i data-lucide='" + icon + "'></i> " + buttonLabel + "</button></div>";
+    "<div class='commercial-summary'><div class='commercial-total'><span>" + totalLabel + "</span><strong id='" + prefix + "-resultado-val'>R$ 0,00</strong></div><div class='commercial-form-actions'>" + cancelButton + "<button type='submit' class='btn btn-primary'><i data-lucide='" + icon + "'></i> " + buttonLabel + "</button></div></div>";
 }
 
 function populateClientSelectors() {
@@ -1377,6 +1380,7 @@ function handleCommercialAction(action, kind, id) {
   if (action === "delete") deleteCommercialRecord(kind, id);
   if (action === "generate-order") generateOrderFromBudget(id);
   if (action === "approve-order") approveOrderForFiscal(id);
+  if (action === "close-form") resetCommercialForm(kind);
 }
 
 function switchCommercialTab(tabId) {
