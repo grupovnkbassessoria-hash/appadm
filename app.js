@@ -400,7 +400,6 @@ const COMMERCIAL_SERVICES_UPGRADE = [
 
 let commercialDraftUpgrade = { orcamento: [], pedido: [] };
 let commercialEditingUpgrade = { orcamento: null, pedido: null };
-let pendingFiscalEmissionId = null;
 
 function initComercial() {
   buildCommercialUpgradeForms();
@@ -499,12 +498,11 @@ function commercialUpgradeFormHtml(kind) {
 }
 
 function populateClientSelectors() {
-  ["orc-cliente", "ped-cliente", "fiscal-destinatario", "receber-cliente", "fat-cliente"].forEach(function(id) {
+  ["orc-cliente", "ped-cliente", "receber-cliente", "fat-cliente"].forEach(function(id) {
     const select = document.getElementById(id);
     if (!select) return;
     const currentValue = select.value;
-    const placeholder = id === "fiscal-destinatario" ? "" : "<option value=''>Selecione o Cliente</option>";
-    select.innerHTML = placeholder + clientSelectOptionsHtml();
+    select.innerHTML = "<option value=''>Selecione o Cliente</option>" + clientSelectOptionsHtml();
     if (currentValue && ERP_DATA.cadastro.clientes.some(client => client.nome === currentValue)) {
       select.value = currentValue;
     }
@@ -1791,59 +1789,6 @@ function renderCadastroTables() {
 
 // 4. FISCAL CONTROLLER
 function initFiscal() {
-  const form = document.getElementById("form-emissao-fiscal");
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const tipo = document.getElementById("fiscal-tipo").value;
-      const dest = document.getElementById("fiscal-destinatario").value;
-      const val = parseFloat(document.getElementById("fiscal-valor").value);
-
-      const submitBtn = form.querySelector("button[type='submit']");
-      const originalText = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-
-      let message = "Registrando simulação fiscal...";
-      if (tipo === "NFs") {
-        message = "Registrando simulação NFS-e...";
-      } else if (tipo === "NFe") {
-        message = "Registrando simulação NF-e...";
-      }
-
-      submitBtn.innerHTML = `<i data-lucide="refresh-cw" class="animate-spin" style="width: 16px; height: 16px; display: inline-block;"></i> ${message}`;
-      lucide.createIcons();
-
-      setTimeout(() => {
-        const pendingRecord = pendingFiscalEmissionId
-          ? ERP_DATA.fiscal.notasEmitidas.find(nf => nf.id === pendingFiscalEmissionId)
-          : ERP_DATA.fiscal.notasEmitidas.find(nf => nf.destinatario === dest && Number(nf.valor) === val && String(nf.status || "").toLowerCase().includes("aguardando"));
-        const newNF = {
-          id: pendingRecord?.id || `NF-${1026 + ERP_DATA.fiscal.notasEmitidas.length}`,
-          destinatario: dest,
-          tipo: tipo,
-          valor: val,
-          emissao: new Date().toISOString(),
-          status: "Simulada (integração pendente)",
-          xmlFile: `NF352606${Math.floor(1000000000 + Math.random() * 9000000000)}.xml`,
-          origem: pendingRecord?.origem
-        };
-
-        if (pendingRecord) Object.assign(pendingRecord, newNF);
-        else ERP_DATA.fiscal.notasEmitidas.unshift(newNF);
-        pendingFiscalEmissionId = null;
-        saveState();
-        renderFiscalData();
-        form.reset();
-
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        lucide.createIcons();
-
-        alert(`Pré-registro fiscal ${newNF.id} salvo com sucesso.\n\nA autorização oficial será liberada quando a integração fiscal estiver configurada.`);
-      }, 1500);
-    });
-  }
-
   // Contabilidade export button
   const contabBtn = document.getElementById("btn-export-contabilidade");
   if (contabBtn) {
@@ -1883,7 +1828,7 @@ function renderFiscalData() {
       const badgeClass = isPending ? "badge-warning" : "badge-success";
       const badgeIcon = isPending ? "clock" : "shield-check";
       const actions = isPending
-        ? `<button class="btn btn-primary" onclick="prepararEmissaoFiscal('${nf.id}')" title="Preparar emissão"><i data-lucide="send"></i> Emitir</button>`
+        ? `<button class="btn btn-secondary" onclick="alert('Configure a integração fiscal para emitir este documento oficialmente.')" title="Integração fiscal pendente"><i data-lucide="clock"></i> Pendente</button>`
         : `<button class="btn btn-secondary btn-icon-only" onclick="baixarXML('${nf.id}', '${nf.xmlFile}')" title="Baixar XML"><i data-lucide="code"></i></button>
           <button class="btn btn-secondary btn-icon-only" onclick="baixarPDFNota('${nf.id}', '${nf.destinatario}', ${nf.valor}, '${nf.tipo}')" title="Visualizar/Imprimir Danfe"><i data-lucide="file-text"></i></button>`;
       return `
@@ -1901,20 +1846,8 @@ function renderFiscalData() {
   }
 }
 
-window.prepararEmissaoFiscal = function(id) {
-  const nf = ERP_DATA.fiscal.notasEmitidas.find(item => item.id === id);
-  if (!nf) return;
-  pendingFiscalEmissionId = id;
-  const tipoSelect = document.getElementById("fiscal-tipo");
-  const destinatarioSelect = document.getElementById("fiscal-destinatario");
-  const valorInput = document.getElementById("fiscal-valor");
-  if (tipoSelect) tipoSelect.value = "NFs";
-  if (destinatarioSelect) destinatarioSelect.value = nf.destinatario;
-  if (valorInput) valorInput.value = nf.valor;
-  alert("Dados carregados no formulário fiscal para emissão da nota de " + nf.destinatario + ".");
-};
-
 window.baixarXML = function(id, xmlFilename) {
+  const nf = ERP_DATA.fiscal.notasEmitidas.find(item => item.id === id);
   const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
   <NFe>
@@ -1934,7 +1867,7 @@ window.baixarXML = function(id, xmlFilename) {
         <xNome>${getActiveCompany()?.razaoSocial || 'Empresa'}</xNome>
       </emit>
       <dest>
-        <xNome>${document.getElementById("fiscal-destinatario")?.value || 'Destinatário'}</xNome>
+        <xNome>${nf?.destinatario || 'Destinatário'}</xNome>
       </dest>
       <det nItem="1">
         <prod>
