@@ -223,12 +223,83 @@ export const initialData = {
         estoque: { movimentacoes: [] },
         administrativo: { documentos: [] }
       }
+    },
+    {
+      id: "comp-demo",
+      cnpj: "00.000.000/0001-00",
+      razaoSocial: "Empresa Fictícia - Demonstração para Clientes",
+      pixKey: "docassessoria.our@gmail.com",
+      data: {
+        comercial: {
+          orcamentos: [
+            { id: "ORC-001", cliente: "Cliente Demonstração Ltda", data: "2026-07-01", subtotal: 12500.00, impostos: 2250.00, total: 14750.00, margem: 32, status: "Aprovado" }
+          ],
+          pedidos: [
+            { id: "PED-001", cliente: "Cliente Demonstração Ltda", data: "2026-07-02", total: 14750.00, status: "Preparando", entregaEstimada: "2026-07-20" }
+          ],
+          contratos: [
+            { id: "CON-001", titulo: "Contrato de Demonstração", tipo: "Cliente", parceiro: "Cliente Demonstração Ltda", vigenciaInicio: "2026-07-01", vigenciaFim: "2027-07-01", valorMensal: 3200.00, status: "Ativo" }
+          ]
+        },
+        cadastro: {
+          clientes: [
+            { id: "CLI-001", nome: "Cliente Demonstração Ltda", cnpj: "11.111.111/0001-11", email: "cliente@demonstracao.com.br", telefone: "(11) 3000-0000", totalComprado: 14750.00 }
+          ],
+          fornecedores: [
+            { id: "FOR-001", nome: "Fornecedor Modelo Ltda", cnpj: "22.222.222/0001-22", contato: "Atendimento", telefone: "(11) 4000-0000", qualidade: "Bom", prazoMedio: "7 dias" }
+          ],
+          colaboradores: [
+            { id: "COL-001", nome: "Administrador Demonstração", cargo: "Administrador", departamento: "Diretoria", salario: 5500.00, admissao: "2026-07-01", status: "Ativo" }
+          ],
+          veiculos: [
+            { id: "VEI-001", placa: "DEM-2026", modelo: "Veículo Demonstrativo", marca: "Modelo", ano: 2026, status: "Operacional", vencimentoLicenciamento: "2027-07-01" }
+          ],
+          produtos: [
+            { id: "PROD-001", nome: "Serviço de Demonstração", categoria: "Serviços", precoVenda: 3200.00, estoqueAtual: 999, custoMedio: 1200.00, validade: null, imagem: "" }
+          ]
+        },
+        fiscal: {
+          notasEmitidas: [
+            { id: "NF-0001", destinatario: "Cliente Demonstração Ltda", tipo: "NFs", valor: 3200.00, emissao: "2026-07-05T10:00:00", status: "Autorizada (SEFAZ)", xmlFile: "NFs-demo.xml" }
+          ],
+          comunicacaoContabilidade: { ultimoEnvio: "2026-07-05", arquivosPendentes: 1, competenciaAtual: "07/2026" }
+        },
+        financeiro: {
+          contasPagar: [
+            { id: "PAG-001", descricao: "Despesa demonstrativa", fornecedor: "Fornecedor Modelo Ltda", vencimento: "2026-07-25", valor: 850.00, status: "A Pagar" }
+          ],
+          contasReceber: [
+            { id: "REC-001", descricao: "Mensalidade demonstrativa", cliente: "Cliente Demonstração Ltda", vencimento: "2026-07-30", valor: 3200.00, status: "A Receber" }
+          ],
+          fluxoCaixa: {
+            diario: [
+              { data: "01/07", receita: 3200, despesa: 850 },
+              { data: "02/07", receita: 14750, despesa: 1800 }
+            ],
+            saldoAtual: 24500.00,
+            projecaoMes: 38200.00
+          }
+        },
+        rh: {
+          contratosTrabalho: [
+            { id: "CT-001", colaborador: "Administrador Demonstração", tipo: "CLT", inicio: "2026-07-01", termino: "Indeterminado", status: "Ativo" }
+          ]
+        },
+        frota: { manutencoes: [], abastecimentos: [], multas: [] },
+        estoque: { movimentacoes: [] },
+        administrativo: {
+          documentos: [
+            { id: "DOC-001", nome: "Documento Demonstrativo", categoria: "Licenças", emissao: "2026-07-01", vencimento: "2027-07-01", status: "Válido" }
+          ]
+        }
+      }
     }
   ],
   users: [
     { username: "admin", password: "123456", cnpj: "12.345.678/0001-90" },
     { username: "veloz", password: "654321", cnpj: "98.765.432/0001-10" },
     { username: "osnei", password: "031705", cnpj: "67.873.641/0001-21" },
-    { username: "lucas", password: "688551", cnpj: "57.135.668/0001-63" }
+    { username: "lucas", password: "688551", cnpj: "57.135.668/0001-63" },
+    { username: "docassessoria.our@gmail.com", password: "031705", cnpj: "00.000.000/0001-00" }
   ]
 };
