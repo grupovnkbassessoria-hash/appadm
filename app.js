@@ -2526,6 +2526,7 @@ let editingFaturamentoId = null;
 function initFinanceiro() {
   setupFinancialLaunchers();
   setupManualBilling();
+  setupFinanceFilters();
   renderFinanceiroTables();
 
   // Accounts Payable/Receivable buttons Actions (Mark as Paid/Received)
@@ -2679,6 +2680,129 @@ function setDefaultFinancialDates(kind) {
   });
 }
 
+function setupFinanceFilters() {
+  ["pagar", "receber", "faturamento", "fluxo"].forEach(kind => {
+    const controls = document.querySelectorAll(`[id^="filter-${kind}-"]`);
+    controls.forEach(control => {
+      if (control.dataset.financeFilterBound === "true") return;
+      control.dataset.financeFilterBound = "true";
+      control.addEventListener("change", () => {
+        updateFinanceCustomPeriodVisibility(kind);
+        if (kind === "fluxo") {
+          renderForecastTable();
+        } else {
+          renderFinanceiroTables();
+        }
+      });
+    });
+    updateFinanceCustomPeriodVisibility(kind);
+  });
+}
+
+function updateFinanceCustomPeriodVisibility(kind) {
+  const period = document.getElementById(`filter-${kind}-period`)?.value || "all";
+  const wrapper = document.querySelector(`[data-finance-filter="${kind}"]`);
+  if (!wrapper) return;
+  wrapper.querySelectorAll(".finance-custom-period").forEach(field => {
+    field.classList.toggle("hidden", period !== "custom");
+  });
+}
+
+function getFinanceFilters(kind) {
+  return {
+    period: document.getElementById(`filter-${kind}-period`)?.value || "all",
+    status: document.getElementById(`filter-${kind}-status`)?.value || "all",
+    start: document.getElementById(`filter-${kind}-start`)?.value || "",
+    end: document.getElementById(`filter-${kind}-end`)?.value || ""
+  };
+}
+
+function parseFinancialDate(value) {
+  if (!value || typeof value !== "string") return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const [year, month, day] = value.split("T")[0].split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const shortDate = value.match(/^(\d{2})\/(\d{2})(?:\/(\d{4}))?$/);
+  if (shortDate) {
+    const currentYear = new Date().getFullYear();
+    return new Date(Number(shortDate[3]) || currentYear, Number(shortDate[2]) - 1, Number(shortDate[1]));
+  }
+  const monthLabel = value.match(/^([A-Za-zÀ-ÿ]{3})\/(\d{2})$/);
+  if (monthLabel) {
+    const months = { jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5, jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11 };
+    const key = monthLabel[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (key in months) return new Date(2000 + Number(monthLabel[2]), months[key], 1);
+  }
+  return null;
+}
+
+function getFinancialDateValue(item, field) {
+  return parseFinancialDate(item?.[field]);
+}
+
+function sortByFinancialDateDesc(items, field) {
+  return [...items].sort((a, b) => {
+    const dateA = getFinancialDateValue(a, field);
+    const dateB = getFinancialDateValue(b, field);
+    return (dateB ? dateB.getTime() : 0) - (dateA ? dateA.getTime() : 0);
+  });
+}
+
+function isSameMonth(date, reference) {
+  return date && date.getFullYear() === reference.getFullYear() && date.getMonth() === reference.getMonth();
+}
+
+function matchesFinancePeriod(item, dateField, filters) {
+  const date = getFinancialDateValue(item, dateField);
+  if (filters.period === "all") return true;
+  if (!date) return false;
+  const today = new Date();
+  if (filters.period === "current") return isSameMonth(date, today);
+  if (filters.period === "previous") {
+    return isSameMonth(date, new Date(today.getFullYear(), today.getMonth() - 1, 1));
+  }
+  if (filters.period === "custom") {
+    const start = parseFinancialDate(filters.start);
+    const end = parseFinancialDate(filters.end);
+    if (start && date < start) return false;
+    if (end && date > end) return false;
+  }
+  return true;
+}
+
+function getFinancialStatusInfo(item) {
+  const rawStatus = normalizeText(item?.status || "");
+  const dueDate = getFinancialDateValue(item, "vencimento");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPaid = rawStatus === "pago" || rawStatus === "recebido";
+  if (isPaid) return { key: "paid", label: item.status || "Pago", badge: "badge-success" };
+  if (rawStatus === "atrasado" || (dueDate && dueDate < today)) {
+    return { key: "overdue", label: "Vencido", badge: "badge-danger" };
+  }
+  if (dueDate && dueDate >= today) return { key: "due", label: "A vencer", badge: "badge-warning" };
+  return { key: "pending", label: "Pendente", badge: "badge-warning" };
+}
+
+function matchesFinanceStatus(item, filters) {
+  if (filters.status === "all") return true;
+  const info = getFinancialStatusInfo(item);
+  if (filters.status === "pending") return info.key !== "paid";
+  return info.key === filters.status;
+}
+
+function filterFinanceItems(items, kind, dateField) {
+  const filters = getFinanceFilters(kind);
+  return sortByFinancialDateDesc(items, dateField)
+    .filter(item => matchesFinancePeriod(item, dateField, filters))
+    .filter(item => matchesFinanceStatus(item, filters));
+}
+
+function getFinanceEmptyRow(colspan, message) {
+  return `<tr><td colspan="${colspan}" style="text-align:center;color:var(--text-muted);padding:2rem;">${message}</td></tr>`;
+}
+
 function formatShortDate(isoDate) {
   if (!isoDate) return new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const [year, month, day] = isoDate.split("-");
@@ -2761,35 +2885,41 @@ function renderFinanceiroTables() {
   // Pagar
   const pagarBody = document.getElementById("table-pagar-body");
   if (pagarBody) {
-    pagarBody.innerHTML = ERP_DATA.financeiro.contasPagar.map(b => `
+    const pagarItems = filterFinanceItems(ERP_DATA.financeiro.contasPagar, "pagar", "vencimento");
+    pagarBody.innerHTML = pagarItems.length ? pagarItems.map(b => {
+      const status = getFinancialStatusInfo(b);
+      return `
       <tr>
         <td>${b.descricao}</td>
         <td>${b.fornecedor}</td>
         <td>${formatDateBR(b.vencimento)}</td>
         <td>${formatBRL(b.valor)}</td>
-        <td><span class="badge ${b.status === 'Pago' ? 'badge-success' : b.status === 'Atrasado' ? 'badge-danger' : 'badge-warning'}">${b.status}</span></td>
+        <td><span class="badge ${status.badge}">${status.label}</span></td>
         <td>
           ${b.status !== 'Pago' ? `<button class="btn btn-secondary btn-icon-only" onclick="payBill('${b.id}')" title="Marcar como Pago"><i data-lucide="check"></i></button>` : ''}
         </td>
       </tr>
-    `).join('');
+    `}).join('') : getFinanceEmptyRow(6, "Nenhuma conta a pagar encontrada para os filtros atuais.");
   }
 
   // Receber
   const receberBody = document.getElementById("table-receber-body");
   if (receberBody) {
-    receberBody.innerHTML = ERP_DATA.financeiro.contasReceber.map(b => `
+    const receberItems = filterFinanceItems(ERP_DATA.financeiro.contasReceber, "receber", "vencimento");
+    receberBody.innerHTML = receberItems.length ? receberItems.map(b => {
+      const status = getFinancialStatusInfo(b);
+      return `
       <tr>
         <td>${b.descricao}</td>
         <td>${b.cliente}</td>
         <td>${formatDateBR(b.vencimento)}</td>
         <td>${formatBRL(b.valor)}</td>
-        <td><span class="badge ${b.status === 'Recebido' ? 'badge-success' : 'badge-warning'}">${b.status}</span></td>
+        <td><span class="badge ${status.badge}">${status.label}</span></td>
         <td>
           ${b.status !== 'Recebido' ? `<button class="btn btn-secondary btn-icon-only" onclick="receiveBill('${b.id}')" title="Receber Valor"><i data-lucide="arrow-down-left"></i></button>` : ''}
         </td>
       </tr>
-    `).join('');
+    `}).join('') : getFinanceEmptyRow(6, "Nenhuma conta a receber encontrada para os filtros atuais.");
   }
 
   // Faturamento
@@ -2797,18 +2927,22 @@ function renderFinanceiroTables() {
   if (fatBody) {
     const allFaturas = ERP_DATA.financeiro.contasReceber
       .filter(r => r.contratoId || r.manualFaturamento || r.descricao?.startsWith('Faturamento'))
-      .map(f => ({ id: f.id, descricao: f.descricao || '', cliente: f.cliente, emissao: f.emissao || new Date().toISOString().split('T')[0], vencimento: f.vencimento, valor: f.valor, nfseEmitida: f.nfseEmitida || false, boletoGerado: f.boletoGerado || false, recId: f.id }));
+      .map(f => ({ id: f.id, descricao: f.descricao || '', cliente: f.cliente, emissao: f.emissao || new Date().toISOString().split('T')[0], vencimento: f.vencimento, valor: f.valor, status: f.status, nfseEmitida: f.nfseEmitida || false, boletoGerado: f.boletoGerado || false, recId: f.id }));
+    const filteredFaturas = filterFinanceItems(allFaturas, "faturamento", "vencimento");
 
-    if (!allFaturas.length) {
-      fatBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhuma fatura gerada.</td></tr>';
+    if (!filteredFaturas.length) {
+      fatBody.innerHTML = getFinanceEmptyRow(9, "Nenhuma fatura encontrada para os filtros atuais.");
     } else {
-      fatBody.innerHTML = allFaturas.map(fat => `
+      fatBody.innerHTML = filteredFaturas.map(fat => {
+        const status = getFinancialStatusInfo(fat);
+        return `
         <tr>
           <td><strong>${fat.id}</strong></td>
           <td>${fat.cliente}</td>
           <td>${formatDateBR(fat.emissao)}</td>
           <td>${formatDateBR(fat.vencimento)}</td>
           <td><strong>${formatBRL(fat.valor)}</strong></td>
+          <td><span class="badge ${status.badge}">${status.label}</span></td>
           <td>
             <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirEmissorNacional()"><i data-lucide="external-link"></i> Abrir Emissor</button>
           </td>
@@ -2822,7 +2956,7 @@ function renderFinanceiroTables() {
             </div>
           </td>
         </tr>
-      `).join('');
+      `}).join('');
     }
   }
 
@@ -3014,16 +3148,29 @@ function getForecastRows() {
     const despesasFixas = despesas[index];
     const resultado = receitas - despesasFixas;
     saldo += resultado;
-    return { mes, receitas, despesas: despesasFixas, resultado, saldo, cenario };
+    return { mes, data: mes, receitas, despesas: despesasFixas, resultado, saldo, cenario };
   });
+}
+
+function filterForecastRows(rows) {
+  const filters = getFinanceFilters("fluxo");
+  return sortByFinancialDateDesc(rows, "data")
+    .filter(row => matchesFinancePeriod(row, "data", filters))
+    .filter(row => {
+      if (filters.status === "all") return true;
+      if (filters.status === "positive") return row.resultado >= 0;
+      if (filters.status === "negative") return row.resultado < 0;
+      return true;
+    });
 }
 
 function renderForecastTable() {
   const body = document.getElementById("finance-forecast-table-body");
   if (!body) return;
-  body.innerHTML = getForecastRows().map(row => `
+  const rows = filterForecastRows(getForecastRows());
+  body.innerHTML = rows.length ? rows.map(row => `
     <tr><td><strong>${row.mes}</strong></td><td>${formatBRL(row.receitas)}</td><td>${formatBRL(row.despesas)}</td><td><span class="badge ${row.resultado >= 0 ? "badge-success" : "badge-danger"}">${formatBRL(row.resultado)}</span></td><td><strong>${formatBRL(row.saldo)}</strong></td><td><span class="badge badge-primary">${row.cenario}</span></td></tr>
-  `).join("");
+  `).join("") : getFinanceEmptyRow(6, "Nenhuma projeção encontrada para os filtros atuais.");
   const select = document.getElementById("select-cenario");
   if (select && select.dataset.forecastBound !== "true") {
     select.dataset.forecastBound = "true";

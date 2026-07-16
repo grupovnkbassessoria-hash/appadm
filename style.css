@@ -1258,6 +1258,38 @@ tr:hover td {
 /* Faturamento table actions spacing */
 #table-faturamento-body td:last-child { white-space: nowrap; }
 
+.finance-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  margin: 0.85rem 0 1rem;
+  padding: 0.85rem;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.finance-filters .form-group {
+  margin: 0;
+}
+
+.finance-filters label {
+  font-size: 0.76rem;
+}
+
+@media (max-width: 900px) {
+  .finance-filters {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .finance-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================================
    DOC FINANCA / LICITA FACIL EXPERIENCE
    ============================================================ */

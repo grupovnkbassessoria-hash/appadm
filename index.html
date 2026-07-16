@@ -806,6 +806,35 @@
                   <button type="button" class="btn btn-secondary" id="btn-cancelar-pagar"><i data-lucide="x"></i> Cancelar</button>
                 </div>
               </form>
+              <div class="finance-filters" data-finance-filter="pagar">
+                <div class="form-group">
+                  <label>Período</label>
+                  <select class="form-select finance-period-filter" id="filter-pagar-period">
+                    <option value="all">Todos</option>
+                    <option value="current">Mês atual</option>
+                    <option value="previous">Mês anterior</option>
+                    <option value="custom">Período</option>
+                  </select>
+                </div>
+                <div class="form-group finance-custom-period hidden" id="filter-pagar-custom">
+                  <label>De</label>
+                  <input type="date" class="form-input" id="filter-pagar-start">
+                </div>
+                <div class="form-group finance-custom-period hidden">
+                  <label>Até</label>
+                  <input type="date" class="form-input" id="filter-pagar-end">
+                </div>
+                <div class="form-group">
+                  <label>Situação</label>
+                  <select class="form-select" id="filter-pagar-status">
+                    <option value="all">Todas</option>
+                    <option value="pending">Pendente</option>
+                    <option value="paid">Pago</option>
+                    <option value="due">A vencer</option>
+                    <option value="overdue">Vencido</option>
+                  </select>
+                </div>
+              </div>
               <div class="table-wrapper">
                 <table>
                   <thead>
@@ -859,6 +888,35 @@
                   <button type="button" class="btn btn-secondary" id="btn-cancelar-receber"><i data-lucide="x"></i> Cancelar</button>
                 </div>
               </form>
+              <div class="finance-filters" data-finance-filter="receber">
+                <div class="form-group">
+                  <label>Período</label>
+                  <select class="form-select finance-period-filter" id="filter-receber-period">
+                    <option value="all">Todos</option>
+                    <option value="current">Mês atual</option>
+                    <option value="previous">Mês anterior</option>
+                    <option value="custom">Período</option>
+                  </select>
+                </div>
+                <div class="form-group finance-custom-period hidden" id="filter-receber-custom">
+                  <label>De</label>
+                  <input type="date" class="form-input" id="filter-receber-start">
+                </div>
+                <div class="form-group finance-custom-period hidden">
+                  <label>Até</label>
+                  <input type="date" class="form-input" id="filter-receber-end">
+                </div>
+                <div class="form-group">
+                  <label>Situação</label>
+                  <select class="form-select" id="filter-receber-status">
+                    <option value="all">Todas</option>
+                    <option value="pending">Pendente</option>
+                    <option value="paid">Recebido</option>
+                    <option value="due">A vencer</option>
+                    <option value="overdue">Vencido</option>
+                  </select>
+                </div>
+              </div>
               <div class="table-wrapper">
                 <table>
                   <thead>
@@ -913,6 +971,35 @@
                   <button type="button" class="btn btn-secondary" id="btn-cancelar-faturamento"><i data-lucide="x"></i> Cancelar</button>
                 </div>
               </form>
+              <div class="finance-filters" data-finance-filter="faturamento">
+                <div class="form-group">
+                  <label>Período</label>
+                  <select class="form-select finance-period-filter" id="filter-faturamento-period">
+                    <option value="all">Todos</option>
+                    <option value="current">Mês atual</option>
+                    <option value="previous">Mês anterior</option>
+                    <option value="custom">Período</option>
+                  </select>
+                </div>
+                <div class="form-group finance-custom-period hidden" id="filter-faturamento-custom">
+                  <label>De</label>
+                  <input type="date" class="form-input" id="filter-faturamento-start">
+                </div>
+                <div class="form-group finance-custom-period hidden">
+                  <label>Até</label>
+                  <input type="date" class="form-input" id="filter-faturamento-end">
+                </div>
+                <div class="form-group">
+                  <label>Situação</label>
+                  <select class="form-select" id="filter-faturamento-status">
+                    <option value="all">Todas</option>
+                    <option value="pending">Pendente</option>
+                    <option value="paid">Recebido</option>
+                    <option value="due">A vencer</option>
+                    <option value="overdue">Vencido</option>
+                  </select>
+                </div>
+              </div>
               <div class="table-wrapper">
                 <table>
                   <thead>
@@ -922,6 +1009,7 @@
                       <th>Data Emissão</th>
                       <th>Data Vencimento</th>
                       <th>Valor</th>
+                      <th>Status</th>
                       <th>NFS-e</th>
                       <th>Boleto</th>
                       <th>Ações</th>
@@ -973,6 +1061,33 @@
                     <button type="button" class="btn btn-secondary" id="btn-cancelar-fluxo"><i data-lucide="x"></i> Cancelar</button>
                   </div>
                 </form>
+                <div class="finance-filters" data-finance-filter="fluxo">
+                  <div class="form-group">
+                    <label>Período</label>
+                    <select class="form-select finance-period-filter" id="filter-fluxo-period">
+                      <option value="all">Todos</option>
+                      <option value="current">Mês atual</option>
+                      <option value="previous">Mês anterior</option>
+                      <option value="custom">Período</option>
+                    </select>
+                  </div>
+                  <div class="form-group finance-custom-period hidden" id="filter-fluxo-custom">
+                    <label>De</label>
+                    <input type="date" class="form-input" id="filter-fluxo-start">
+                  </div>
+                  <div class="form-group finance-custom-period hidden">
+                    <label>Até</label>
+                    <input type="date" class="form-input" id="filter-fluxo-end">
+                  </div>
+                  <div class="form-group">
+                    <label>Situação</label>
+                    <select class="form-select" id="filter-fluxo-status">
+                      <option value="all">Todas</option>
+                      <option value="positive">Positivo</option>
+                      <option value="negative">Negativo</option>
+                    </select>
+                  </div>
+                </div>
                                 <div class="table-wrapper forecast-table-wrapper">
                   <table>
                     <thead><tr><th>Mês</th><th>Receitas Projetadas</th><th>Despesas Fixas</th><th>Resultado</th><th>Saldo Acumulado</th><th>Cenário</th></tr></thead>
