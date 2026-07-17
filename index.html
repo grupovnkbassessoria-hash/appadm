@@ -955,7 +955,7 @@
             <div class="section-grid" style="grid-template-columns: 1fr;">
               <div class="panel">
                 <div class="panel-header">
-                  <h3 class="panel-title">Projeção Estratégica (Próximos 6 meses)</h3>
+                  <h3 class="panel-title">Fluxo de Caixa</h3>
                   <div style="display: flex; gap: 0.5rem;">
                     <button class="btn btn-primary" id="btn-novo-fluxo"><i data-lucide="plus"></i> Novo Lançamento</button>
                     <select class="form-select" id="select-cenario" style="width: auto; padding: 0.25rem 0.75rem;">
@@ -1010,12 +1010,19 @@
                     <label>Situação</label>
                     <select class="form-select" id="filter-fluxo-status">
                       <option value="all">Todas</option>
-                      <option value="positive">Positivo</option>
-                      <option value="negative">Negativo</option>
+                      <option value="positive">Entradas / Positivo</option>
+                      <option value="negative">Saídas / Negativo</option>
                     </select>
                   </div>
                 </div>
-                                <div class="table-wrapper forecast-table-wrapper">
+                <div class="table-wrapper forecast-table-wrapper" style="margin-bottom: 1.5rem;">
+                  <table>
+                    <thead><tr><th>Data</th><th>Tipo</th><th>Entrada</th><th>Saída</th><th>Resultado</th></tr></thead>
+                    <tbody id="finance-cashflow-table-body"></tbody>
+                  </table>
+                </div>
+                <h3 class="panel-title" style="margin-bottom: 1rem;">Projeção Estratégica (Próximos 6 meses)</h3>
+                <div class="table-wrapper forecast-table-wrapper">
                   <table>
                     <thead><tr><th>Mês</th><th>Receitas Projetadas</th><th>Despesas Fixas</th><th>Resultado</th><th>Saldo Acumulado</th><th>Cenário</th></tr></thead>
                     <tbody id="finance-forecast-table-body"></tbody>

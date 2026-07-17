@@ -2071,7 +2071,8 @@ function setupFinancialLaunchers() {
       const tipo = document.getElementById("fluxo-tipo").value;
       const valor = parseFloat(document.getElementById("fluxo-valor").value) || 0;
       return {
-        data: formatShortDate(document.getElementById("fluxo-data").value),
+        id: nextFinanceId("FLX", ERP_DATA.financeiro.fluxoCaixa.diario),
+        data: document.getElementById("fluxo-data").value,
         receita: tipo === "receita" ? valor : 0,
         despesa: tipo === "despesa" ? valor : 0
       };
@@ -2276,6 +2277,23 @@ function filterFinanceItems(items, kind, dateField) {
     .filter(item => matchesFinanceStatus(item, filters));
 }
 
+function getCashFlowResult(item) {
+  return (Number(item?.receita) || 0) - (Number(item?.despesa) || 0);
+}
+
+function filterCashFlowItems(items) {
+  const filters = getFinanceFilters("fluxo");
+  return sortByFinancialDateAsc(items, "data")
+    .filter(item => matchesFinancePeriod(item, "data", filters))
+    .filter(item => {
+      const result = getCashFlowResult(item);
+      if (filters.status === "all") return true;
+      if (filters.status === "positive") return result >= 0;
+      if (filters.status === "negative") return result < 0;
+      return true;
+    });
+}
+
 function getFinanceEmptyRow(colspan, message) {
   return `<tr><td colspan="${colspan}" style="text-align:center;color:var(--text-muted);padding:2rem;">${message}</td></tr>`;
 }
@@ -2437,7 +2455,29 @@ function renderFinanceiroTables() {
     }
   }
 
+  renderCashFlowTable();
+
   lucide.createIcons();
+}
+
+function renderCashFlowTable() {
+  const body = document.getElementById("finance-cashflow-table-body");
+  if (!body) return;
+  const items = filterCashFlowItems(ERP_DATA.financeiro.fluxoCaixa.diario);
+  body.innerHTML = items.length ? items.map(item => {
+    const result = getCashFlowResult(item);
+    const typeLabel = result >= 0 ? "Entrada" : "Saída";
+    const typeBadge = result >= 0 ? "badge-success" : "badge-danger";
+    return `
+      <tr>
+        <td><strong>${formatDateBR(item.data)}</strong></td>
+        <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
+        <td>${formatBRL(item.receita || 0)}</td>
+        <td>${formatBRL(item.despesa || 0)}</td>
+        <td><strong>${formatBRL(result)}</strong></td>
+      </tr>
+    `;
+  }).join("") : getFinanceEmptyRow(5, "Nenhum lançamento de fluxo encontrado para os filtros atuais.");
 }
 
 // ============================================================
@@ -2678,6 +2718,7 @@ function filterForecastRows(rows) {
 function renderForecastTable() {
   const body = document.getElementById("finance-forecast-table-body");
   if (!body) return;
+  renderCashFlowTable();
   const rows = filterForecastRows(getForecastRows());
   body.innerHTML = rows.length ? rows.map(row => `
     <tr><td><strong>${row.mes}</strong></td><td>${formatBRL(row.receitas)}</td><td>${formatBRL(row.despesas)}</td><td><span class="badge ${row.resultado >= 0 ? "badge-success" : "badge-danger"}">${formatBRL(row.resultado)}</span></td><td><strong>${formatBRL(row.saldo)}</strong></td><td><span class="badge badge-primary">${row.cenario}</span></td></tr>
