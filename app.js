@@ -274,10 +274,36 @@ const formatDateBR = (value) => {
 
 // 1. DASHBOARD CONTROLLER
 function initDashboard() {
+  setupDashboardWindows();
   setupClientTaskBoard();
   renderDashboardKpis();
   renderDashboardNotifications();
   renderClientTaskBoard();
+}
+
+function setupDashboardWindows() {
+  const buttons = document.querySelectorAll("[data-dashboard-window]");
+  if (!buttons.length) return;
+  const savedWindow = localStorage.getItem("doc_financa_dashboard_window") || "resumo";
+  setDashboardWindow(savedWindow);
+  buttons.forEach(button => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      setDashboardWindow(button.dataset.dashboardWindow || "resumo");
+    });
+  });
+}
+
+function setDashboardWindow(windowName) {
+  const validWindow = ["resumo", "tarefas", "alertas"].includes(windowName) ? windowName : "resumo";
+  document.querySelectorAll("[data-dashboard-window]").forEach(button => {
+    button.classList.toggle("active", button.dataset.dashboardWindow === validWindow);
+  });
+  document.querySelectorAll("[data-dashboard-panel]").forEach(panel => {
+    panel.classList.toggle("active", panel.dataset.dashboardPanel === validWindow);
+  });
+  localStorage.setItem("doc_financa_dashboard_window", validWindow);
 }
 
 function renderDashboardKpis() {

@@ -151,21 +151,25 @@
       <div class="view-container">
         <!-- 1. DASHBOARD VIEW -->
         <div class="view-content active" id="view-dashboard">
-          <div class="section-grid">
-            <div class="panel">
+          <div class="dashboard-window-toolbar" aria-label="Janelas do Dashboard">
+            <button type="button" class="dashboard-window-btn active" data-dashboard-window="resumo"><i data-lucide="activity"></i> Resumo</button>
+            <button type="button" class="dashboard-window-btn" data-dashboard-window="tarefas"><i data-lucide="kanban-square"></i> Tarefas</button>
+            <button type="button" class="dashboard-window-btn" data-dashboard-window="alertas"><i data-lucide="bell"></i> Alertas</button>
+          </div>
+          <div class="dashboard-window-stage">
+            <div class="panel dashboard-window active" data-dashboard-panel="resumo">
               <div class="panel-header">
                 <h3 class="panel-title"><i data-lucide="activity"></i> Resumo Operacional</h3>
               </div>
               <div class="report-kpi-grid" id="dashboard-kpis"></div>
             </div>
-            <div class="panel">
+            <div class="panel dashboard-window" data-dashboard-panel="alertas">
               <div class="panel-header">
                 <h3 class="panel-title"><i data-lucide="bell"></i> Pendências e Alertas</h3>
               </div>
               <div class="notifications-list" id="dashboard-notifications"></div>
             </div>
-          </div>
-          <div class="panel dashboard-task-panel">
+          <div class="panel dashboard-task-panel dashboard-window" data-dashboard-panel="tarefas">
             <div class="panel-header">
               <h3 class="panel-title"><i data-lucide="kanban-square"></i> Controle de Tarefas dos Clientes</h3>
             </div>
@@ -216,6 +220,7 @@
                 <div class="kanban-column-body" id="kanban-col-concluido"></div>
               </section>
             </div>
+          </div>
           </div>
         </div>
 

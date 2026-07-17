@@ -776,8 +776,60 @@ tr:hover td {
 .notification-indicator.warning { background-color: var(--color-warning); }
 .notification-indicator.info { background-color: var(--color-secondary); }
 
+.dashboard-window-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--surface-primary);
+}
+
+.dashboard-window-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dashboard-window-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dashboard-window-btn.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.22);
+}
+
+.dashboard-window-stage {
+  display: grid;
+}
+
+.dashboard-window {
+  display: none;
+}
+
+.dashboard-window.active {
+  display: flex;
+}
+
 .dashboard-task-panel {
-  margin-top: 1.5rem;
+  margin-top: 0;
 }
 
 .dashboard-task-form {
@@ -968,6 +1020,11 @@ tr:hover td {
 }
 
 @media (max-width: 680px) {
+  .dashboard-window-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .dashboard-task-form {
     grid-template-columns: 1fr;
   }
