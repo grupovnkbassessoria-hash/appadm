@@ -274,8 +274,10 @@ const formatDateBR = (value) => {
 
 // 1. DASHBOARD CONTROLLER
 function initDashboard() {
+  setupClientTaskBoard();
   renderDashboardKpis();
   renderDashboardNotifications();
+  renderClientTaskBoard();
 }
 
 function renderDashboardKpis() {
@@ -286,10 +288,12 @@ function renderDashboardKpis() {
   const pagar = sumBy(ERP_DATA.financeiro.contasPagar, "valor");
   const documentos = ERP_DATA.administrativo.documentos.length;
   const colaboradores = ERP_DATA.cadastro.colaboradores.length;
+  const pendingTasks = getClientTasks().filter(task => task.status !== "concluido").length;
 
   container.innerHTML = [
     ["Contas a receber", formatBRL(receber), "Recebíveis cadastrados"],
     ["Contas a pagar", formatBRL(pagar), "Compromissos em aberto"],
+    ["Tarefas de clientes", String(pendingTasks), "Pendências em aberto"],
     ["Colaboradores", String(colaboradores), "Registros ativos"],
     ["Documentos", String(documentos), "Arquivos administrativos"]
   ].map(item => `<div class="report-kpi"><span>${item[0]}</span><strong>${item[1]}</strong><em>${item[2]}</em></div>`).join("");
@@ -338,6 +342,153 @@ function renderDashboardNotifications() {
       <div>${notif.text}</div>
     </div>
   `).join('');
+}
+
+const CLIENT_TASK_STATUSES = ["novo", "andamento", "aguardando", "concluido"];
+
+function ensureClientTasksData() {
+  if (!ERP_DATA?.administrativo) return [];
+  if (!Array.isArray(ERP_DATA.administrativo.tarefasClientes)) {
+    ERP_DATA.administrativo.tarefasClientes = [];
+  }
+  return ERP_DATA.administrativo.tarefasClientes;
+}
+
+function getClientTasks() {
+  return ensureClientTasksData();
+}
+
+function setupClientTaskBoard() {
+  ensureClientTasksData();
+  populateTaskClientSelect();
+  const form = document.getElementById("form-dashboard-task");
+  if (form && form.dataset.bound !== "true") {
+    form.dataset.bound = "true";
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const title = document.getElementById("task-titulo").value.trim();
+      const cliente = document.getElementById("task-cliente").value;
+      if (!title || !cliente) return;
+      getClientTasks().unshift({
+        id: nextClientTaskId(),
+        cliente,
+        titulo: title,
+        responsavel: document.getElementById("task-responsavel").value.trim(),
+        prazo: document.getElementById("task-prazo").value,
+        prioridade: document.getElementById("task-prioridade").value || "normal",
+        status: "novo",
+        criadoEm: new Date().toISOString()
+      });
+      saveState();
+      form.reset();
+      populateTaskClientSelect();
+      renderDashboardKpis();
+      renderDashboardNotifications();
+      renderClientTaskBoard();
+    });
+  }
+
+  const board = document.getElementById("dashboard-kanban");
+  if (board && board.dataset.bound !== "true") {
+    board.dataset.bound = "true";
+    board.addEventListener("click", event => {
+      const button = event.target.closest("[data-task-action]");
+      if (!button) return;
+      handleClientTaskAction(button.dataset.taskAction, button.dataset.taskId);
+    });
+  }
+}
+
+function populateTaskClientSelect() {
+  const select = document.getElementById("task-cliente");
+  if (!select) return;
+  const currentValue = select.value;
+  select.innerHTML = "<option value=''>Selecione o Cliente</option>" + clientSelectOptionsHtml();
+  if (currentValue && ERP_DATA.cadastro.clientes.some(client => client.nome === currentValue)) {
+    select.value = currentValue;
+  }
+}
+
+function nextClientTaskId() {
+  const usedIds = new Set(getClientTasks().map(task => task.id));
+  let counter = getClientTasks().length + 1;
+  let id = `TAR-${String(counter).padStart(3, "0")}`;
+  while (usedIds.has(id)) {
+    counter += 1;
+    id = `TAR-${String(counter).padStart(3, "0")}`;
+  }
+  return id;
+}
+
+function handleClientTaskAction(action, taskId) {
+  const tasks = getClientTasks();
+  const task = tasks.find(item => item.id === taskId);
+  if (!task) return;
+  const currentIndex = CLIENT_TASK_STATUSES.indexOf(task.status);
+  if (action === "next" && currentIndex < CLIENT_TASK_STATUSES.length - 1) {
+    task.status = CLIENT_TASK_STATUSES[currentIndex + 1];
+  }
+  if (action === "prev" && currentIndex > 0) {
+    task.status = CLIENT_TASK_STATUSES[currentIndex - 1];
+  }
+  if (action === "done") {
+    task.status = "concluido";
+  }
+  if (action === "delete") {
+    if (!confirm("Excluir esta tarefa?")) return;
+    const index = tasks.findIndex(item => item.id === taskId);
+    if (index >= 0) tasks.splice(index, 1);
+  }
+  saveState();
+  renderDashboardKpis();
+  renderDashboardNotifications();
+  renderClientTaskBoard();
+}
+
+function renderClientTaskBoard() {
+  const tasks = getClientTasks();
+  CLIENT_TASK_STATUSES.forEach(status => {
+    const column = document.getElementById(`kanban-col-${status}`);
+    const count = document.getElementById(`kanban-count-${status}`);
+    const items = tasks.filter(task => task.status === status);
+    if (count) count.textContent = String(items.length);
+    if (!column) return;
+    column.innerHTML = items.length
+      ? items.map(task => clientTaskCardHtml(task)).join("")
+      : `<div class="kanban-empty">Sem tarefas</div>`;
+  });
+  lucide.createIcons();
+}
+
+function clientTaskCardHtml(task) {
+  const statusIndex = CLIENT_TASK_STATUSES.indexOf(task.status);
+  const priorityClass = `priority-${task.prioridade || "normal"}`;
+  const dueLabel = task.prazo ? formatDateBR(task.prazo) : "Sem prazo";
+  return `
+    <article class="kanban-card ${priorityClass}">
+      <div class="kanban-card-top">
+        <strong>${escapeHtml(task.titulo)}</strong>
+        <span class="task-priority">${escapeHtml(getTaskPriorityLabel(task.prioridade))}</span>
+      </div>
+      <div class="kanban-client">${escapeHtml(task.cliente)}</div>
+      <div class="kanban-meta">
+        <span><i data-lucide="calendar"></i>${escapeHtml(dueLabel)}</span>
+        <span><i data-lucide="user"></i>${escapeHtml(task.responsavel || "Sem responsável")}</span>
+      </div>
+      <div class="kanban-actions">
+        <button type="button" class="btn btn-secondary btn-icon-only" data-task-action="prev" data-task-id="${task.id}" title="Voltar etapa" ${statusIndex === 0 ? "disabled" : ""}><i data-lucide="arrow-left"></i></button>
+        <button type="button" class="btn btn-secondary btn-icon-only" data-task-action="next" data-task-id="${task.id}" title="Avançar etapa" ${statusIndex === CLIENT_TASK_STATUSES.length - 1 ? "disabled" : ""}><i data-lucide="arrow-right"></i></button>
+        <button type="button" class="btn btn-secondary btn-icon-only" data-task-action="done" data-task-id="${task.id}" title="Concluir"><i data-lucide="check"></i></button>
+        <button type="button" class="btn btn-danger btn-icon-only" data-task-action="delete" data-task-id="${task.id}" title="Excluir"><i data-lucide="trash-2"></i></button>
+      </div>
+    </article>
+  `;
+}
+
+function getTaskPriorityLabel(priority) {
+  if (priority === "alta") return "Alta";
+  if (priority === "baixa") return "Baixa";
+  return "Normal";
 }
 
 function renderCashFlowChart() {

@@ -165,6 +165,58 @@
               <div class="notifications-list" id="dashboard-notifications"></div>
             </div>
           </div>
+          <div class="panel dashboard-task-panel">
+            <div class="panel-header">
+              <h3 class="panel-title"><i data-lucide="kanban-square"></i> Controle de Tarefas dos Clientes</h3>
+            </div>
+            <form id="form-dashboard-task" class="dashboard-task-form">
+              <div class="form-group">
+                <label>Cliente</label>
+                <select class="form-select" id="task-cliente" required>
+                  <option value="">Selecione o Cliente</option>
+                </select>
+              </div>
+              <div class="form-group task-title-field">
+                <label>Tarefa</label>
+                <input type="text" class="form-input" id="task-titulo" placeholder="Ex: Separar documentos para renovação" required>
+              </div>
+              <div class="form-group">
+                <label>Responsável</label>
+                <input type="text" class="form-input" id="task-responsavel" placeholder="Nome">
+              </div>
+              <div class="form-group">
+                <label>Prazo</label>
+                <input type="date" class="form-input" id="task-prazo">
+              </div>
+              <div class="form-group">
+                <label>Prioridade</label>
+                <select class="form-select" id="task-prioridade">
+                  <option value="normal">Normal</option>
+                  <option value="alta">Alta</option>
+                  <option value="baixa">Baixa</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary"><i data-lucide="plus"></i> Adicionar</button>
+            </form>
+            <div class="dashboard-kanban" id="dashboard-kanban">
+              <section class="kanban-column" data-task-status="novo">
+                <div class="kanban-column-header"><strong>A Fazer</strong><span id="kanban-count-novo">0</span></div>
+                <div class="kanban-column-body" id="kanban-col-novo"></div>
+              </section>
+              <section class="kanban-column" data-task-status="andamento">
+                <div class="kanban-column-header"><strong>Em Andamento</strong><span id="kanban-count-andamento">0</span></div>
+                <div class="kanban-column-body" id="kanban-col-andamento"></div>
+              </section>
+              <section class="kanban-column" data-task-status="aguardando">
+                <div class="kanban-column-header"><strong>Aguardando Cliente</strong><span id="kanban-count-aguardando">0</span></div>
+                <div class="kanban-column-body" id="kanban-col-aguardando"></div>
+              </section>
+              <section class="kanban-column" data-task-status="concluido">
+                <div class="kanban-column-header"><strong>Concluído</strong><span id="kanban-count-concluido">0</span></div>
+                <div class="kanban-column-body" id="kanban-col-concluido"></div>
+              </section>
+            </div>
+          </div>
         </div>
 
         <!-- 2. COMERCIAL VIEW -->
