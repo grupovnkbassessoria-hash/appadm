@@ -527,6 +527,14 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 function setupCommercialUpgradeLauncher(kind) {
   const prefix = kind === "orcamento" ? "orc" : "ped";
   const typeSelect = document.getElementById(prefix + "-item-tipo");
