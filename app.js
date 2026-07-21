@@ -1012,7 +1012,7 @@ function renderComercialTables() {
   if (conBody) {
     conBody.innerHTML = ERP_DATA.comercial.contratos.map(function(con) {
       const badge = con.status === "Ativo" ? "badge-success" : "badge-warning";
-      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + formatDateBR(con.vigenciaInicio) + "</td><td>" + formatDateBR(con.vigenciaFim) + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><div class='commercial-actions'><button class='btn btn-secondary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"generateContractPdf('" + con.id + "')\" title='Imprimir contrato em PDF'><i data-lucide='file-down'></i> Imprimir PDF</button><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></div></td></tr>";
+      return "<tr><td><strong>" + con.titulo + "</strong></td><td>" + con.tipo + "</td><td>" + con.parceiro + "</td><td>" + formatDateBR(con.vigenciaInicio) + "</td><td>" + formatDateBR(con.vigenciaFim) + "</td><td>" + formatBRL(con.valorMensal) + "</td><td><span class='badge badge-success'><i data-lucide='check'></i> Digital</span></td><td><span class='badge " + badge + "'>" + con.status + "</span></td><td><div class='commercial-actions'><button class='btn btn-secondary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"editCommercialContract('" + con.id + "')\" title='Editar contrato'><i data-lucide='pencil'></i> Editar</button><button class='btn btn-secondary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"generateContractPdf('" + con.id + "')\" title='Imprimir contrato em PDF'><i data-lucide='file-down'></i> Imprimir PDF</button><button class='btn btn-primary' style='font-size:0.78rem;padding:0.3rem 0.75rem;' onclick=\"faturarContrato('" + con.id + "')\" title='Gerar fatura deste contrato'><i data-lucide='receipt-text'></i> Faturar</button></div></td></tr>";
     }).join("");
   }
   lucide.createIcons();
@@ -1422,6 +1422,76 @@ window.generateContractPdf = generateContractPdf;
 // ============================================================
 // CONTRACTS COMMERCIAL MODULE (Novo Contrato Comercial)
 // ============================================================
+let editingCommercialContractId = null;
+
+function setCommercialContractFormMode(contract) {
+  editingCommercialContractId = contract?.id || null;
+  const title = document.querySelector('#panel-form-contrato-comercial .panel-title');
+  const submitBtn = document.querySelector('#form-novo-contrato-comercial button[type="submit"]');
+
+  if (title) title.textContent = editingCommercialContractId ? 'Editar Contrato Comercial' : 'Novo Contrato Comercial';
+  if (submitBtn) submitBtn.innerHTML = editingCommercialContractId ? '<i data-lucide="save"></i> Salvar Alterações' : '<i data-lucide="check"></i> Criar Contrato';
+  lucide.createIcons();
+}
+
+function resetCommercialContractForm() {
+  const form = document.getElementById('form-novo-contrato-comercial');
+  form?.reset();
+  setCommercialContractFormMode(null);
+  populateCommercialPartnerSelect();
+}
+
+function collectCommercialContractFormData(existingContract) {
+  return {
+    id: existingContract?.id || 'CON-' + String(ERP_DATA.comercial.contratos.length + 1).padStart(3, '0'),
+    titulo: document.getElementById('contrato-c-titulo').value.trim(),
+    tipo: document.getElementById('contrato-c-tipo').value,
+    parceiro: document.getElementById('contrato-c-parceiro').value,
+    vigenciaInicio: document.getElementById('contrato-c-inicio').value,
+    vigenciaFim: document.getElementById('contrato-c-fim').value,
+    valorMensal: parseFloat(document.getElementById('contrato-c-valor').value) || 0,
+    documentoContratante: document.getElementById('contrato-c-documento')?.value.trim() || '',
+    representanteContratante: document.getElementById('contrato-c-representante')?.value.trim() || '',
+    enderecoContratante: document.getElementById('contrato-c-endereco')?.value.trim() || '',
+    objeto: document.getElementById('contrato-c-objeto')?.value.trim() || 'Prestação de serviços de assessoria administrativa, financeira e apoio em processos de compras, conforme demanda da CONTRATANTE.',
+    condicaoPagamento: document.getElementById('contrato-c-pagamento')?.value.trim() || 'até o 5º dia útil de cada mês subsequente ao da prestação dos serviços',
+    foro: document.getElementById('contrato-c-foro')?.value.trim() || 'Comarca de Ourinhos, Estado de São Paulo',
+    tecnicoResponsavel: document.getElementById('contrato-c-tecnico')?.value.trim() || 'Danilo Jorge Rodrigues da Silva, CPF nº 469.714.768-59',
+    status: existingContract?.status || 'Ativo'
+  };
+}
+
+function fillCommercialContractForm(contract) {
+  if (!contract) return;
+  const details = getCommercialContractDetails(contract);
+  document.getElementById('contrato-c-titulo').value = contract.titulo || '';
+  document.getElementById('contrato-c-tipo').value = contract.tipo || 'Cliente';
+  populateCommercialPartnerSelect(contract.parceiro);
+  document.getElementById('contrato-c-inicio').value = contract.vigenciaInicio || '';
+  document.getElementById('contrato-c-fim').value = contract.vigenciaFim || '';
+  document.getElementById('contrato-c-valor').value = contract.valorMensal ?? '';
+  document.getElementById('contrato-c-documento').value = details.documento || '';
+  document.getElementById('contrato-c-representante').value = details.representante || '';
+  document.getElementById('contrato-c-endereco').value = details.endereco || '';
+  document.getElementById('contrato-c-objeto').value = details.objeto || '';
+  document.getElementById('contrato-c-pagamento').value = details.pagamento || '';
+  document.getElementById('contrato-c-foro').value = details.foro || '';
+  document.getElementById('contrato-c-tecnico').value = details.tecnico || '';
+}
+
+function editCommercialContract(id) {
+  const contract = ERP_DATA.comercial.contratos.find(item => item.id === id);
+  const panel = document.getElementById('panel-form-contrato-comercial');
+  if (!contract || !panel) return;
+
+  setCommercialContractFormMode(contract);
+  fillCommercialContractForm(contract);
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+window.editCommercialContract = editCommercialContract;
+
 function initContratosComerciais() {
   const btnNovo = document.getElementById('btn-novo-contrato-comercial');
   const panel = document.getElementById('panel-form-contrato-comercial');
@@ -1439,7 +1509,7 @@ function initContratosComerciais() {
 
   if (btnNovo && panel) {
     btnNovo.addEventListener('click', () => {
-      populateCommercialPartnerSelect();
+      resetCommercialContractForm();
       if (inicioInput && !inicioInput.value) inicioInput.value = new Date().toISOString().split('T')[0];
       panel.classList.remove('hidden');
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1448,35 +1518,27 @@ function initContratosComerciais() {
   if (btnCancelar && panel) {
     btnCancelar.addEventListener('click', () => {
       panel.classList.add('hidden');
-      form?.reset();
+      resetCommercialContractForm();
     });
   }
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const newContract = {
-        id: 'CON-' + String(ERP_DATA.comercial.contratos.length + 1).padStart(3, '0'),
-        titulo: document.getElementById('contrato-c-titulo').value.trim(),
-        tipo: document.getElementById('contrato-c-tipo').value,
-        parceiro: document.getElementById('contrato-c-parceiro').value,
-        vigenciaInicio: document.getElementById('contrato-c-inicio').value,
-        vigenciaFim: document.getElementById('contrato-c-fim').value,
-        valorMensal: parseFloat(document.getElementById('contrato-c-valor').value) || 0,
-        documentoContratante: document.getElementById('contrato-c-documento')?.value.trim() || '',
-        representanteContratante: document.getElementById('contrato-c-representante')?.value.trim() || '',
-        enderecoContratante: document.getElementById('contrato-c-endereco')?.value.trim() || '',
-        objeto: document.getElementById('contrato-c-objeto')?.value.trim() || 'Prestação de serviços de assessoria administrativa, financeira e apoio em processos de compras, conforme demanda da CONTRATANTE.',
-        condicaoPagamento: document.getElementById('contrato-c-pagamento')?.value.trim() || 'até o 5º dia útil de cada mês subsequente ao da prestação dos serviços',
-        foro: document.getElementById('contrato-c-foro')?.value.trim() || 'Comarca de Ourinhos, Estado de São Paulo',
-        tecnicoResponsavel: document.getElementById('contrato-c-tecnico')?.value.trim() || 'Danilo Jorge Rodrigues da Silva, CPF nº 469.714.768-59',
-        status: 'Ativo'
-      };
-      ERP_DATA.comercial.contratos.unshift(newContract);
+      const editingIndex = editingCommercialContractId
+        ? ERP_DATA.comercial.contratos.findIndex(item => item.id === editingCommercialContractId)
+        : -1;
+      const existingContract = editingIndex >= 0 ? ERP_DATA.comercial.contratos[editingIndex] : null;
+      const contractData = collectCommercialContractFormData(existingContract);
+      if (editingIndex >= 0) {
+        ERP_DATA.comercial.contratos[editingIndex] = contractData;
+      } else {
+        ERP_DATA.comercial.contratos.unshift(contractData);
+      }
       saveState();
       panel.classList.add('hidden');
-      form.reset();
+      resetCommercialContractForm();
       renderComercialTables();
-      alert('Contrato ' + newContract.id + ' criado com sucesso!');
+      alert('Contrato ' + contractData.id + (editingIndex >= 0 ? ' atualizado com sucesso!' : ' criado com sucesso!'));
     });
   }
 }
