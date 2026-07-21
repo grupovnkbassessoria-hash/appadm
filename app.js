@@ -1387,7 +1387,8 @@ function generateContractPdf(id) {
     <p>A CONTRATANTE pagará à CONTRATADA o valor mensal de <strong>${formatBRL(contract.valorMensal)}</strong>, mediante emissão de nota fiscal e/ou boleto bancário.</p>
     <p>O pagamento deverá ocorrer ${escapeHtml(details.pagamento)}. Em caso de atraso, poderá incidir multa de 2% e juros de mora de 1% ao mês.</p>
     <h2>Cláusula Sexta - Da Rescisão</h2>
-    <p>Qualquer das partes poderá rescindir o contrato mediante aviso prévio por escrito de 30 (trinta) dias, sem prejuízo das obrigações vencidas até a data da rescisão. Caso a solicitação de rescisão ocorra por iniciativa da CONTRATANTE, será devida multa rescisória correspondente a 33% (trinta e três por cento) do valor das mensalidades restantes até o término da vigência contratual.</p>
+    <p>Qualquer das partes poderá rescindir o presente contrato mediante aviso prévio, por escrito, com antecedência mínima de 30 (trinta) dias, sem prejuízo das obrigações já vencidas até a data da rescisão.</p>
+    <p>Entretanto, caso a rescisão seja promovida <strong>por iniciativa exclusiva da CONTRATANTE</strong>, esta ficará obrigada ao pagamento de <strong>indenização rescisória</strong>, a título de multa compensatória, correspondente a 33% (trinta e três por cento) do valor das mensalidades vincendas até o término da vigência contratual, constituindo-se tal obrigação em ônus exclusivo da CONTRATANTE.</p>
     <h2>Cláusula Sétima - Da Confidencialidade</h2>
     <p>As partes comprometem-se a manter sigilo absoluto sobre informações comerciais, financeiras, técnicas e estratégicas obtidas durante a execução deste contrato.</p>
     <h2>Cláusula Oitava - Da Independência das Partes</h2>
