@@ -686,6 +686,31 @@ function populateClientSelectors() {
   });
 }
 
+function populateCommercialPartnerSelect(preferredValue) {
+  const parceiroSelect = document.getElementById('contrato-c-parceiro');
+  if (!parceiroSelect || !ERP_DATA?.cadastro) return;
+
+  const tipoSelect = document.getElementById('contrato-c-tipo');
+  const tipo = tipoSelect?.value || 'Cliente';
+  const parceiros = tipo === 'Fornecedor'
+    ? ERP_DATA.cadastro.fornecedores.map(f => ({ nome: f.nome, tipo: 'Fornecedor' }))
+    : ERP_DATA.cadastro.clientes.map(c => ({ nome: c.nome, tipo: 'Cliente' }));
+  const currentValue = preferredValue !== undefined ? preferredValue : parceiroSelect.value;
+
+  parceiroSelect.innerHTML = parceiros.length
+    ? parceiros.map(p => {
+        const name = escapeHtml(p.nome || "");
+        return `<option value="${name}">${name} (${p.tipo})</option>`;
+      }).join('')
+    : `<option value="">Nenhum ${tipo.toLowerCase()} cadastrado</option>`;
+
+  if (currentValue && parceiros.some(p => p.nome === currentValue)) {
+    parceiroSelect.value = currentValue;
+  }
+
+  updateCommercialPartnerFields();
+}
+
 function clientSelectOptionsHtml() {
   return ERP_DATA.cadastro.clientes
     .map(function(c) {
@@ -935,6 +960,20 @@ function getCommercialPartnerDetails(name) {
     endereco: buildPartnerAddress(record),
     representante: record?.contato || ""
   };
+}
+
+function updateCommercialPartnerFields() {
+  const parceiroSelect = document.getElementById('contrato-c-parceiro');
+  if (!parceiroSelect) return;
+
+  const partner = getCommercialPartnerDetails(parceiroSelect.value);
+  const documento = document.getElementById('contrato-c-documento');
+  const endereco = document.getElementById('contrato-c-endereco');
+  const representante = document.getElementById('contrato-c-representante');
+
+  if (documento) documento.value = partner.documento || '';
+  if (endereco) endereco.value = partner.endereco || '';
+  if (representante) representante.value = partner.representante || '';
 }
 
 function getCommercialContractDetails(contract) {
@@ -1389,29 +1428,18 @@ function initContratosComerciais() {
   const btnCancelar = document.getElementById('btn-cancelar-contrato-c');
   const form = document.getElementById('form-novo-contrato-comercial');
   const parceiroSelect = document.getElementById('contrato-c-parceiro');
+  const tipoSelect = document.getElementById('contrato-c-tipo');
   const inicioInput = document.getElementById('contrato-c-inicio');
 
   if (parceiroSelect) {
-    const allParceiros = [
-      ...ERP_DATA.cadastro.clientes.map(c => ({ nome: c.nome, tipo: 'Cliente' })),
-      ...ERP_DATA.cadastro.fornecedores.map(f => ({ nome: f.nome, tipo: 'Fornecedor' }))
-    ];
-    parceiroSelect.innerHTML = allParceiros.map(p => `<option value="${p.nome}">${p.nome} (${p.tipo})</option>`).join('');
-    const fillPartnerFields = () => {
-      const partner = getCommercialPartnerDetails(parceiroSelect.value);
-      const documento = document.getElementById('contrato-c-documento');
-      const endereco = document.getElementById('contrato-c-endereco');
-      const representante = document.getElementById('contrato-c-representante');
-      if (documento && !documento.value) documento.value = partner.documento || '';
-      if (endereco && !endereco.value) endereco.value = partner.endereco || '';
-      if (representante && !representante.value) representante.value = partner.representante || '';
-    };
-    parceiroSelect.addEventListener('change', fillPartnerFields);
-    fillPartnerFields();
+    populateCommercialPartnerSelect();
+    parceiroSelect.addEventListener('change', updateCommercialPartnerFields);
+    tipoSelect?.addEventListener('change', () => populateCommercialPartnerSelect(''));
   }
 
   if (btnNovo && panel) {
     btnNovo.addEventListener('click', () => {
+      populateCommercialPartnerSelect();
       if (inicioInput && !inicioInput.value) inicioInput.value = new Date().toISOString().split('T')[0];
       panel.classList.remove('hidden');
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1744,7 +1772,11 @@ function saveCadastroForm(kind) {
   saveState();
   closeCadastroForm(kind);
   renderCadastroTables();
-  if (kind === "clientes") populateClientSelectors();
+  if (kind === "clientes") {
+    populateClientSelectors();
+    populateCommercialPartnerSelect(payload.nome);
+  }
+  if (kind === "fornecedores") populateCommercialPartnerSelect(payload.nome);
   if (kind === "colaboradores") reloadColaboradoresSelect();
   if (kind === "veiculos") initFrota();
 }
