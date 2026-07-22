@@ -324,6 +324,12 @@ function renderDashboardKpis() {
     ["Documentos", String(documentos), "Arquivos administrativos"]
   ].map(item => `<div class="report-kpi"><span>${item[0]}</span><strong>${item[1]}</strong><em>${item[2]}</em></div>`).join("");
 }
+
+function updateDashboardKPIs() {
+  renderDashboardKpis();
+  renderDashboardNotifications();
+}
+
 function renderDashboardNotifications() {
   const container = document.getElementById("dashboard-notifications");
   if (!container) return;
@@ -2278,6 +2284,7 @@ window.baixarPDFNota = function(id, dest, valor, tipo) {
 };
 
 // 5. FINANCEIRO CONTROLLER
+const editingFinanceIds = { pagar: null, receber: null };
 let editingFaturamentoId = null;
 
 function initFinanceiro() {
@@ -2309,6 +2316,60 @@ function initFinanceiro() {
       renderFinanceiroTables();
       updateDashboardKPIs();
     }
+  };
+
+  window.editPayableBill = (id) => {
+    const bill = ERP_DATA.financeiro.contasPagar.find(b => b.id === id);
+    if (!bill) return;
+    document.getElementById("pagar-descricao").value = bill.descricao || "";
+    document.getElementById("pagar-fornecedor").value = bill.fornecedor || "";
+    document.getElementById("pagar-vencimento").value = bill.vencimento || "";
+    document.getElementById("pagar-valor").value = bill.valor || 0;
+    const months = document.getElementById("pagar-meses");
+    if (months) months.value = "1";
+    setFinanceEditState("pagar", bill);
+  };
+
+  window.deletePayableBill = (id) => {
+    const index = ERP_DATA.financeiro.contasPagar.findIndex(b => b.id === id);
+    if (index < 0) return;
+    const bill = ERP_DATA.financeiro.contasPagar[index];
+    if (!confirm("Excluir esta conta a pagar?")) return;
+    if (normalizeText(bill.status) === "pago") {
+      ERP_DATA.financeiro.fluxoCaixa.saldoAtual += Number(bill.valor) || 0;
+    }
+    ERP_DATA.financeiro.contasPagar.splice(index, 1);
+    if (editingFinanceIds.pagar === id) clearFinanceEditState("pagar");
+    saveState();
+    renderFinanceiroTables();
+    updateDashboardKPIs();
+  };
+
+  window.editReceivableBill = (id) => {
+    const bill = ERP_DATA.financeiro.contasReceber.find(b => b.id === id);
+    if (!bill) return;
+    document.getElementById("receber-descricao").value = bill.descricao || "";
+    document.getElementById("receber-cliente").value = bill.cliente || "";
+    document.getElementById("receber-vencimento").value = bill.vencimento || "";
+    document.getElementById("receber-valor").value = bill.valor || 0;
+    const months = document.getElementById("receber-meses");
+    if (months) months.value = "1";
+    setFinanceEditState("receber", bill);
+  };
+
+  window.deleteReceivableBill = (id) => {
+    const index = ERP_DATA.financeiro.contasReceber.findIndex(b => b.id === id);
+    if (index < 0) return;
+    const bill = ERP_DATA.financeiro.contasReceber[index];
+    if (!confirm("Excluir esta conta a receber?")) return;
+    if (normalizeText(bill.status) === "recebido") {
+      ERP_DATA.financeiro.fluxoCaixa.saldoAtual -= Number(bill.valor) || 0;
+    }
+    ERP_DATA.financeiro.contasReceber.splice(index, 1);
+    if (editingFinanceIds.receber === id) clearFinanceEditState("receber");
+    saveState();
+    renderFinanceiroTables();
+    updateDashboardKPIs();
   };
 }
 
@@ -2370,10 +2431,12 @@ function bindFinancialForm(kind, options) {
   const btnNovo = document.getElementById(`btn-novo-${kind}`);
   const btnCancelar = document.getElementById(`btn-cancelar-${kind}`);
   const form = document.getElementById(`form-novo-${kind}`);
+  const submitButton = form?.querySelector('button[type="submit"]');
   if (!form) return;
   if (btnNovo && btnNovo.dataset.bound !== "true") {
     btnNovo.dataset.bound = "true";
     btnNovo.addEventListener("click", () => {
+      clearFinanceEditState(kind);
       setDefaultFinancialDates(kind);
       form.classList.remove("hidden");
     });
@@ -2382,6 +2445,7 @@ function bindFinancialForm(kind, options) {
     btnCancelar.dataset.bound = "true";
     btnCancelar.addEventListener("click", () => {
       form.reset();
+      clearFinanceEditState(kind);
       form.classList.add("hidden");
     });
   }
@@ -2390,15 +2454,62 @@ function bindFinancialForm(kind, options) {
   form.addEventListener("submit", event => {
     event.preventDefault();
     const item = options.build();
-    const repeatMonths = Math.max(1, Math.min(120, options.repeatMonths ? options.repeatMonths() : 1));
-    const items = buildRepeatedFinancialItems(item, options.prefix, options.list, repeatMonths);
-    options.list.unshift(...items);
-    if (options.afterSave) items.forEach(savedItem => options.afterSave(savedItem));
+    const editingId = editingFinanceIds[kind];
+    if (editingId) {
+      const existingItem = options.list.find(financeItem => financeItem.id === editingId);
+      if (existingItem) {
+        const previousValue = Number(existingItem.valor) || 0;
+        const previousStatus = existingItem.status;
+        Object.assign(existingItem, item, { id: editingId, status: previousStatus });
+        adjustFinanceBalanceAfterEdit(kind, previousValue, Number(existingItem.valor) || 0, previousStatus);
+      }
+      clearFinanceEditState(kind);
+    } else {
+      const repeatMonths = Math.max(1, Math.min(120, options.repeatMonths ? options.repeatMonths() : 1));
+      const items = buildRepeatedFinancialItems(item, options.prefix, options.list, repeatMonths);
+      options.list.unshift(...items);
+      if (options.afterSave) items.forEach(savedItem => options.afterSave(savedItem));
+    }
     saveState();
     form.reset();
     form.classList.add("hidden");
     renderFinanceiroTables();
+    renderForecastTable();
+    updateDashboardKPIs();
   });
+
+  form.dataset.defaultSubmitHtml = submitButton?.innerHTML || "";
+}
+
+function clearFinanceEditState(kind) {
+  if (!(kind in editingFinanceIds)) return;
+  editingFinanceIds[kind] = null;
+  const form = document.getElementById(`form-novo-${kind}`);
+  const submitButton = form?.querySelector('button[type="submit"]');
+  if (submitButton && form.dataset.defaultSubmitHtml) {
+    submitButton.innerHTML = form.dataset.defaultSubmitHtml;
+  }
+}
+
+function setFinanceEditState(kind, item) {
+  const form = document.getElementById(`form-novo-${kind}`);
+  if (!form || !item) return;
+  editingFinanceIds[kind] = item.id;
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) submitButton.innerHTML = `<i data-lucide="save"></i> Salvar Alterações`;
+  form.classList.remove("hidden");
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+  lucide.createIcons();
+}
+
+function adjustFinanceBalanceAfterEdit(kind, previousValue, currentValue, status) {
+  const paidStatus = normalizeText(status);
+  if (kind === "pagar" && paidStatus === "pago") {
+    ERP_DATA.financeiro.fluxoCaixa.saldoAtual += previousValue - currentValue;
+  }
+  if (kind === "receber" && paidStatus === "recebido") {
+    ERP_DATA.financeiro.fluxoCaixa.saldoAtual += currentValue - previousValue;
+  }
 }
 
 function buildRepeatedFinancialItems(baseItem, prefix, list, repeatMonths) {
@@ -2671,7 +2782,11 @@ function renderFinanceiroTables() {
         <td>${formatBRL(b.valor)}</td>
         <td><span class="badge ${status.badge}">${status.label}</span></td>
         <td>
-          ${b.status !== 'Pago' ? `<button class="btn btn-secondary btn-icon-only" onclick="payBill('${b.id}')" title="Marcar como Pago"><i data-lucide="check"></i></button>` : ''}
+          <div class="finance-actions">
+            ${b.status !== 'Pago' ? `<button class="btn btn-secondary btn-icon-only" onclick="payBill('${b.id}')" title="Marcar como Pago"><i data-lucide="check"></i></button>` : ''}
+            <button class="btn btn-secondary btn-icon-only" onclick="editPayableBill('${b.id}')" title="Editar"><i data-lucide="pencil"></i></button>
+            <button class="btn btn-danger btn-icon-only" onclick="deletePayableBill('${b.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
+          </div>
         </td>
       </tr>
     `}).join('') : getFinanceEmptyRow(6, "Nenhuma conta a pagar encontrada para os filtros atuais.");
@@ -2691,7 +2806,11 @@ function renderFinanceiroTables() {
         <td>${formatBRL(b.valor)}</td>
         <td><span class="badge ${status.badge}">${status.label}</span></td>
         <td>
-          ${b.status !== 'Recebido' ? `<button class="btn btn-secondary btn-icon-only" onclick="receiveBill('${b.id}')" title="Receber Valor"><i data-lucide="arrow-down-left"></i></button>` : ''}
+          <div class="finance-actions">
+            ${b.status !== 'Recebido' ? `<button class="btn btn-secondary btn-icon-only" onclick="receiveBill('${b.id}')" title="Receber Valor"><i data-lucide="arrow-down-left"></i></button>` : ''}
+            <button class="btn btn-secondary btn-icon-only" onclick="editReceivableBill('${b.id}')" title="Editar"><i data-lucide="pencil"></i></button>
+            <button class="btn btn-danger btn-icon-only" onclick="deleteReceivableBill('${b.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
+          </div>
         </td>
       </tr>
     `}).join('') : getFinanceEmptyRow(6, "Nenhuma conta a receber encontrada para os filtros atuais.");

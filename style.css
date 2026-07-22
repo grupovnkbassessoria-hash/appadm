@@ -1208,6 +1208,8 @@ tr:hover td {
 
 .commercial-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; min-width: 220px; }
 .commercial-actions .btn-icon-only { width: 34px; height: 34px; }
+.finance-actions { display: flex; flex-wrap: nowrap; gap: 0.35rem; align-items: center; justify-content: flex-start; min-width: 118px; }
+.finance-actions .btn-icon-only { width: 34px; height: 34px; }
 
 
 /* Product catalog management */
