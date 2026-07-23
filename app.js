@@ -1552,6 +1552,7 @@ function initContratosComerciais() {
 
 // 3. CADASTRO CONTROLLER
 let editingProductId = null;
+const editingCadastroIds = {};
 
 function initCadastro() {
   setupBasicCadastroManagement();
@@ -1577,8 +1578,7 @@ const CADASTRO_CONFIG = {
       { key: "numero", label: "Número" },
       { key: "bairro", label: "Bairro" },
       { key: "cidade", label: "Cidade" },
-      { key: "uf", label: "UF" },
-      { key: "totalComprado", label: "Total Comprado", type: "number", defaultValue: 0 }
+      { key: "uf", label: "UF" }
     ]
   },
   fornecedores: {
@@ -1652,6 +1652,10 @@ function setupBasicCadastroManagement() {
     tab.addEventListener("click", (event) => {
       if (event.target.closest(`[data-cadastro-new="${kind}"]`)) {
         openCadastroForm(kind);
+      }
+      const editButton = event.target.closest(`[data-cadastro-edit="${kind}"]`);
+      if (editButton) {
+        openCadastroForm(kind, editButton.dataset.id);
       }
       if (event.target.closest(`[data-cadastro-cancel="${kind}"]`)) {
         closeCadastroForm(kind);
@@ -1809,9 +1813,21 @@ function formatPhoneInput(value) {
   return digits.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, "($1) $2-$3").replace(/-$/, "");
 }
 
-function openCadastroForm(kind) {
+function openCadastroForm(kind, id) {
   const form = document.getElementById(`form-${kind}`);
   if (!form) return;
+  const record = id ? ERP_DATA.cadastro[kind].find(item => item.id === id) : null;
+  editingCadastroIds[kind] = record ? record.id : null;
+  form.reset();
+  CADASTRO_CONFIG[kind].fields.forEach(field => {
+    const input = document.getElementById(`${kind}-${field.key}`);
+    if (!input) return;
+    if (record) {
+      input.value = record[field.key] ?? "";
+    } else if (field.defaultValue !== undefined) {
+      input.value = field.defaultValue;
+    }
+  });
   form.classList.remove("hidden");
   const firstInput = form.querySelector("input");
   if (firstInput) firstInput.focus();
@@ -1821,6 +1837,7 @@ function closeCadastroForm(kind) {
   const form = document.getElementById(`form-${kind}`);
   if (!form) return;
   form.reset();
+  editingCadastroIds[kind] = null;
   CADASTRO_CONFIG[kind].fields.forEach(field => {
     if (field.defaultValue !== undefined) {
       const input = document.getElementById(`${kind}-${field.key}`);
@@ -1832,12 +1849,18 @@ function closeCadastroForm(kind) {
 
 function saveCadastroForm(kind) {
   const config = CADASTRO_CONFIG[kind];
-  const payload = { id: nextCadastroId(kind, config.idPrefix) };
+  const editingId = editingCadastroIds[kind];
+  const currentRecord = editingId ? ERP_DATA.cadastro[kind].find(item => item.id === editingId) : null;
+  const payload = { ...(currentRecord || {}), id: editingId || nextCadastroId(kind, config.idPrefix) };
   config.fields.forEach(field => {
     const input = document.getElementById(`${kind}-${field.key}`);
     payload[field.key] = field.type === "number" ? (parseFloat(input.value) || 0) : input.value.trim();
   });
-  ERP_DATA.cadastro[kind].unshift(payload);
+  if (currentRecord) {
+    Object.assign(currentRecord, payload);
+  } else {
+    ERP_DATA.cadastro[kind].unshift(payload);
+  }
   saveState();
   closeCadastroForm(kind);
   renderCadastroTables();
@@ -1848,6 +1871,10 @@ function saveCadastroForm(kind) {
   if (kind === "fornecedores") populateCommercialPartnerSelect(payload.nome);
   if (kind === "colaboradores") reloadColaboradoresSelect();
   if (kind === "veiculos") initFrota();
+}
+
+function cadastroEditButton(kind, id) {
+  return `<button type="button" class="btn btn-secondary btn-icon-only" data-cadastro-edit="${kind}" data-id="${id}" title="Editar cadastro"><i data-lucide="pencil"></i></button>`;
 }
 
 function nextCadastroId(kind, prefix) {
@@ -2005,7 +2032,7 @@ function renderCadastroTables() {
         <td>${cli.cnpj}</td>
         <td>${cli.email}</td>
         <td>${cli.telefone}</td>
-        <td>${formatBRL(cli.totalComprado)}</td>
+        <td>${cadastroEditButton("clientes", cli.id)}</td>
       </tr>
     `).join('');
   }
@@ -2021,6 +2048,7 @@ function renderCadastroTables() {
         <td>${f.telefone}</td>
         <td><span class="badge badge-success">${f.qualidade}</span></td>
         <td>${f.prazoMedio}</td>
+        <td>${cadastroEditButton("fornecedores", f.id)}</td>
       </tr>
     `).join('');
   }
@@ -2036,6 +2064,7 @@ function renderCadastroTables() {
         <td>${formatBRL(col.salario)}</td>
         <td>${formatDateBR(col.admissao)}</td>
         <td><span class="badge badge-success">${col.status}</span></td>
+        <td>${cadastroEditButton("colaboradores", col.id)}</td>
       </tr>
     `).join('');
   }
@@ -2050,6 +2079,7 @@ function renderCadastroTables() {
         <td>${v.ano}</td>
         <td>${formatDateBR(v.vencimentoLicenciamento)}</td>
         <td><span class="badge ${v.status === 'Operacional' ? 'badge-success' : 'badge-warning'}">${v.status}</span></td>
+        <td>${cadastroEditButton("veiculos", v.id)}</td>
       </tr>
     `).join('');
   }
