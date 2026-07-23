@@ -2348,6 +2348,45 @@ function initFinanceiro() {
     }
   };
 
+  window.updateReceivableAmount = (id) => {
+    const bill = ERP_DATA.financeiro.contasReceber.find(b => b.id === id);
+    if (!bill) return;
+    const currentDue = bill.vencimento || new Date().toISOString().split("T")[0];
+    const newDue = prompt("Nova data de pagamento/vencimento (AAAA-MM-DD):", currentDue);
+    if (!newDue) return;
+    const update = calculateUpdatedReceivableAmount(bill, newDue);
+    if (!update) {
+      alert("Data inválida. Informe no formato AAAA-MM-DD.");
+      return;
+    }
+    const confirmMessage = [
+      `Valor original: ${formatBRL(update.baseValue)}`,
+      `Multa (2%): ${formatBRL(update.penalty)}`,
+      `Juros (1% ao mês): ${formatBRL(update.interest)}`,
+      `Dias em atraso: ${update.overdueDays}`,
+      `Novo vencimento: ${formatDateBR(update.newDueIso)}`,
+      `Valor atualizado: ${formatBRL(update.total)}`
+    ].join("\n");
+    if (!confirm(`${confirmMessage}\n\nAtualizar este lançamento para gerar novo boleto?`)) return;
+
+    bill.valorOriginalAtualizacao = bill.valorOriginalAtualizacao || update.baseValue;
+    bill.vencimentoOriginalAtualizacao = bill.vencimentoOriginalAtualizacao || bill.vencimento || "";
+    bill.valor = update.total;
+    bill.vencimento = update.newDueIso;
+    bill.multaAtualizacao = update.penalty;
+    bill.jurosAtualizacao = update.interest;
+    bill.diasAtrasoAtualizacao = update.overdueDays;
+    bill.status = "A Receber";
+    bill.boletoGerado = false;
+    saveState();
+    renderFinanceiroTables();
+    updateDashboardKPIs();
+
+    if (confirm("Gerar o boleto atualizado agora?")) {
+      gerarBoletoPdf(bill.id, bill.id);
+    }
+  };
+
   window.editPayableBill = (id) => {
     const bill = ERP_DATA.financeiro.contasPagar.find(b => b.id === id);
     if (!bill) return;
@@ -2640,6 +2679,30 @@ function getFinancialDateValue(item, field) {
   return parseFinancialDate(item?.[field]);
 }
 
+function isoFromFinancialDate(date) {
+  if (!date) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function calculateUpdatedReceivableAmount(bill, newDueValue) {
+  const oldDueDate = parseFinancialDate(bill?.vencimentoOriginalAtualizacao || bill?.vencimento);
+  const newDueDate = parseFinancialDate(newDueValue);
+  if (!newDueDate) return null;
+  const baseValue = Number(bill.valorOriginalAtualizacao || bill.valor) || 0;
+  const overdueDays = oldDueDate ? Math.max(0, Math.ceil((newDueDate - oldDueDate) / (1000 * 60 * 60 * 24))) : 0;
+  const penalty = overdueDays > 0 ? baseValue * 0.02 : 0;
+  const interest = overdueDays > 0 ? baseValue * 0.01 * (overdueDays / 30) : 0;
+  const total = Math.round((baseValue + penalty + interest) * 100) / 100;
+  return {
+    baseValue,
+    penalty: Math.round(penalty * 100) / 100,
+    interest: Math.round(interest * 100) / 100,
+    overdueDays,
+    total,
+    newDueIso: isoFromFinancialDate(newDueDate)
+  };
+}
+
 function sortByFinancialDateAsc(items, field) {
   return [...items].sort((a, b) => {
     const dateA = getFinancialDateValue(a, field);
@@ -2838,6 +2901,7 @@ function renderFinanceiroTables() {
         <td>
           <div class="finance-actions">
             ${b.status !== 'Recebido' ? `<button class="btn btn-secondary btn-icon-only" onclick="receiveBill('${b.id}')" title="Receber Valor"><i data-lucide="arrow-down-left"></i></button>` : ''}
+            ${b.status !== 'Recebido' ? `<button class="btn btn-secondary btn-icon-only" onclick="updateReceivableAmount('${b.id}')" title="Calcular valor atualizado"><i data-lucide="calculator"></i></button>` : ''}
             <button class="btn btn-secondary btn-icon-only" onclick="editReceivableBill('${b.id}')" title="Editar"><i data-lucide="pencil"></i></button>
             <button class="btn btn-danger btn-icon-only" onclick="deleteReceivableBill('${b.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
           </div>
@@ -2871,7 +2935,10 @@ function renderFinanceiroTables() {
             <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="abrirEmissorNacional()"><i data-lucide="external-link"></i> Abrir Emissor</button>
           </td>
           <td>
-            <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="gerarBoletoPdf('${fat.recId}', '${fat.id}')"><i data-lucide="file-text"></i> Boleto PDF</button>
+            <div class="commercial-actions">
+              ${fat.status !== 'Recebido' ? `<button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="updateReceivableAmount('${fat.recId}')" title="Calcular multa e juros"><i data-lucide="calculator"></i> Atualizar</button>` : ''}
+              <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;" onclick="gerarBoletoPdf('${fat.recId}', '${fat.id}')"><i data-lucide="file-text"></i> Boleto PDF</button>
+            </div>
           </td>
           <td>
             <div class="commercial-actions">
