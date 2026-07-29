@@ -3,24 +3,84 @@ import { initialData } from './data.js';
 // ============================================================
 // MULTI-COMPANY STATE MANAGEMENT
 // ============================================================
-let GLOBAL_STATE = JSON.parse(localStorage.getItem('erp_global'));
-if (!GLOBAL_STATE || !GLOBAL_STATE.users || !GLOBAL_STATE.users.length) {
-  GLOBAL_STATE = JSON.parse(JSON.stringify(initialData));
-  localStorage.setItem('erp_global', JSON.stringify(GLOBAL_STATE));
-} else {
-  // Developer Seeding Merge: Ensure new companies and users in initialData are merged into existing localStorage state
-  initialData.companies.forEach(ic => {
-    if (!GLOBAL_STATE.companies.some(c => c.cnpj === ic.cnpj)) {
-      GLOBAL_STATE.companies.push(JSON.parse(JSON.stringify(ic)));
-    }
-  });
-  initialData.users.forEach(iu => {
-    if (!GLOBAL_STATE.users.some(u => u.username === iu.username && u.cnpj === iu.cnpj)) {
-      GLOBAL_STATE.users.push(iu);
-    }
-  });
-  localStorage.setItem('erp_global', JSON.stringify(GLOBAL_STATE));
+const ERP_STORAGE_KEY = "erp_global";
+const ERP_BACKUP_KEY = "erp_global_backup";
+const ERP_BACKUP_META_KEY = "erp_global_backup_meta";
+
+function cloneInitialData() {
+  return JSON.parse(JSON.stringify(initialData));
 }
+
+function parseStoredState(key) {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.warn(`Não foi possível ler ${key}.`, error);
+    return null;
+  }
+}
+
+function hasFinanceData(company) {
+  const financeiro = company?.data?.financeiro;
+  if (!financeiro) return false;
+  return Boolean(
+    financeiro.contasPagar?.length ||
+    financeiro.contasReceber?.length ||
+    financeiro.fluxoCaixa?.diario?.length ||
+    Number(financeiro.fluxoCaixa?.saldoAtual)
+  );
+}
+
+function mergeInitialState(storedState) {
+  const merged = storedState && typeof storedState === "object" ? storedState : {};
+  const seeded = cloneInitialData();
+
+  if (!Array.isArray(merged.companies)) merged.companies = [];
+  if (!Array.isArray(merged.users)) merged.users = [];
+
+  seeded.companies.forEach(initialCompany => {
+    const existing = merged.companies.find(company => company.cnpj === initialCompany.cnpj);
+    if (!existing) {
+      merged.companies.push(initialCompany);
+      return;
+    }
+    existing.id = existing.id || initialCompany.id;
+    existing.razaoSocial = existing.razaoSocial || initialCompany.razaoSocial;
+    existing.pixKey = existing.pixKey || initialCompany.pixKey;
+    existing.data = existing.data || initialCompany.data;
+  });
+
+  seeded.users.forEach(initialUser => {
+    const exists = merged.users.some(user => user.username === initialUser.username && user.cnpj === initialUser.cnpj);
+    if (!exists) merged.users.push(initialUser);
+  });
+
+  return merged;
+}
+
+function restoreFinanceFromBackup(mergedState, backupState) {
+  if (!backupState?.companies?.length) return mergedState;
+  mergedState.companies.forEach(company => {
+    if (hasFinanceData(company)) return;
+    const backupCompany = backupState.companies.find(item => item.cnpj === company.cnpj);
+    if (!hasFinanceData(backupCompany)) return;
+    company.data = company.data || {};
+    company.data.financeiro = JSON.parse(JSON.stringify(backupCompany.data.financeiro));
+  });
+  return mergedState;
+}
+
+function initializeGlobalState() {
+  const stored = parseStoredState(ERP_STORAGE_KEY);
+  const backup = parseStoredState(ERP_BACKUP_KEY);
+  const source = stored?.companies?.length ? stored : backup;
+  const merged = restoreFinanceFromBackup(mergeInitialState(source), backup);
+  localStorage.setItem(ERP_STORAGE_KEY, JSON.stringify(merged));
+  return merged;
+}
+
+let GLOBAL_STATE = initializeGlobalState();
 let ACTIVE_SESSION = null; // { companyId, username, cnpj }
 let ERP_DATA = null;       // Active company data (shortcut)
 
@@ -29,7 +89,8 @@ function saveState() {
     const comp = GLOBAL_STATE.companies.find(c => c.cnpj === ACTIVE_SESSION.cnpj);
     if (comp) comp.data = ERP_DATA;
   }
-  localStorage.setItem('erp_global', JSON.stringify(GLOBAL_STATE));
+  localStorage.setItem(ERP_BACKUP_KEY, JSON.stringify(GLOBAL_STATE));
+  localStorage.setItem(ERP_STORAGE_KEY, JSON.stringify(GLOBAL_STATE));
 }
 
 function loadCompanyData(cnpj) {
@@ -68,6 +129,7 @@ function bootApp() {
   initFrota();
   initEstoque();
   initAdministrativo();
+  initBackupSistema();
   initRelatorios();
   initModal();
   lucide.createIcons();
@@ -3771,6 +3833,165 @@ function generateConsolidadoPdf() {
   const branded = wrapPdfWithBranding(contentHtml, "body{font-family:Arial,sans-serif;color:#111827;margin:32px}header{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #2563eb;padding-bottom:16px;margin-bottom:18px}h1{font-size:24px;margin:0}.muted{color:#64748b;font-size:12px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f3f4f6;text-align:left;text-transform:uppercase;font-size:11px}th,td{border-bottom:1px solid #e5e7eb;padding:10px;vertical-align:top}@page{size:A4;margin:14mm}@media print{body{margin:0}}");
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Consolidado Geral</title><style>${branded.styles}</style></head><body class="${branded.bodyClass}">${branded.body}</body></html>`;
   printHtmlDocument(html, "consolidado-pdf-frame", "Relatório Consolidado Geral");
+}
+
+function initBackupSistema() {
+  const backupBtn = document.getElementById("btn-backup-completo");
+  const restoreBtn = document.getElementById("btn-restaurar-backup");
+  const restoreInput = document.getElementById("input-restaurar-backup");
+
+  if (backupBtn && backupBtn.dataset.bound !== "true") {
+    backupBtn.dataset.bound = "true";
+    backupBtn.addEventListener("click", baixarBackupCompleto);
+  }
+
+  if (restoreBtn && restoreInput && restoreBtn.dataset.bound !== "true") {
+    restoreBtn.dataset.bound = "true";
+    restoreBtn.addEventListener("click", () => restoreInput.click());
+  }
+
+  if (restoreInput && restoreInput.dataset.bound !== "true") {
+    restoreInput.dataset.bound = "true";
+    restoreInput.addEventListener("change", restaurarBackupCompleto);
+  }
+
+  renderBackupMetaInfo();
+}
+
+function getAllLocalStorageData() {
+  const data = {};
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    data[key] = localStorage.getItem(key);
+  }
+  return data;
+}
+
+function montarBackupCompleto() {
+  saveState();
+  const createdAt = new Date();
+  const activeCompany = getActiveCompany();
+
+  return {
+    app: "APP ADM",
+    type: "backup-completo-sistema",
+    version: 1,
+    createdAt: createdAt.toISOString(),
+    createdAtBR: createdAt.toLocaleString("pt-BR"),
+    activeCompany: activeCompany ? {
+      cnpj: activeCompany.cnpj,
+      razaoSocial: activeCompany.razaoSocial
+    } : null,
+    state: GLOBAL_STATE,
+    localStorage: getAllLocalStorageData()
+  };
+}
+
+function baixarBackupCompleto() {
+  const backup = montarBackupCompleto();
+  const content = JSON.stringify(backup, null, 2);
+  const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const stamp = backup.createdAt.slice(0, 19).replace(/[-:T]/g, "");
+  const filename = `backup-completo-app-adm-${stamp}.json`;
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  const meta = {
+    filename,
+    createdAt: backup.createdAt,
+    bytes: blob.size
+  };
+  localStorage.setItem(ERP_BACKUP_META_KEY, JSON.stringify(meta));
+  renderBackupMetaInfo();
+  alert("Backup completo baixado com sucesso.");
+}
+
+function extrairEstadoDoBackup(backup) {
+  if (backup?.state?.companies && backup?.state?.users) return backup.state;
+  const rawState = backup?.localStorage?.[ERP_STORAGE_KEY] || backup?.localStorage?.[ERP_BACKUP_KEY];
+  if (!rawState) return null;
+
+  try {
+    return JSON.parse(rawState);
+  } catch (error) {
+    console.warn("Backup contém estado inválido.", error);
+    return null;
+  }
+}
+
+function validarEstadoBackup(state) {
+  return Boolean(
+    state &&
+    Array.isArray(state.companies) &&
+    Array.isArray(state.users) &&
+    state.companies.length > 0
+  );
+}
+
+function restaurarBackupCompleto(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const backup = JSON.parse(String(reader.result || "{}"));
+      const restoredState = extrairEstadoDoBackup(backup);
+
+      if (!validarEstadoBackup(restoredState)) {
+        alert("Arquivo de backup inválido. Selecione um backup completo gerado pelo APP ADM.");
+        return;
+      }
+
+      const confirmRestore = confirm("Restaurar este backup vai substituir os dados atuais salvos neste navegador. Deseja continuar?");
+      if (!confirmRestore) return;
+
+      GLOBAL_STATE = mergeInitialState(JSON.parse(JSON.stringify(restoredState)));
+      localStorage.setItem(ERP_STORAGE_KEY, JSON.stringify(GLOBAL_STATE));
+      localStorage.setItem(ERP_BACKUP_KEY, JSON.stringify(GLOBAL_STATE));
+      localStorage.setItem(ERP_BACKUP_META_KEY, JSON.stringify({
+        filename: file.name,
+        createdAt: new Date().toISOString(),
+        bytes: file.size,
+        restored: true
+      }));
+
+      if (ACTIVE_SESSION) ERP_DATA = loadCompanyData(ACTIVE_SESSION.cnpj);
+      alert("Backup restaurado com sucesso. O sistema será recarregado para aplicar os dados.");
+      window.location.reload();
+    } catch (error) {
+      console.error("Falha ao restaurar backup.", error);
+      alert("Não foi possível restaurar o backup. Confira se o arquivo JSON está correto.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderBackupMetaInfo() {
+  const metaEl = document.getElementById("backup-meta-info");
+  if (!metaEl) return;
+
+  const meta = parseStoredState(ERP_BACKUP_META_KEY);
+  const companies = GLOBAL_STATE?.companies?.length || 0;
+  const users = GLOBAL_STATE?.users?.length || 0;
+
+  if (!meta) {
+    metaEl.innerHTML = `Pronto para backup: ${companies} empresa(s) e ${users} usuário(s) salvos neste navegador.`;
+    return;
+  }
+
+  const sizeKb = meta.bytes ? `${(meta.bytes / 1024).toFixed(1)} KB` : "tamanho indisponível";
+  const action = meta.restored ? "Última restauração" : "Último backup";
+  metaEl.innerHTML = `${action}: ${escapeHtml(meta.filename || "arquivo JSON")} em ${new Date(meta.createdAt).toLocaleString("pt-BR")} (${sizeKb}). Dados atuais: ${companies} empresa(s) e ${users} usuário(s).`;
 }
 
 function renderConsolidadoGeral() {

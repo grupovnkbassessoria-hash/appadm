@@ -1534,6 +1534,7 @@
           <div class="tab-headers">
             <button class="tab-btn active" data-tab="tab-adm-docs">Documentos Oficiais & Licenças</button>
             <button class="tab-btn" data-tab="tab-adm-consolidado">Relatório Consolidado Geral</button>
+            <button class="tab-btn" data-tab="tab-adm-backup">Backup do Sistema</button>
           </div>
 
           <!-- Documentos Diversos -->
@@ -1572,6 +1573,27 @@
                 <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 0.75rem;" id="consolidado-conformidade-dinamico">
                   <!-- Rendered dynamically -->
                 </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Backup Completo -->
+          <div class="tab-content" id="tab-adm-backup">
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Backup Completo do Sistema</h3>
+              </div>
+              <div class="backup-system-panel">
+                <div>
+                  <strong>Dados incluídos no backup</strong>
+                  <p>Empresas, usuários, financeiro, cadastros, fiscal, comercial, frota, estoque, documentos e tarefas salvas neste navegador.</p>
+                </div>
+                <div class="backup-actions">
+                  <button class="btn btn-primary" id="btn-backup-completo"><i data-lucide="download"></i> Baixar Backup Completo</button>
+                  <button class="btn btn-secondary" id="btn-restaurar-backup"><i data-lucide="upload"></i> Restaurar Backup</button>
+                  <input type="file" id="input-restaurar-backup" class="hidden" accept="application/json,.json">
+                </div>
+                <div class="backup-meta" id="backup-meta-info"></div>
               </div>
             </div>
           </div>

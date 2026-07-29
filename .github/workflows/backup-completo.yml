@@ -1,0 +1,40 @@
+name: Backup completo do sistema
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Gerar backup completo
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Montar pacote de backup
+        run: |
+          mkdir -p backup
+          tar \
+            --exclude='./.git' \
+            --exclude='./node_modules' \
+            --exclude='./dist' \
+            --exclude='./.vercel' \
+            --exclude='./*.log' \
+            --exclude='./.env' \
+            --exclude='./.env.local' \
+            --exclude='./.env.*' \
+            -czf "backup/app-adm-${GITHUB_SHA}.tar.gz" .
+
+      - name: Salvar backup nos artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-completo-app-adm-${{ github.run_number }}
+          path: backup/*.tar.gz
+          retention-days: 30
