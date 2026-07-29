@@ -1667,6 +1667,8 @@ header {
 .reports-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
 .report-section { border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--surface-primary); padding: 1rem; }
 .report-section h4 { margin-bottom: 0.75rem; }
+.report-section-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
+.report-section-header h4 { margin-bottom: 0; }
 .report-section ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
 .report-section li, .report-section p { color: var(--text-secondary); font-size: 0.84rem; line-height: 1.45; }
 @media (max-width: 760px) {

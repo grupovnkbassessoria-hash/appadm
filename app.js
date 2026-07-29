@@ -4087,6 +4087,11 @@ function initRelatorios() {
       field.addEventListener("change", renderRelatorios);
     }
   });
+  document.querySelectorAll("[data-relatorio-pdf]").forEach(button => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => generateRelatorioPdf(button.dataset.relatorioPdf));
+  });
   setDefaultRelatorioDates();
   renderRelatorios();
 }
@@ -4157,10 +4162,7 @@ function getVehicleDocStatus(vehicle) {
   return "Em dia";
 }
 
-function renderRelatorios() {
-  const kpis = document.getElementById("relatorios-kpis");
-  if (!kpis || !ERP_DATA) return;
-
+function getRelatorioSnapshot() {
   const range = getRelatorioRange();
   const contasPagar = (ERP_DATA.financeiro.contasPagar || []).filter(item => isDateInsideRelatorioRange(item.vencimento, range));
   const contasReceber = (ERP_DATA.financeiro.contasReceber || []).filter(item => isDateInsideRelatorioRange(item.vencimento, range));
@@ -4169,6 +4171,30 @@ function renderRelatorios() {
   const valorReceber = sumBy(contasReceber, "valor");
   const valorEstoque = (ERP_DATA.cadastro.produtos || []).reduce((sum, p) => sum + ((p.estoqueAtual || 0) * (p.custoMedio || 0)), 0);
   const valorAbastecimento = sumBy(abastecimentos, "valorTotal");
+  const unified = [
+    ...contasPagar.map(item => ({ ...item, tipo: "Pagar", parceiro: item.fornecedor, sinal: -1 })),
+    ...contasReceber.map(item => ({ ...item, tipo: "Receber", parceiro: item.cliente, sinal: 1 }))
+  ].sort((a, b) => (parseFinancialDate(a.vencimento) || 0) - (parseFinancialDate(b.vencimento) || 0));
+
+  return {
+    range,
+    contasPagar,
+    contasReceber,
+    unified,
+    abastecimentos,
+    valorPagar,
+    valorReceber,
+    valorEstoque,
+    valorAbastecimento
+  };
+}
+
+function renderRelatorios() {
+  const kpis = document.getElementById("relatorios-kpis");
+  if (!kpis || !ERP_DATA) return;
+
+  const snapshot = getRelatorioSnapshot();
+  const { contasPagar, contasReceber, unified, abastecimentos, valorPagar, valorReceber, valorEstoque, valorAbastecimento } = snapshot;
 
   kpis.innerHTML = [
     ["Contas a pagar", formatBRL(valorPagar), `${contasPagar.length} lançamento(s)`],
@@ -4193,10 +4219,6 @@ function renderRelatorios() {
     `).join("") : relatorioEmptyRow(5, "Nenhuma conta a receber no período selecionado.");
   }
 
-  const unified = [
-    ...contasPagar.map(item => ({ ...item, tipo: "Pagar", parceiro: item.fornecedor, sinal: -1 })),
-    ...contasReceber.map(item => ({ ...item, tipo: "Receber", parceiro: item.cliente, sinal: 1 }))
-  ].sort((a, b) => (parseFinancialDate(a.vencimento) || 0) - (parseFinancialDate(b.vencimento) || 0));
   const unificadasBody = document.getElementById("relatorio-contas-unificadas-body");
   if (unificadasBody) {
     unificadasBody.innerHTML = unified.length ? unified.map(item => `
@@ -4235,6 +4257,100 @@ function renderRelatorios() {
     }).join("") : relatorioEmptyRow(5, "Nenhum veículo cadastrado.");
   }
   lucide.createIcons();
+}
+
+function relatorioPeriodLabel(range) {
+  const start = range?.start ? formatDateBR(isoFromFinancialDate(range.start)) : "";
+  const end = range?.end ? formatDateBR(isoFromFinancialDate(range.end)) : "";
+  return start && end ? `${start} a ${end}` : "Todos os registros";
+}
+
+function pdfTableRows(rows, colCount) {
+  if (!rows.length) return `<tr><td colspan="${colCount}" class="muted">Nenhuma informação encontrada.</td></tr>`;
+  return rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+}
+
+function buildRelatorioPdfConfig(kind) {
+  const snapshot = getRelatorioSnapshot();
+  const money = value => formatBRL(Number(value) || 0);
+  const configs = {
+    "contas-pagar": {
+      title: "Relatório de Contas a Pagar",
+      columns: ["Vencimento", "Descrição", "Fornecedor", "Status", "Valor"],
+      rows: snapshot.contasPagar.map(item => [formatDateBR(item.vencimento), item.descricao, item.fornecedor, item.status, money(item.valor)]),
+      totalLabel: "Total a pagar",
+      totalValue: money(snapshot.valorPagar)
+    },
+    "contas-receber": {
+      title: "Relatório de Contas a Receber",
+      columns: ["Vencimento", "Descrição", "Cliente", "Status", "Valor"],
+      rows: snapshot.contasReceber.map(item => [formatDateBR(item.vencimento), item.descricao, item.cliente, item.status, money(item.valor)]),
+      totalLabel: "Total a receber",
+      totalValue: money(snapshot.valorReceber)
+    },
+    "contas-unificadas": {
+      title: "Relatório de Contas Unificadas",
+      columns: ["Data", "Tipo", "Descrição", "Parceiro", "Status", "Valor"],
+      rows: snapshot.unified.map(item => [formatDateBR(item.vencimento), item.tipo, item.descricao, item.parceiro, item.status, money((item.valor || 0) * item.sinal)]),
+      totalLabel: "Saldo unificado",
+      totalValue: money(snapshot.valorReceber - snapshot.valorPagar)
+    },
+    "contratos": {
+      title: "Relatório de Contratos e Vigência",
+      columns: ["Contrato", "Tipo", "Parceiro", "Início", "Fim", "Status", "Valor mensal"],
+      rows: (ERP_DATA.comercial.contratos || []).map(item => [item.titulo, item.tipo, item.parceiro, formatDateBR(item.vigenciaInicio), formatDateBR(item.vigenciaFim), getContractValidityStatus(item), money(item.valorMensal)]),
+      totalLabel: "Valor mensal contratado",
+      totalValue: money(sumBy(ERP_DATA.comercial.contratos || [], "valorMensal"))
+    },
+    "estoque": {
+      title: "Relatório de Estoque",
+      columns: ["Produto", "Categoria", "Quantidade", "Custo médio", "Valor em estoque", "Validade", "Status"],
+      rows: (ERP_DATA.cadastro.produtos || []).map(item => [item.nome, item.categoria, item.estoqueAtual || 0, money(item.custoMedio), money((item.estoqueAtual || 0) * (item.custoMedio || 0)), item.validade ? formatDateBR(item.validade) : "Sem validade", item.estoqueAtual < 10 ? "Crítico" : "Estável"]),
+      totalLabel: "Valor em estoque",
+      totalValue: money(snapshot.valorEstoque)
+    },
+    "veicular-abastecimento": {
+      title: "Relatório Veicular - Abastecimento",
+      columns: ["Data", "Veículo", "Combustível", "Litros", "KM", "Valor"],
+      rows: snapshot.abastecimentos.map(item => [formatDateBR(item.data), item.veiculo, item.combustivel, item.litros || 0, item.kmAtual || "-", money(item.valorTotal)]),
+      totalLabel: "Total em abastecimentos",
+      totalValue: money(snapshot.valorAbastecimento)
+    },
+    "veicular-documentacao": {
+      title: "Relatório Veicular - Documentação",
+      columns: ["Veículo", "Modelo", "Status", "Licenciamento", "Situação"],
+      rows: (ERP_DATA.cadastro.veiculos || []).map(item => [item.placa, `${item.marca || ""} ${item.modelo || ""}`.trim(), item.status, formatDateBR(item.vencimentoLicenciamento), getVehicleDocStatus(item)]),
+      totalLabel: "Veículos cadastrados",
+      totalValue: String((ERP_DATA.cadastro.veiculos || []).length)
+    }
+  };
+  return configs[kind];
+}
+
+function generateRelatorioPdf(kind) {
+  if (!ERP_DATA) return;
+  const config = buildRelatorioPdfConfig(kind);
+  if (!config) return;
+  const range = getRelatorioRange();
+  const tableHead = config.columns.map(column => `<th>${escapeHtml(column)}</th>`).join("");
+  const tableBody = pdfTableRows(config.rows, config.columns.length);
+  const contentHtml = `
+    <header>
+      <div><h1>${escapeHtml(config.title)}</h1><div class="muted">Período: ${escapeHtml(relatorioPeriodLabel(range))}</div><div class="muted">Emitido em ${new Date().toLocaleString("pt-BR")}</div></div>
+      <strong>APP ADM</strong>
+    </header>
+    <section class="summary"><span>${escapeHtml(config.totalLabel)}</span><strong>${escapeHtml(config.totalValue)}</strong></section>
+    <section class="box">
+      <table>
+        <thead><tr>${tableHead}</tr></thead>
+        <tbody>${tableBody}</tbody>
+      </table>
+    </section>
+  `;
+  const styles = "body{font-family:Arial,sans-serif;color:#111827;margin:32px}header{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #2563eb;padding-bottom:16px;margin-bottom:18px}h1{font-size:22px;margin:0 0 6px}.muted{color:#64748b;font-size:12px}.summary{display:flex;justify-content:space-between;align-items:center;border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;padding:12px 14px;margin-bottom:16px}.summary span{color:#475569;font-size:12px;text-transform:uppercase;font-weight:700}.summary strong{font-size:18px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;text-align:left;text-transform:uppercase;font-size:10px}th,td{border-bottom:1px solid #e5e7eb;padding:8px;vertical-align:top}.muted{text-align:left}@page{size:A4 landscape;margin:12mm}@media print{body{margin:0}}";
+  const branded = wrapPdfWithBranding(contentHtml, styles);
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${escapeHtml(config.title)}</title><style>${branded.styles}</style></head><body class="${branded.bodyClass}">${branded.body}</body></html>`;
+  printHtmlDocument(html, `relatorio-${kind}-pdf-frame`, config.title);
 }
 // ============================================================
 // MODAL MODULE
