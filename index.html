@@ -1514,18 +1514,60 @@
         <div class="view-content" id="view-relatorios">
           <div class="panel">
             <div class="panel-header">
-              <h3 class="panel-title"><i data-lucide="bar-chart-3"></i> Relatórios Gerais do App</h3>
+              <h3 class="panel-title"><i data-lucide="bar-chart-3"></i> Relatórios</h3>
               <button class="btn btn-secondary" id="btn-atualizar-relatorios"><i data-lucide="refresh-cw"></i> Atualizar</button>
+            </div>
+            <div class="report-filter-bar">
+              <div class="form-group">
+                <label>Competência</label>
+                <select class="form-select" id="relatorio-periodo">
+                  <option value="mes-atual">Mês atual</option>
+                  <option value="periodo">Período</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Início</label>
+                <input type="date" class="form-input" id="relatorio-data-inicio">
+              </div>
+              <div class="form-group">
+                <label>Fim</label>
+                <input type="date" class="form-input" id="relatorio-data-fim">
+              </div>
             </div>
             <div class="report-kpi-grid" id="relatorios-kpis"></div>
           </div>
           <div class="panel">
-            <div class="panel-header"><h3 class="panel-title">Informações Consolidadas</h3></div>
-            <div class="table-wrapper"><table><thead><tr><th>Módulo</th><th>Informação</th><th>Quantidade</th><th>Valor / Status</th></tr></thead><tbody id="relatorios-table-body"></tbody></table></div>
+            <div class="panel-header"><h3 class="panel-title">Contas a Pagar</h3></div>
+            <div class="table-wrapper"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Fornecedor</th><th>Status</th><th>Valor</th></tr></thead><tbody id="relatorio-contas-pagar-body"></tbody></table></div>
           </div>
           <div class="panel">
-            <div class="panel-header"><h3 class="panel-title">Detalhamento por Área</h3></div>
-            <div class="reports-sections" id="relatorios-detalhes"></div>
+            <div class="panel-header"><h3 class="panel-title">Contas a Receber</h3></div>
+            <div class="table-wrapper"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Cliente</th><th>Status</th><th>Valor</th></tr></thead><tbody id="relatorio-contas-receber-body"></tbody></table></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">Contas Unificadas</h3></div>
+            <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Parceiro</th><th>Status</th><th>Valor</th></tr></thead><tbody id="relatorio-contas-unificadas-body"></tbody></table></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">Contratos e Vigência</h3></div>
+            <div class="table-wrapper"><table><thead><tr><th>Contrato</th><th>Tipo</th><th>Parceiro</th><th>Início</th><th>Fim</th><th>Status</th><th>Valor mensal</th></tr></thead><tbody id="relatorio-contratos-body"></tbody></table></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">Estoque</h3></div>
+            <div class="table-wrapper"><table><thead><tr><th>Produto</th><th>Categoria</th><th>Quantidade</th><th>Custo médio</th><th>Valor em estoque</th><th>Validade</th><th>Status</th></tr></thead><tbody id="relatorio-estoque-body"></tbody></table></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">Relatório Veicular</h3></div>
+            <div class="reports-sections">
+              <section class="report-section">
+                <h4>Abastecimento</h4>
+                <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Veículo</th><th>Combustível</th><th>Litros</th><th>KM</th><th>Valor</th></tr></thead><tbody id="relatorio-veicular-abastecimento-body"></tbody></table></div>
+              </section>
+              <section class="report-section">
+                <h4>Documentação</h4>
+                <div class="table-wrapper"><table><thead><tr><th>Veículo</th><th>Modelo</th><th>Status</th><th>Licenciamento</th><th>Situação</th></tr></thead><tbody id="relatorio-veicular-documentacao-body"></tbody></table></div>
+              </section>
+            </div>
           </div>
         </div>
 

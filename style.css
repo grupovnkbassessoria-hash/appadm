@@ -1663,8 +1663,12 @@ header {
 .report-kpi span { color: var(--text-secondary); font-size: 0.76rem; font-weight: 800; text-transform: uppercase; }
 .report-kpi strong { font-size: 1.2rem; }
 .report-kpi em { color: var(--color-secondary); font-style: normal; font-weight: 800; }
+.report-filter-bar { display: grid; grid-template-columns: minmax(170px, 0.8fr) repeat(2, minmax(160px, 1fr)); gap: 1rem; align-items: end; margin-bottom: 1rem; }
 .reports-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
 .report-section { border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--surface-primary); padding: 1rem; }
 .report-section h4 { margin-bottom: 0.75rem; }
 .report-section ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
 .report-section li, .report-section p { color: var(--text-secondary); font-size: 0.84rem; line-height: 1.45; }
+@media (max-width: 760px) {
+  .report-filter-bar { grid-template-columns: 1fr; }
+}

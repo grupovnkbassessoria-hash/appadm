@@ -4080,24 +4080,160 @@ function renderAdministrativoDocs() {
 function initRelatorios() {
   const btn = document.getElementById("btn-atualizar-relatorios");
   if (btn && btn.dataset.bound !== "true") { btn.dataset.bound = "true"; btn.addEventListener("click", renderRelatorios); }
+  ["relatorio-periodo", "relatorio-data-inicio", "relatorio-data-fim"].forEach(id => {
+    const field = document.getElementById(id);
+    if (field && field.dataset.bound !== "true") {
+      field.dataset.bound = "true";
+      field.addEventListener("change", renderRelatorios);
+    }
+  });
+  setDefaultRelatorioDates();
   renderRelatorios();
 }
 function sumBy(list, key) { return (list || []).reduce((sum, item) => sum + (Number(item[key]) || 0), 0); }
+
+function setDefaultRelatorioDates() {
+  const startField = document.getElementById("relatorio-data-inicio");
+  const endField = document.getElementById("relatorio-data-fim");
+  if (!startField || !endField || startField.value || endField.value) return;
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  startField.value = isoFromFinancialDate(start);
+  endField.value = isoFromFinancialDate(end);
+}
+
+function getRelatorioRange() {
+  const mode = document.getElementById("relatorio-periodo")?.value || "mes-atual";
+  const today = new Date();
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const start = mode === "periodo" ? parseFinancialDate(document.getElementById("relatorio-data-inicio")?.value) : monthStart;
+  const end = mode === "periodo" ? parseFinancialDate(document.getElementById("relatorio-data-fim")?.value) : monthEnd;
+  return { start, end };
+}
+
+function isDateInsideRelatorioRange(value, range) {
+  const date = parseFinancialDate(value);
+  if (!date) return false;
+  if (range.start && date < range.start) return false;
+  if (range.end && date > range.end) return false;
+  return true;
+}
+
+function relatorioEmptyRow(colspan, message) {
+  return `<tr><td colspan="${colspan}" class="muted">${message}</td></tr>`;
+}
+
+function relatorioStatusBadge(status) {
+  const normalized = normalizeText(status);
+  const badge = normalized.includes("recebido") || normalized.includes("pago") || normalized.includes("ativo") || normalized.includes("operacional") || normalized.includes("valido")
+    ? "badge-success"
+    : normalized.includes("atrasado") || normalized.includes("critico") || normalized.includes("vencido")
+      ? "badge-danger"
+      : "badge-warning";
+  return `<span class="badge ${badge}">${escapeHtml(status || "Pendente")}</span>`;
+}
+
+function getContractValidityStatus(contract) {
+  const end = parseFinancialDate(contract?.vigenciaFim);
+  if (!end) return contract?.status || "Sem vigência";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+  if (days < 0) return "Vencido";
+  if (days <= 30) return "Vence em 30 dias";
+  return contract?.status || "Ativo";
+}
+
+function getVehicleDocStatus(vehicle) {
+  const due = parseFinancialDate(vehicle?.vencimentoLicenciamento);
+  if (!due) return "Sem vencimento";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+  if (days < 0) return "Licenciamento vencido";
+  if (days <= 30) return "Vence em 30 dias";
+  return "Em dia";
+}
+
 function renderRelatorios() {
   const kpis = document.getElementById("relatorios-kpis");
-  const table = document.getElementById("relatorios-table-body");
-  const details = document.getElementById("relatorios-detalhes");
-  if (!kpis || !table || !details || !ERP_DATA) return;
-  const receitaComercial = sumBy(ERP_DATA.comercial.orcamentos, "total") + sumBy(ERP_DATA.comercial.pedidos, "total");
-  const receber = sumBy(ERP_DATA.financeiro.contasReceber, "valor");
-  const pagar = sumBy(ERP_DATA.financeiro.contasPagar, "valor");
-  const estoque = ERP_DATA.cadastro.produtos.reduce((sum, p) => sum + ((p.estoqueAtual || 0) * (p.custoMedio || 0)), 0);
-  const frotaCusto = sumBy(ERP_DATA.frota.manutencoes, "custo") + sumBy(ERP_DATA.frota.abastecimentos, "valorTotal") + sumBy(ERP_DATA.frota.multas, "valor");
-  kpis.innerHTML = [["Comercial", ERP_DATA.comercial.contratos.length + " contratos", formatBRL(receitaComercial)], ["Financeiro", ERP_DATA.financeiro.contasReceber.length + " a receber", formatBRL(receber - pagar)], ["Cadastros", ERP_DATA.cadastro.clientes.length + " clientes", ERP_DATA.cadastro.produtos.length + " itens"], ["Frota", ERP_DATA.cadastro.veiculos.length + " veículos", formatBRL(frotaCusto)], ["Documentos", ERP_DATA.administrativo.documentos.length + " arquivos", ERP_DATA.fiscal.notasEmitidas.length + " notas"], ["Estoque", ERP_DATA.cadastro.produtos.length + " produtos/serviços", formatBRL(estoque)]].map(item => `<div class="report-kpi"><span>${item[0]}</span><strong>${item[1]}</strong><em>${item[2]}</em></div>`).join("");
-  const rows = [["Comercial", "Orçamentos", ERP_DATA.comercial.orcamentos.length, formatBRL(sumBy(ERP_DATA.comercial.orcamentos, "total"))], ["Comercial", "Pedidos", ERP_DATA.comercial.pedidos.length, formatBRL(sumBy(ERP_DATA.comercial.pedidos, "total"))], ["Comercial", "Contratos", ERP_DATA.comercial.contratos.length, formatBRL(sumBy(ERP_DATA.comercial.contratos, "valorMensal")) + " / mês"], ["Base de Cadastro", "Clientes", ERP_DATA.cadastro.clientes.length, formatBRL(sumBy(ERP_DATA.cadastro.clientes, "totalComprado"))], ["Base de Cadastro", "Fornecedores", ERP_DATA.cadastro.fornecedores.length, "Credenciados"], ["Base de Cadastro", "Colaboradores", ERP_DATA.cadastro.colaboradores.length, formatBRL(sumBy(ERP_DATA.cadastro.colaboradores, "salario")) + " folha base"], ["Fiscal", "Notas emitidas", ERP_DATA.fiscal.notasEmitidas.length, formatBRL(sumBy(ERP_DATA.fiscal.notasEmitidas, "valor"))], ["Financeiro", "Contas a receber", ERP_DATA.financeiro.contasReceber.length, formatBRL(receber)], ["Financeiro", "Contas a pagar", ERP_DATA.financeiro.contasPagar.length, formatBRL(pagar)], ["Frota", "Veículos", ERP_DATA.cadastro.veiculos.length, ERP_DATA.cadastro.veiculos.filter(v => v.status === "Operacional").length + " operacionais"], ["Estoque", "Valor em estoque", ERP_DATA.cadastro.produtos.length, formatBRL(estoque)], ["Administrativo", "Documentos", ERP_DATA.administrativo.documentos.length, ERP_DATA.administrativo.documentos.filter(d => d.status === "Válido").length + " válidos"]];
-  table.innerHTML = rows.map(row => `<tr><td><strong>${row[0]}</strong></td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td></tr>`).join("");
-  const detailGroups = [["Contratos", ERP_DATA.comercial.contratos.map(c => `${c.id} - ${c.titulo} - ${c.parceiro} - ${formatBRL(c.valorMensal)}`)], ["Produtos e Serviços", ERP_DATA.cadastro.produtos.map(p => `${p.id} - ${p.nome} - ${p.categoria} - ${formatBRL(p.precoVenda)}`)], ["Financeiro", [...ERP_DATA.financeiro.contasReceber.map(r => `${r.id} - Receber - ${r.cliente} - ${formatBRL(r.valor)}`), ...ERP_DATA.financeiro.contasPagar.map(p => `${p.id} - Pagar - ${p.fornecedor} - ${formatBRL(p.valor)}`)]], ["Frota", [...ERP_DATA.frota.manutencoes.map(m => `${m.id} - ${m.veiculo} - ${m.servico}`), ...ERP_DATA.frota.multas.map(m => `${m.id} - ${m.veiculo} - ${m.infracao}`)]], ["Documentos e Fiscal", [...ERP_DATA.administrativo.documentos.map(d => `${d.id} - ${d.nome} - ${d.status}`), ...ERP_DATA.fiscal.notasEmitidas.map(n => `${n.id} - ${n.destinatario} - ${formatBRL(n.valor)}`)]]];
-  details.innerHTML = detailGroups.map(group => `<section class="report-section"><h4>${group[0]}</h4>${group[1].length ? `<ul>${group[1].map(item => `<li>${item}</li>`).join("")}</ul>` : `<p>Nenhuma informação cadastrada.</p>`}</section>`).join("");
+  if (!kpis || !ERP_DATA) return;
+
+  const range = getRelatorioRange();
+  const contasPagar = (ERP_DATA.financeiro.contasPagar || []).filter(item => isDateInsideRelatorioRange(item.vencimento, range));
+  const contasReceber = (ERP_DATA.financeiro.contasReceber || []).filter(item => isDateInsideRelatorioRange(item.vencimento, range));
+  const abastecimentos = (ERP_DATA.frota.abastecimentos || []).filter(item => isDateInsideRelatorioRange(item.data, range));
+  const valorPagar = sumBy(contasPagar, "valor");
+  const valorReceber = sumBy(contasReceber, "valor");
+  const valorEstoque = (ERP_DATA.cadastro.produtos || []).reduce((sum, p) => sum + ((p.estoqueAtual || 0) * (p.custoMedio || 0)), 0);
+  const valorAbastecimento = sumBy(abastecimentos, "valorTotal");
+
+  kpis.innerHTML = [
+    ["Contas a pagar", formatBRL(valorPagar), `${contasPagar.length} lançamento(s)`],
+    ["Contas a receber", formatBRL(valorReceber), `${contasReceber.length} lançamento(s)`],
+    ["Saldo unificado", formatBRL(valorReceber - valorPagar), "Receber menos pagar"],
+    ["Contratos", `${ERP_DATA.comercial.contratos.length} contrato(s)`, `${ERP_DATA.comercial.contratos.filter(c => getContractValidityStatus(c) === "Vence em 30 dias").length} próximo(s) do vencimento`],
+    ["Estoque", formatBRL(valorEstoque), `${ERP_DATA.cadastro.produtos.length} item(ns)`],
+    ["Veicular", formatBRL(valorAbastecimento), `${abastecimentos.length} abastecimento(s)`]
+  ].map(item => `<div class="report-kpi"><span>${item[0]}</span><strong>${item[1]}</strong><em>${item[2]}</em></div>`).join("");
+
+  const pagarBody = document.getElementById("relatorio-contas-pagar-body");
+  if (pagarBody) {
+    pagarBody.innerHTML = contasPagar.length ? contasPagar.map(item => `
+      <tr><td>${formatDateBR(item.vencimento)}</td><td><strong>${escapeHtml(item.descricao)}</strong></td><td>${escapeHtml(item.fornecedor)}</td><td>${relatorioStatusBadge(item.status)}</td><td>${formatBRL(item.valor)}</td></tr>
+    `).join("") : relatorioEmptyRow(5, "Nenhuma conta a pagar no período selecionado.");
+  }
+
+  const receberBody = document.getElementById("relatorio-contas-receber-body");
+  if (receberBody) {
+    receberBody.innerHTML = contasReceber.length ? contasReceber.map(item => `
+      <tr><td>${formatDateBR(item.vencimento)}</td><td><strong>${escapeHtml(item.descricao)}</strong></td><td>${escapeHtml(item.cliente)}</td><td>${relatorioStatusBadge(item.status)}</td><td>${formatBRL(item.valor)}</td></tr>
+    `).join("") : relatorioEmptyRow(5, "Nenhuma conta a receber no período selecionado.");
+  }
+
+  const unified = [
+    ...contasPagar.map(item => ({ ...item, tipo: "Pagar", parceiro: item.fornecedor, sinal: -1 })),
+    ...contasReceber.map(item => ({ ...item, tipo: "Receber", parceiro: item.cliente, sinal: 1 }))
+  ].sort((a, b) => (parseFinancialDate(a.vencimento) || 0) - (parseFinancialDate(b.vencimento) || 0));
+  const unificadasBody = document.getElementById("relatorio-contas-unificadas-body");
+  if (unificadasBody) {
+    unificadasBody.innerHTML = unified.length ? unified.map(item => `
+      <tr><td>${formatDateBR(item.vencimento)}</td><td><span class="badge ${item.tipo === "Receber" ? "badge-success" : "badge-danger"}">${item.tipo}</span></td><td><strong>${escapeHtml(item.descricao)}</strong></td><td>${escapeHtml(item.parceiro)}</td><td>${relatorioStatusBadge(item.status)}</td><td>${formatBRL((item.valor || 0) * item.sinal)}</td></tr>
+    `).join("") : relatorioEmptyRow(6, "Nenhuma conta unificada no período selecionado.");
+  }
+
+  const contratosBody = document.getElementById("relatorio-contratos-body");
+  if (contratosBody) {
+    contratosBody.innerHTML = ERP_DATA.comercial.contratos.length ? ERP_DATA.comercial.contratos.map(contract => {
+      const status = getContractValidityStatus(contract);
+      return `<tr><td><strong>${escapeHtml(contract.titulo)}</strong></td><td>${escapeHtml(contract.tipo)}</td><td>${escapeHtml(contract.parceiro)}</td><td>${formatDateBR(contract.vigenciaInicio)}</td><td>${formatDateBR(contract.vigenciaFim)}</td><td>${relatorioStatusBadge(status)}</td><td>${formatBRL(contract.valorMensal)}</td></tr>`;
+    }).join("") : relatorioEmptyRow(7, "Nenhum contrato cadastrado.");
+  }
+
+  const estoqueBody = document.getElementById("relatorio-estoque-body");
+  if (estoqueBody) {
+    estoqueBody.innerHTML = ERP_DATA.cadastro.produtos.length ? ERP_DATA.cadastro.produtos.map(product => {
+      const status = product.estoqueAtual < 10 ? "Crítico" : "Estável";
+      return `<tr><td><strong>${escapeHtml(product.nome)}</strong></td><td>${escapeHtml(product.categoria)}</td><td>${product.estoqueAtual || 0}</td><td>${formatBRL(product.custoMedio || 0)}</td><td>${formatBRL((product.estoqueAtual || 0) * (product.custoMedio || 0))}</td><td>${product.validade ? formatDateBR(product.validade) : "Sem validade"}</td><td>${relatorioStatusBadge(status)}</td></tr>`;
+    }).join("") : relatorioEmptyRow(7, "Nenhum produto cadastrado.");
+  }
+
+  const abastecimentoBody = document.getElementById("relatorio-veicular-abastecimento-body");
+  if (abastecimentoBody) {
+    abastecimentoBody.innerHTML = abastecimentos.length ? abastecimentos.map(item => `
+      <tr><td>${formatDateBR(item.data)}</td><td><strong>${escapeHtml(item.veiculo)}</strong></td><td>${escapeHtml(item.combustivel)}</td><td>${item.litros || 0}</td><td>${item.kmAtual || "-"}</td><td>${formatBRL(item.valorTotal || 0)}</td></tr>
+    `).join("") : relatorioEmptyRow(6, "Nenhum abastecimento no período selecionado.");
+  }
+
+  const documentacaoBody = document.getElementById("relatorio-veicular-documentacao-body");
+  if (documentacaoBody) {
+    documentacaoBody.innerHTML = ERP_DATA.cadastro.veiculos.length ? ERP_DATA.cadastro.veiculos.map(vehicle => {
+      const docStatus = getVehicleDocStatus(vehicle);
+      return `<tr><td><strong>${escapeHtml(vehicle.placa)}</strong></td><td>${escapeHtml(`${vehicle.marca || ""} ${vehicle.modelo || ""}`.trim())}</td><td>${relatorioStatusBadge(vehicle.status)}</td><td>${formatDateBR(vehicle.vencimentoLicenciamento)}</td><td>${relatorioStatusBadge(docStatus)}</td></tr>`;
+    }).join("") : relatorioEmptyRow(5, "Nenhum veículo cadastrado.");
+  }
   lucide.createIcons();
 }
 // ============================================================
