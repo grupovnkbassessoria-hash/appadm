@@ -201,7 +201,30 @@ export const initialData = {
         comercial: { orcamentos: [], pedidos: [], contratos: [] },
         cadastro: { clientes: [], fornecedores: [], colaboradores: [], veiculos: [], produtos: [] },
         fiscal: { notasEmitidas: [], comunicacaoContabilidade: { ultimoEnvio: '', arquivosPendentes: 0, competenciaAtual: '' } },
-        financeiro: { contasPagar: [], contasReceber: [], fluxoCaixa: { diario: [], saldoAtual: 0, projecaoMes: 0 } },
+        financeiro: {
+          contasPagar: [
+            { id: "PAG-001", descricao: "DAS-MEI (1/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2026-08-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-002", descricao: "DAS-MEI (2/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2026-09-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-003", descricao: "DAS-MEI (3/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2026-10-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-004", descricao: "DAS-MEI (4/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2026-11-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-005", descricao: "DAS-MEI (5/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2026-12-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-006", descricao: "DAS-MEI (6/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2027-01-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-007", descricao: "DAS-MEI (7/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2027-02-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-008", descricao: "DAS-MEI (8/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2027-03-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-009", descricao: "DAS-MEI (9/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2027-04-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-010", descricao: "DAS-MEI (10/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2027-05-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-011", descricao: "DAS-MEI (11/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2027-06-20", valor: 87.05, status: "A Pagar" },
+            { id: "PAG-012", descricao: "DAS-MEI (12/12)", fornecedor: "RECEITA FEDERAL", vencimento: "2027-07-20", valor: 87.05, status: "A Pagar" }
+          ],
+          contasReceber: [
+            { id: "REC-003", descricao: "RESCISÃO DE CONTRATO (1/3)", cliente: "NOVO HORIZONTE CASA DOS IDOSOS LTDA - ME", vencimento: "2026-09-10", valor: 316.80, status: "A Receber" },
+            { id: "REC-004", descricao: "RESCISÃO DE CONTRATO (2/3)", cliente: "NOVO HORIZONTE CASA DOS IDOSOS LTDA - ME", vencimento: "2026-10-10", valor: 316.80, status: "A Receber" },
+            { id: "REC-005", descricao: "RESCISÃO DE CONTRATO (3/3)", cliente: "NOVO HORIZONTE CASA DOS IDOSOS LTDA - ME", vencimento: "2026-11-10", valor: 316.80, status: "A Receber" },
+            { id: "FAT-002", descricao: "Rescisão Contratual - Pc. 02/05", cliente: "NOVO HORIZONTE CASA DOS IDOSOS LTDA - ME", vencimento: "2026-08-10", valor: 316.80, status: "A Receber" },
+            { id: "FAT-001", descricao: "Fatura Contrato: Assessoria e Consultoria Administrativa", cliente: "L. MENDES DE OLIVEIRA COMERCIAL LTDA", vencimento: "2026-08-07", valor: 2500.00, status: "A Receber" }
+          ],
+          fluxoCaixa: { diario: [], saldoAtual: 0, projecaoMes: 0 }
+        },
         rh: { contratosTrabalho: [] },
         frota: { manutencoes: [], abastecimentos: [], multas: [] },
         estoque: { movimentacoes: [] },
