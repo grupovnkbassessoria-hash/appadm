@@ -3104,7 +3104,7 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
   const fat = ERP_DATA.financeiro.contasReceber.find(item => item.id === recId);
   if (!fat) return;
   const comp = getActiveCompany();
-  const pixKey = comp ? comp.pixKey : 'chave-pix-nao-configurada';
+  const pixKey = normalizePixKey(comp ? comp.pixKey : 'chave-pix-nao-configurada');
   const razaoSocial = comp ? comp.razaoSocial : 'Empresa';
   const cnpj = comp ? comp.cnpj : '00.000.000/0001-00';
   const today = new Date();
@@ -3204,7 +3204,7 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
 };
 
 function buildPixPayload({ pixKey, merchantName, merchantCity, amount, txid }) {
-  const merchantAccount = emv("00", "BR.GOV.BCB.PIX") + emv("01", String(pixKey || ""));
+  const merchantAccount = emv("00", "BR.GOV.BCB.PIX") + emv("01", normalizePixKey(pixKey));
   const payloadWithoutCrc =
     emv("00", "01") +
     emv("26", merchantAccount) +
@@ -3217,6 +3217,12 @@ function buildPixPayload({ pixKey, merchantName, merchantCity, amount, txid }) {
     emv("62", emv("05", sanitizePixText(txid || "FAT").slice(0, 25))) +
     "6304";
   return payloadWithoutCrc + crc16Pix(payloadWithoutCrc);
+}
+
+function normalizePixKey(value) {
+  const key = String(value || "").trim();
+  const numericKey = key.replace(/[.\-/\s]/g, "");
+  return /^\d{11}$/.test(numericKey) || /^\d{14}$/.test(numericKey) ? numericKey : key;
 }
 
 function emv(id, value) {
