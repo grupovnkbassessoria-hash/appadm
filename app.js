@@ -2401,6 +2401,34 @@ function initFinanceiro() {
   window.receiveBill = (id) => {
     const bill = ERP_DATA.financeiro.contasReceber.find(b => b.id === id);
     if (bill) {
+      const todayIso = new Date().toISOString().split("T")[0];
+      const paymentDate = prompt("Data do pagamento (AAAA-MM-DD):", todayIso);
+      if (!paymentDate) return;
+      const update = calculateUpdatedReceivableAmount(bill, paymentDate);
+      if (!update) {
+        alert("Data inválida. Informe no formato AAAA-MM-DD.");
+        return;
+      }
+      const paymentSummary = [
+        `Data do pagamento: ${formatDateBR(update.newDueIso)}`,
+        `Dias em atraso: ${update.overdueDays}`,
+        `Valor original: ${formatBRL(update.baseValue)}`,
+        `Multa (2%): ${formatBRL(update.penalty)}`,
+        `Juros (1% ao mês): ${formatBRL(update.interest)}`,
+        `Correção monetária IPCA (1,2%): ${formatBRL(update.monetaryCorrection)}`,
+        `Honorários de cobrança (10%): ${formatBRL(update.collectionFee)}`,
+        `Valor recebido: ${formatBRL(update.total)}`
+      ].join("\n");
+      if (!confirm(`${paymentSummary}\n\nConfirmar o recebimento?`)) return;
+      bill.valorOriginalAtualizacao = bill.valorOriginalAtualizacao || update.baseValue;
+      bill.vencimentoOriginalAtualizacao = bill.vencimentoOriginalAtualizacao || bill.vencimento || "";
+      bill.valor = update.total;
+      bill.dataPagamento = update.newDueIso;
+      bill.multaAtualizacao = update.penalty;
+      bill.jurosAtualizacao = update.interest;
+      bill.correcaoMonetariaAtualizacao = update.monetaryCorrection;
+      bill.honorariosCobrancaAtualizacao = update.collectionFee;
+      bill.diasAtrasoAtualizacao = update.overdueDays;
       bill.status = "Recebido";
       // Add to Balance
       ERP_DATA.financeiro.fluxoCaixa.saldoAtual += bill.valor;
@@ -2425,11 +2453,13 @@ function initFinanceiro() {
       `Valor original: ${formatBRL(update.baseValue)}`,
       `Multa (2%): ${formatBRL(update.penalty)}`,
       `Juros (1% ao mês): ${formatBRL(update.interest)}`,
+      `Correção monetária IPCA (1,2%): ${formatBRL(update.monetaryCorrection)}`,
+      `Honorários de cobrança (10%): ${formatBRL(update.collectionFee)}`,
       `Dias em atraso: ${update.overdueDays}`,
       `Novo vencimento: ${formatDateBR(update.newDueIso)}`,
       `Valor atualizado: ${formatBRL(update.total)}`
     ].join("\n");
-    if (!confirm(`${confirmMessage}\n\nAtualizar este lançamento para gerar novo boleto?`)) return;
+    if (!confirm(`${confirmMessage}\n\nAtualizar este lançamento? O QR Code Pix permanece o mesmo.`)) return;
 
     bill.valorOriginalAtualizacao = bill.valorOriginalAtualizacao || update.baseValue;
     bill.vencimentoOriginalAtualizacao = bill.vencimentoOriginalAtualizacao || bill.vencimento || "";
@@ -2437,16 +2467,13 @@ function initFinanceiro() {
     bill.vencimento = update.newDueIso;
     bill.multaAtualizacao = update.penalty;
     bill.jurosAtualizacao = update.interest;
+    bill.correcaoMonetariaAtualizacao = update.monetaryCorrection;
+    bill.honorariosCobrancaAtualizacao = update.collectionFee;
     bill.diasAtrasoAtualizacao = update.overdueDays;
     bill.status = "A Receber";
-    bill.boletoGerado = false;
     saveState();
     renderFinanceiroTables();
     updateDashboardKPIs();
-
-    if (confirm("Gerar o boleto atualizado agora?")) {
-      gerarBoletoPdf(bill.id, bill.id);
-    }
   };
 
   window.editPayableBill = (id) => {
@@ -2754,11 +2781,15 @@ function calculateUpdatedReceivableAmount(bill, newDueValue) {
   const overdueDays = oldDueDate ? Math.max(0, Math.ceil((newDueDate - oldDueDate) / (1000 * 60 * 60 * 24))) : 0;
   const penalty = overdueDays > 0 ? baseValue * 0.02 : 0;
   const interest = overdueDays > 0 ? baseValue * 0.01 * (overdueDays / 30) : 0;
-  const total = Math.round((baseValue + penalty + interest) * 100) / 100;
+  const monetaryCorrection = overdueDays > 0 ? baseValue * 0.012 : 0;
+  const collectionFee = overdueDays > 0 ? baseValue * 0.10 : 0;
+  const total = Math.round((baseValue + penalty + interest + monetaryCorrection + collectionFee) * 100) / 100;
   return {
     baseValue,
     penalty: Math.round(penalty * 100) / 100,
     interest: Math.round(interest * 100) / 100,
+    monetaryCorrection: Math.round(monetaryCorrection * 100) / 100,
+    collectionFee: Math.round(collectionFee * 100) / 100,
     overdueDays,
     total,
     newDueIso: isoFromFinancialDate(newDueDate)
@@ -3080,12 +3111,10 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
   const vencimento = fat.vencimento || emissao;
   const emissaoBR = formatDateBR(emissao);
   const vencimentoBR = formatDateBR(vencimento);
-  const linhaDigitavel = "00190.00009 00000.000000 00000.000000 1 " + String(Math.round((fat.valor || 0) * 100)).padStart(10, "0");
   const pixPayload = buildPixPayload({
     pixKey,
     merchantName: razaoSocial,
     merchantCity: "BRASIL",
-    amount: fat.valor || 0,
     txid: (fat.id || fallbackFatId || "FAT").replace(/[^A-Za-z0-9]/g, "").slice(0, 25)
   });
   const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=" + encodeURIComponent(pixPayload);
@@ -3117,13 +3146,21 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
       </div>
       <div>
         <strong>Pagamento via Pix</strong>
-        <p>Escaneie o QR Code no aplicativo do banco ou use o Pix copia e cola abaixo.</p>
+        <p>Escaneie o QR Code no aplicativo do banco ou use o Pix copia e cola abaixo. Confira e informe o valor atualizado no momento do pagamento.</p>
         <div class="copy">${pixPayload}</div>
       </div>
     </div>
-    <div class="barcode">${linhaDigitavel}</div>
-    <div class="bars">${Array.from({ length: 42 }, (_, i) => `<span style="width:${(i % 4) + 2}px"></span>`).join("")}</div>
-    <div class="footer">Documento gerado pelo APP ADM para impressão/PDF. Para cobrança bancária registrada, envie os dados ao banco/integrador responsável.</div>
+    <div class="observations">
+      <strong>Observações — em caso de atraso no pagamento:</strong>
+      <ul>
+        <li>Multa: 2%</li>
+        <li>Juros: 1% a.m.</li>
+        <li>Correção monetária IPCA: 1,2%</li>
+        <li>Honorários de cobrança: 10%</li>
+      </ul>
+      <p>O valor atualizado é calculado na confirmação do pagamento, sem necessidade de emitir um novo QR Code.</p>
+    </div>
+    <div class="footer">Documento de cobrança Pix gerado pelo APP ADM para impressão/PDF.</div>
   </section>`;
   const branded = wrapPdfWithBranding(contentHtml, `
     body { font-family: Arial, sans-serif; color: #111827; margin: 20px; }
@@ -3138,9 +3175,9 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
     .pix p { margin: 6px 0; }
     .copy { word-break: break-all; font-family: "Courier New", monospace; font-size: 9px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 7px; margin-top: 6px; }
     .amount { font-size: 21px; font-weight: 800; }
-    .barcode { margin-top: 12px; border: 1px solid #111827; padding: 10px; font-family: "Courier New", monospace; font-size: 16px; letter-spacing: 1px; text-align: center; }
-    .bars { display: flex; height: 38px; gap: 3px; align-items: stretch; justify-content: center; margin-top: 8px; }
-    .bars span { background: #111827; display: block; }
+    .observations { margin-top: 12px; border: 1px solid #111827; padding: 10px; font-size: 11px; }
+    .observations ul { margin: 7px 0; padding-left: 20px; }
+    .observations p { margin: 7px 0 0; }
     .footer { margin-top: 12px; font-size: 10px; color: #374151; border-top: 1px dashed #9ca3af; padding-top: 8px; }
     @page { size: A4; margin: 8mm; }
     @media print { body { margin: 0; } .doc { border: 0; } }
@@ -3172,7 +3209,7 @@ function buildPixPayload({ pixKey, merchantName, merchantCity, amount, txid }) {
     emv("26", merchantAccount) +
     emv("52", "0000") +
     emv("53", "986") +
-    emv("54", Number(amount || 0).toFixed(2)) +
+    (Number(amount) > 0 ? emv("54", Number(amount).toFixed(2)) : "") +
     emv("58", "BR") +
     emv("59", sanitizePixText(merchantName || "EMPRESA").slice(0, 25)) +
     emv("60", sanitizePixText(merchantCity || "BRASIL").slice(0, 15)) +
