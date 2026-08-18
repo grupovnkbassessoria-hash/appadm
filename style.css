@@ -1210,6 +1210,7 @@ tr:hover td {
 .commercial-actions .btn-icon-only { width: 34px; height: 34px; }
 .finance-actions { display: flex; flex-wrap: nowrap; gap: 0.35rem; align-items: center; justify-content: flex-start; min-width: 118px; }
 .finance-actions .btn-icon-only { width: 34px; height: 34px; }
+.finance-actions .finance-boleto-btn { padding: 0.45rem 0.65rem; white-space: nowrap; font-size: 0.78rem; }
 
 
 /* Product catalog management */

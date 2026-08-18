@@ -2995,6 +2995,7 @@ function renderFinanceiroTables() {
           <div class="finance-actions">
             ${b.status !== 'Recebido' ? `<button class="btn btn-secondary btn-icon-only" onclick="receiveBill('${b.id}')" title="Receber Valor"><i data-lucide="arrow-down-left"></i></button>` : ''}
             ${b.status !== 'Recebido' ? `<button class="btn btn-secondary btn-icon-only" onclick="updateReceivableAmount('${b.id}')" title="Calcular valor atualizado"><i data-lucide="calculator"></i></button>` : ''}
+            <button class="btn btn-primary finance-boleto-btn" onclick="gerarBoletoPdf('${b.id}', '${b.id}')" title="Gerar fatura/boleto Pix"><i data-lucide="file-text"></i> Fatura/Boleto</button>
             <button class="btn btn-secondary btn-icon-only" onclick="editReceivableBill('${b.id}')" title="Editar"><i data-lucide="pencil"></i></button>
             <button class="btn btn-danger btn-icon-only" onclick="deleteReceivableBill('${b.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
           </div>
