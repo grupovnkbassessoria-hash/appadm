@@ -2459,7 +2459,7 @@ function initFinanceiro() {
       `Novo vencimento: ${formatDateBR(update.newDueIso)}`,
       `Valor atualizado: ${formatBRL(update.total)}`
     ].join("\n");
-    if (!confirm(`${confirmMessage}\n\nAtualizar este lançamento? O QR Code Pix permanece o mesmo.`)) return;
+    if (!confirm(`${confirmMessage}\n\nAtualizar este lançamento? Será necessário gerar novamente a fatura/boleto para atualizar o valor do QR Code.`)) return;
 
     bill.valorOriginalAtualizacao = bill.valorOriginalAtualizacao || update.baseValue;
     bill.vencimentoOriginalAtualizacao = bill.vencimentoOriginalAtualizacao || bill.vencimento || "";
@@ -2471,6 +2471,7 @@ function initFinanceiro() {
     bill.honorariosCobrancaAtualizacao = update.collectionFee;
     bill.diasAtrasoAtualizacao = update.overdueDays;
     bill.status = "A Receber";
+    bill.boletoGerado = false;
     saveState();
     renderFinanceiroTables();
     updateDashboardKPIs();
@@ -3116,6 +3117,7 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
     pixKey,
     merchantName: razaoSocial,
     merchantCity: "BRASIL",
+    amount: fat.valor || 0,
     txid: (fat.id || fallbackFatId || "FAT").replace(/[^A-Za-z0-9]/g, "").slice(0, 25)
   });
   const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=" + encodeURIComponent(pixPayload);
@@ -3147,7 +3149,7 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
       </div>
       <div>
         <strong>Pagamento via Pix</strong>
-        <p>Escaneie o QR Code no aplicativo do banco ou use o Pix copia e cola abaixo. Confira e informe o valor atualizado no momento do pagamento.</p>
+        <p>Escaneie o QR Code no aplicativo do banco ou use o Pix copia e cola abaixo. O valor de ${formatBRL(fat.valor || 0)} será preenchido automaticamente.</p>
         <div class="copy">${pixPayload}</div>
       </div>
     </div>
@@ -3159,7 +3161,7 @@ window.gerarBoletoPdf = function(recId, fallbackFatId) {
         <li>Correção monetária IPCA: 1,2%</li>
         <li>Honorários de cobrança: 10%</li>
       </ul>
-      <p>O valor atualizado é calculado na confirmação do pagamento, sem necessidade de emitir um novo QR Code.</p>
+      <p>Após atualizar uma cobrança vencida, gere novamente a fatura/boleto para que o QR Code contenha o novo valor.</p>
     </div>
     <div class="footer">Documento de cobrança Pix gerado pelo APP ADM para impressão/PDF.</div>
   </section>`;
