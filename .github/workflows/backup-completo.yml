@@ -23,6 +23,7 @@ jobs:
           mkdir -p backup
           tar \
             --exclude='./backup' \
+            --exclude='./local-data' \
             --exclude='./.git' \
             --exclude='./node_modules' \
             --exclude='./dist' \
